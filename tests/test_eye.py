@@ -28,12 +28,12 @@ warp=eye.perspective_transform(img,corners)
 #get a more accurate hsv color of the pool table cloth using only the pool table pixels (wrap img)
 hsv=cv2.cvtColor(warp.copy(), cv2.COLOR_BGR2HSV)
 lower_color, upper_color = eye.get_cloth_color(hsv,search_width=25)
-wrapped_mask,wrapped_median=eye.color_segmentation(hsv, lower_color, upper_color,filter_radius=17)
-cv2.imwrite('wrapped_median.png', wrapped_median)
+warped_mask,warped_median=eye.color_segmentation(hsv, lower_color, upper_color,filter_radius=17)
+cv2.imwrite('./results/warped_median.png', warped_median)
 
-numbered_single_blobs, single_centroids, single_blobs,connected_blobs = eye.find_ball_bolbs(wrapped_median,connectivity=8,min_size=20000, max_size=40000,thresh_convexity=0.95, thresh_roundness=0.85)
-cv2.imwrite('single_blobs.png', single_blobs)
-cv2.imwrite('connected_blobs.png', connected_blobs)
+numbered_single_blobs, single_centroids, single_blobs,connected_blobs = eye.find_ball_bolbs(warped_median,connectivity=8,min_size=20000, max_size=40000,thresh_convexity=0.95, thresh_roundness=0.85)
+cv2.imwrite('./results/single_blobs.png', single_blobs)
+cv2.imwrite('./results/connected_blobs.png', connected_blobs)
 
 labeled_balls=warp.copy()
 if cv2.countNonZero(single_blobs)!=0:
@@ -44,7 +44,7 @@ if cv2.countNonZero(single_blobs)!=0:
         labeled_balls=cv2.putText(labeled_balls.copy(), "#{}".format(ball_num), (int(x) - 10, int(y)),
 		cv2.FONT_HERSHEY_SIMPLEX, 0.9, (0, 255, 0), 2)
     
-    cv2.imwrite('labeled_balls.png', labeled_balls)
+    cv2.imwrite('./results/labeled_balls.png', labeled_balls)
 
 if cv2.countNonZero(connected_blobs)!=0:
     numbered_connected_blobs,connected_centroids=eye.split_connected_balls_v2(connected_blobs)
@@ -55,4 +55,4 @@ if cv2.countNonZero(connected_blobs)!=0:
         labeled_balls=cv2.putText(labeled_balls.copy(), "#{}".format(ball_num), (int(x) - 10, int(y)),
 		cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 255, 0), 2)
     
-    cv2.imwrite('labeled_balls.png', labeled_balls)
+    cv2.imwrite('./results/labeled_balls.png', labeled_balls)
