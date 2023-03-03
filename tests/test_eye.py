@@ -2,7 +2,7 @@ import cv2
 from pool.eye import Eye
 
 #read image with random ball config
-img = cv2.imread('random_config.jpg')
+img = cv2.imread('./test_images/random_config.jpg')
 eye=Eye()
 eye.color_to_lab={
     'white': [227, 130, 148],
