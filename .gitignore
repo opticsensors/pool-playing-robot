@@ -7,8 +7,7 @@ dist/
 __pycache__/
 *.so
 *~
-tests/*.png
-tests/results/
+#tests/results/ #I do this by adding a gitignore file inside the results directory
 
 
 # due to using tox and pytest
