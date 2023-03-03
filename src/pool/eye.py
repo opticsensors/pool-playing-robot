@@ -159,6 +159,10 @@ class Eye(object):
         return lower_color, upper_color
 
     def color_segmentation(self,hsv, lower_color, upper_color,filter_radius):
+        """
+        Find the region where pixels are between lower_color and upper_color
+        """
+
         # Threshold the HSV image to get only cloth colors
         mask = cv2.inRange(hsv, lower_color, upper_color)
 
@@ -171,18 +175,19 @@ class Eye(object):
         return inverted_mask,inverted_median
 
     def perspective_transform(self,image, corners):
+        """
+        4 point prespective transform.
+        Aligns pool table edges with image edges.
+        """
 
         # Order points in clockwise order:
-
         # First, we separate corners into individual points
         # Index 0 - top-right
         #       1 - top-left
         #       2 - bottom-left
         #       3 - bottom-right
-        #corners = [(corner[0][0], corner[0][1]) for corner in corners]
         top_r, top_l, bottom_l, bottom_r = corners[0], corners[1], corners[2], corners[3]
         ordered_corners= (top_l, top_r, bottom_r, bottom_l)
-
         top_l, top_r, bottom_r, bottom_l = ordered_corners
 
         # Determine width of new image which is the max distance between 
@@ -214,44 +219,34 @@ class Eye(object):
 
     def find_ball_bolbs(self,thresh,connectivity,min_size, max_size, thresh_convexity, thresh_roundness):
         """
-        Finds all image blobs that are below an area threshold and gets rid of them.
+        Finds all image blobs that are below or between an area threshold and gets rid of them.
         Those dots aren't considered part of the pattern and they are classified as noise.
         
         Parameters
         ----------
-            thresh: npy array
-                Thresholded image (this image is binary, i.e., it only contains pixels
-                values of 0 or 255).
-            dot_min_size: int
-                Minimum area that a blob can have and not be classified as noise.
         
         """
         #find all your connected components (white blobs in your image)
         nb_components, output, stats, centroids = cv2.connectedComponentsWithStats(thresh, 
                                                                                     connectivity=connectivity)
         #connectedComponentswithStats yields every seperated component with information on each of them, such as size
-        #the following part is just taking out the background which is also considered a component, but most of the time we don't want that.
-        #sizes = stats[1:, -1] 
-        #centroids = centroids[1:, :]
-        #nb_components = nb_components - 1
         
-        # minimum size of particles we want to keep (number of pixels)
-        #here, it's a fixed value, but you can set it as you want, eg the mean of the sizes or whatever
-        
+        #size of all found blobs (the first one is the background)
         sizes = stats[:, -1] 
+        # we have to treat single and connected blobs differently:
+        # we will save the labeled and binary image for single blobs, and only the binary image for onnected blobs
         numbered_single_blobs=np.zeros((output.shape), dtype=np.uint8)
-        #numbered_connected_blobs=np.zeros((output.shape), dtype=np.uint8)
-        connected_blobs=np.zeros((output.shape), dtype=np.uint8)
         single_blobs=np.zeros((output.shape), dtype=np.uint8)
+        connected_blobs=np.zeros((output.shape), dtype=np.uint8)
 
+        # we will also save the centroid information for single blob
         d_single_centroids={}
         single_ball_number=1
-        #d_connected_centroids={}
-        #connected_ball_number=1
 
-        #for every component in the image, you keep it only if it's between min_size and max_size
-        for i in range(1, nb_components): #we satrt at 1 because first element is bg
+        #we satrt at 1 because first element is bg
+        for i in range(1, nb_components): 
 
+            #we analize one blob at a time
             blob= np.zeros((thresh.shape), dtype=np.uint8)#1 ch
             blob[output==i] = 255
             table = dip.MeasurementTool.Measure(blob, features=["Convexity", "Roundness"])
@@ -259,27 +254,33 @@ class Eye(object):
             convexity=table[:,0]
             roundness=table[:,1]
 
+            # check if blob is between desired sizes
             if min_size<sizes[i] <max_size:
-
+                
+                #if convexity of blob is below thresh, blob is two or more balls touching
                 if convexity<thresh_convexity :
                     connected_blobs[output == i]=255
-                    #numbered_connected_blobs, d_connected_centroids= self.split_connected_balls_v2(connected_blobs)
-                    #d_connected_centroids[connected_ball_number]=list(centroids[i])
-                    #connected_ball_number+=1
+
+                # if roundness is above thresh, blob is circular and it is a single ball
                 if roundness>thresh_roundness:
                     numbered_single_blobs[output == i] = single_ball_number
                     single_blobs[output == i] = 255
                     d_single_centroids[single_ball_number]=list(centroids[i])
                     single_ball_number+=1
+
                 #print(i,convexity, roundness)
 
         return numbered_single_blobs, d_single_centroids, single_blobs,connected_blobs
 
     def classify_balls(self,img,numbered_balls,d_centroids,color_space='hsv'):
+        """
+        For each labeled blob, we need to decide its color (white, yellow, ...) and its type (solid, striped)
+        """
 
-        #new_numbered_balls=np.zeros_like(numbered_balls)
+        #converts the default labeled number to the new classified number for each ball
         old_to_new={}
-        #number for detected balls
+
+        #labeled numbers
         unique,_=np.unique(numbered_balls, return_counts=True)
         l_unique=[ball_num for ball_num in unique if ball_num!=0]
 
@@ -292,7 +293,6 @@ class Eye(object):
             x, y, w, h = cv2.boundingRect(contour_ball[0])
             masked_ball=masked_ball[y:y+h, x:x+w]
             masked=masked[y:y+h, x:x+w, :]
-
 
             masked_hsv=cv2.cvtColor(masked, cv2.COLOR_BGR2HSV)
             masked_lab=cv2.cvtColor(masked, cv2.COLOR_BGR2LAB)
