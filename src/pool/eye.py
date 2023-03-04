@@ -55,12 +55,14 @@ class Eye(object):
     }
     
     WHITE_LOWER_LAB=[175, 0, 0]
-
     WHITE_UPPER_LAB=[255, 147, 164]
-
     WHITE_LOWER_HSV=[0, 0, 179]
-
     WHITE_UPPER_HSV=[180, 106, 255]
+
+    BOTTOM_ARUCO_IDS=[23,15,7,6,14,22]
+    TOP_ARUCO_IDS   =[2,10,18,3,11,19]
+    LEFT_ARUCO_IDS  =[20, 12, 4]
+    RIGHT_ARUCO_IDS =[21,13, 5]
     
     def __init__(self, **kwargs):
         param = {  # with defaults
@@ -69,6 +71,10 @@ class Eye(object):
             'lower_hsv': Eye.WHITE_LOWER_HSV,
             'upper_hsv': Eye.WHITE_UPPER_HSV,
             'colors':    Eye.COLOR_TO_LAB,
+            'bottom_aruco_ids':Eye.BOTTOM_ARUCO_IDS,
+            'top_aruco_ids':Eye.TOP_ARUCO_IDS   ,
+            'left_aruco_ids':Eye.LEFT_ARUCO_IDS  ,
+            'right_aruco_ids':Eye.RIGHT_ARUCO_IDS ,
             }
         param.update(kwargs)
         
@@ -77,7 +83,10 @@ class Eye(object):
         self._upper_hsv=param['upper_hsv']
         self._upper_lab=param['upper_lab']
         self._color_to_lab=param['colors']
-
+        self.bottom_aruco_ids=param['bottom_aruco_ids']
+        self.top_aruco_ids=param['top_aruco_ids']
+        self.left_aruco_ids=param['left_aruco_ids']
+        self.right_aruco_ids=param['right_aruco_ids']
 
     @staticmethod
     def _dict_to_arr( color_to_lab):
@@ -90,6 +99,13 @@ class Eye(object):
             lab_arr[num,:]=np.array(lab)
         
         return lab_arr
+
+    @staticmethod
+    def _intersect(line1,line2):
+        vx1,vy1,x1,y1=line1
+        vx2,vy2,x2,y2=line2
+        t = (vy2*(x2-x1)-vx2*(y2-y1))/(vx1*vy2-vx2*vy1)
+        return (x1+vx1*t,y1+vy1*t)
 
     @property
     def lower_hsv(self):
@@ -137,6 +153,60 @@ class Eye(object):
         if isinstance(color_to_lab, dict):
             self._color_to_lab=color_to_lab
 
+    def get_pool_corners(self, img):
+
+        arucoDict=cv2.aruco.DICT_4X4_100
+        arucoDict = cv2.aruco.getPredefinedDictionary(arucoDict)
+        arucoParams = cv2.aruco.DetectorParameters()
+        arucoDetector = cv2.aruco.ArucoDetector(
+            arucoDict, arucoParams)
+
+        corners, ids, rejected = arucoDetector.detectMarkers(img)
+        id_to_centroids={}
+
+        if len(corners) > 0:
+            # flatten the ArUco IDs list
+            ids = ids.flatten()
+            # loop over the detected ArUCo corners
+            for (markerCorner, markerID) in zip(corners, ids):
+                # extract the marker corners (which are always returned in
+                # top-left, top-right, bottom-right, and bottom-left order)
+                corners = markerCorner.reshape((4, 2))
+                (topLeft, topRight, bottomRight, bottomLeft) = corners
+
+                # compute and draw the center (x, y)-coordinates of the ArUco
+                # marker
+                cX = (topLeft[0] + bottomRight[0]) / 2.0
+                cY = (topLeft[1] + bottomRight[1]) / 2.0
+                id_to_centroids[markerID]=(cX,cY)
+
+        bottomLine=np.array([id_to_centroids[aruco_id] for aruco_id in Eye.BOTTOM_ARUCO_IDS])
+        topLine=   np.array([id_to_centroids[aruco_id] for aruco_id in Eye.TOP_ARUCO_IDS])
+        rightLine= np.array([id_to_centroids[aruco_id] for aruco_id in Eye.LEFT_ARUCO_IDS])
+        leftLine=  np.array([id_to_centroids[aruco_id] for aruco_id in Eye.RIGHT_ARUCO_IDS])
+        lines={}
+
+        for edge,position in zip([bottomLine,topLine,rightLine,leftLine], ['bottom', 'top', 'right', 'left']):
+            # apply fitline() function
+            [vx,vy,x,y] = cv2.fitLine(edge,cv2.DIST_L2,0,0.01,0.01)
+            lines[position]=[vx,vy,x,y] 
+        
+        #save corner in the following order
+        #0 - top-right
+        #1 - top-left
+        #2 - bottom-left
+        #3 - bottom-right
+        pool_corners=[]
+        for pair_of_lines in [('top','right'),('top','left'),('bottom','left'), ('bottom','right')]:
+            horizontal,vertical=pair_of_lines
+            hline=lines[horizontal]
+            vline=lines[vertical]
+            cX,cY=self._intersect(hline,vline)
+            corner=(int(cX), int(cY))
+            pool_corners+=[corner]
+
+        return pool_corners
+    
     def get_cloth_color(self,hsv,search_width=45):
         """
         Find the most common HSV values in the image.
