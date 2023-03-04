@@ -31,7 +31,7 @@ lower_color, upper_color = eye.get_cloth_color(hsv,search_width=25)
 warped_mask,warped_median=eye.color_segmentation(hsv, lower_color, upper_color,filter_radius=17)
 cv2.imwrite('./results/warped_median.png', warped_median)
 
-numbered_single_blobs, single_centroids, single_blobs,connected_blobs = eye.find_ball_bolbs(warped_median,connectivity=8,min_size=20000, max_size=40000,thresh_convexity=0.95, thresh_roundness=0.85)
+numbered_single_blobs, single_centroids, single_blobs,connected_blobs = eye.find_ball_bolbs(warped_median,connectivity=8,thresh_convexity=0.95, thresh_roundness=0.85)
 cv2.imwrite('./results/single_blobs.png', single_blobs)
 cv2.imwrite('./results/connected_blobs.png', connected_blobs)
 

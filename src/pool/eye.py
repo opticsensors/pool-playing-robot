@@ -64,6 +64,10 @@ class Eye(object):
     LEFT_ARUCO_IDS  =[20, 12, 4]
     RIGHT_ARUCO_IDS =[21,13, 5]
     
+    RECTANGLE_AREA=382352 #HxV
+    BALL_AREA=1134.115 #PI*RADI^2
+    RATIO_BALL_RECTANGLE=0.00296615132
+
     def __init__(self, **kwargs):
         param = {  # with defaults
             'lower_lab': Eye.WHITE_LOWER_LAB,
@@ -286,8 +290,10 @@ class Eye(object):
         # Return the transformed image
         return cv2.warpPerspective(image, matrix, (width, height))
 
+    def crop_image(self, img, h_offset, v_offset):
+        return img[v_offset:-v_offset, h_offset:-h_offset]
 
-    def find_ball_bolbs(self,thresh,connectivity,min_size, max_size, thresh_convexity, thresh_roundness):
+    def find_ball_bolbs(self,thresh,connectivity, thresh_convexity, thresh_roundness):
         """
         Finds all image blobs that are below or between an area threshold and gets rid of them.
         Those dots aren't considered part of the pattern and they are classified as noise.
@@ -296,6 +302,12 @@ class Eye(object):
         ----------
         
         """
+        factor_of_safety=0.7
+        H=thresh.shape[1]
+        V=thresh.shape[0]
+        min_size=factor_of_safety*H*V*Eye.RATIO_BALL_RECTANGLE 
+        max_size=16*H*V*Eye.RATIO_BALL_RECTANGLE #all balls connected
+
         #find all your connected components (white blobs in your image)
         nb_components, output, stats, centroids = cv2.connectedComponentsWithStats(thresh, 
                                                                                     connectivity=connectivity)
