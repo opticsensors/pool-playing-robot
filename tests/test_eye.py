@@ -3,8 +3,8 @@ import numpy as np
 from pool.eye import Eye
 
 #read image with random ball config
-img = cv2.imread('img_15.jpg')
-bg = cv2.imread('img_0.jpg')
+img = cv2.imread('./results/config_1.jpg')
+bg = cv2.imread('./results/background.jpg')
 
 eye=Eye()
 eye.color_to_lab={
@@ -19,8 +19,8 @@ eye.color_to_lab={
     'black': [58, 129, 136]
 }
 
-eye.lower_lab=[175, 0, 0]
-eye.upper_lab=[255, 147, 164]
+#eye.lower_lab=[175, 0, 0]
+#eye.upper_lab=[255, 147, 164]
 eye.lower_hsv=[0, 0, 120]
 eye.upper_hsv=[56, 147, 255]
 
