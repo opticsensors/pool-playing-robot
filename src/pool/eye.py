@@ -1,6 +1,6 @@
 import cv2
 import numpy as np
-import diplib as dip
+from matplotlib import pyplot as plt
 from skimage.feature import peak_local_max
 from skimage.segmentation import watershed
 from scipy import ndimage
@@ -310,7 +310,7 @@ class Eye(object):
         thresh[bg_mask==255]=0
         return thresh
 
-    def find_ball_bolbs(self,thresh,connectivity, thresh_convexity, thresh_roundness):
+    def remove_small_dots(self,thresh,connectivity):
         """
         Finds all image blobs that are below or between an area threshold and gets rid of them.
         Those dots aren't considered part of the pattern and they are classified as noise.
@@ -320,11 +320,11 @@ class Eye(object):
         
         """
         #define max and min size
-        factor_of_safety=0.7
+        factor_of_safety=0.15
         H=thresh.shape[1]
         V=thresh.shape[0]
         min_size=factor_of_safety*H*V*Eye.RATIO_BALL_RECTANGLE 
-        max_size=16*H*V*Eye.RATIO_BALL_RECTANGLE #all balls connected
+        #max_size=16*H*V*Eye.RATIO_BALL_RECTANGLE #all balls connected
 
         #find all your connected components (white blobs in your image)
         nb_components, output, stats, centroids = cv2.connectedComponentsWithStats(thresh, 
@@ -334,43 +334,57 @@ class Eye(object):
         #size of all found blobs (the first one is the background)
         sizes = stats[:, -1] 
         # we have to treat single and connected blobs differently:
-        # we will save the labeled and binary image for single blobs, and only the binary image for onnected blobs
-        numbered_single_blobs=np.zeros((output.shape), dtype=np.uint8)
-        single_blobs=np.zeros((output.shape), dtype=np.uint8)
-        connected_blobs=np.zeros((output.shape), dtype=np.uint8)
-
-        # we will also save the centroid information for single blob
-        d_single_centroids={}
-        single_ball_number=1
+        # we will save the binary image for interesting blobs
+        blobs=np.zeros((output.shape), dtype=np.uint8)
 
         #we satrt at 1 because first element is bg
         for i in range(1, nb_components): 
             
             # check if blob is between desired sizes
-            if min_size<sizes[i] <max_size:
-                #we analize one blob at a time
-                blob= np.zeros((thresh.shape), dtype=np.uint8)#1 ch
-                blob[output==i] = 255
-                table = dip.MeasurementTool.Measure(blob, features=["Convexity", "Roundness"])
-                table=np.array(table)
-                convexity=table[:,0]
-                roundness=table[:,1]
-                print(i, convexity, roundness)
-                     
-                #if convexity of blob is below thresh, blob is two or more balls touching
-                if convexity<thresh_convexity :
-                    connected_blobs[output == i]=255
+            if sizes[i]>min_size:
+                blobs[output==i] = 255
 
-                # if roundness is above thresh, blob is circular and it is a single ball
-                if roundness>thresh_roundness:
-                    numbered_single_blobs[output == i] = single_ball_number
-                    single_blobs[output == i] = 255
-                    d_single_centroids[single_ball_number]=list(centroids[i])
-                    single_ball_number+=1
+        return blobs
 
-                #print(i,convexity, roundness)
 
-        return numbered_single_blobs, d_single_centroids, single_blobs,connected_blobs
+    def find_ball_blobs(self,thresh):
+
+        d_centroids={}
+
+        # Compute Euclidean distance from every binary pixel
+        # to the nearest zero pixel then find peaks
+        distance_map = ndimage.distance_transform_edt(thresh)
+        local_max = peak_local_max(distance_map, indices=False, min_distance=20, labels=thresh)
+
+        # Perform connected component analysis then apply Watershed
+        markers = ndimage.label(local_max, structure=np.ones((3, 3)))[0]
+        labels = watershed(-distance_map, markers, mask=thresh)
+        #l_unique=[ball_num for ball_num in labels if ball_num!=0]
+
+        for i in np.unique(labels):
+            if i!=0:
+                masked_ball = np.zeros((thresh.shape), dtype=np.uint8)#1 ch
+                masked_ball[labels==i] = 255
+                M = cv2.moments(masked_ball)
+                # calculate x,y coordinate of center
+                centroid= [(M["m10"] / M["m00"]),(M["m01"] / M["m00"])]
+                d_centroids[i]=centroid
+
+        return labels,d_centroids
+
+    def tune_white_color(self,img,numbered_balls):
+        """
+
+        """
+        for i in np.unique(numbered_balls):
+            if i!=0:
+                masked_ball = np.zeros((img.shape[:-1]), dtype=np.uint8)#1 ch
+                masked_ball[numbered_balls==i] = 255
+                masked = cv2.bitwise_and(img, img, mask=masked_ball)
+                contour_ball,_ = cv2.findContours(masked_ball, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+                x, y, w, h = cv2.boundingRect(contour_ball[0])
+                masked=masked[y:y+h, x:x+w, :]
+                cv2.imwrite(f'./masked_{i}.png', masked)
 
     def classify_balls(self,img,numbered_balls,d_centroids,color_space='hsv'):
         """
@@ -380,60 +394,154 @@ class Eye(object):
         #converts the default labeled number to the new classified number for each ball
         old_to_new={}
 
-        #labeled numbers
-        unique,_=np.unique(numbered_balls, return_counts=True)
-        l_unique=[ball_num for ball_num in unique if ball_num!=0]
+        for i in np.unique(numbered_balls):
+            if i!=0:
+                masked_ball = np.zeros((img.shape[:-1]), dtype=np.uint8)#1 ch
+                masked_ball[numbered_balls==i] = 255
+                masked = cv2.bitwise_and(img, img, mask=masked_ball)
+                contour_ball,_ = cv2.findContours(masked_ball, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+                x, y, w, h = cv2.boundingRect(contour_ball[0])
+                masked_ball=masked_ball[y:y+h, x:x+w]
+                masked=masked[y:y+h, x:x+w, :]
 
-        for i in l_unique:
+                masked_hsv=cv2.cvtColor(masked, cv2.COLOR_BGR2HSV)
+                masked_lab=cv2.cvtColor(masked, cv2.COLOR_BGR2LAB)
 
-            masked_ball = np.zeros((img.shape[:-1]), dtype=np.uint8)#1 ch
-            masked_ball[numbered_balls==i] = 255
-            masked = cv2.bitwise_and(img, img, mask=masked_ball)
-            contour_ball,_ = cv2.findContours(masked_ball, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
-            x, y, w, h = cv2.boundingRect(contour_ball[0])
-            masked_ball=masked_ball[y:y+h, x:x+w]
-            masked=masked[y:y+h, x:x+w, :]
-
-            masked_hsv=cv2.cvtColor(masked, cv2.COLOR_BGR2HSV)
-            masked_lab=cv2.cvtColor(masked, cv2.COLOR_BGR2LAB)
-
-            if color_space=='hsv':
-                lower = self.lower_hsv
-                upper = self.upper_hsv
-                thresholded_ball = cv2.inRange(masked_hsv, lower, upper)
-            elif color_space=='lab':
-                lower = self.lower_lab
-                upper = self.upper_lab
-                thresholded_ball = cv2.inRange(masked_lab, lower, upper)
+                if color_space=='hsv':
+                    lower = self.lower_hsv
+                    upper = self.upper_hsv
+                    thresholded_ball = cv2.inRange(masked_hsv, lower, upper)
+                elif color_space=='lab':
+                    lower = self.lower_lab
+                    upper = self.upper_lab
+                    thresholded_ball = cv2.inRange(masked_lab, lower, upper)
+                    
                 
-            
-            num_pixels_ball=np.count_nonzero((numbered_balls==i))
-            num_white_pixels_ball=np.count_nonzero(thresholded_ball)
-            proportion_white_pixels=num_white_pixels_ball/num_pixels_ball
+                num_pixels_ball=np.count_nonzero((numbered_balls==i))
+                num_white_pixels_ball=np.count_nonzero(thresholded_ball)
+                proportion_white_pixels=num_white_pixels_ball/num_pixels_ball
 
-            if 0.15<=proportion_white_pixels<0.85:
-                ball_type='striped'
-            elif proportion_white_pixels<0.15:
-                ball_type='solid'
-            else:
-                ball_type='cue ball'
+                if 0.15<=proportion_white_pixels<0.85:
+                    ball_type='striped'
+                elif proportion_white_pixels<0.15:
+                    ball_type='solid'
+                else:
+                    ball_type='cue ball'
 
-            if ball_type != 'cue ball':
-                avg_lab=masked_lab[(thresholded_ball==0) & (masked_ball==255)].mean(axis=0)
-                
-            else:
-                avg_lab=masked_lab[(masked_ball==255)].mean(axis=0)
+                if ball_type != 'cue ball':
+                    avg_lab=masked_lab[(thresholded_ball==0) & (masked_ball==255)].mean(axis=0)
+                    
+                else:
+                    avg_lab=masked_lab[(masked_ball==255)].mean(axis=0)
 
-            measured_lab=np.tile(avg_lab, (9, 1))#there are 9 colors
-            error=np.sqrt(np.sum(np.power(measured_lab[:,1:] - self.color_to_lab[:,1:], 2), axis=1)) #we use chroma instead of euclidean distance
-            row_with_min_error=np.unravel_index(np.nanargmin(error, axis=None), error.shape)[0]
-            ball_color=Eye.NUM_TO_COLOR[row_with_min_error]
-            ball_number=Eye.COLOR_AND_TYPE_TO_NUM[ball_color][ball_type]
-            old_to_new[i]=ball_number
+                measured_lab=np.tile(avg_lab, (9, 1))#there are 9 colors
+                error=np.sqrt(np.sum(np.power(measured_lab[:,1:] - self.color_to_lab[:,1:], 2), axis=1)) #we use chroma instead of euclidean distance
+                row_with_min_error=np.unravel_index(np.nanargmin(error, axis=None), error.shape)[0]
+                ball_color=Eye.NUM_TO_COLOR[row_with_min_error]
+                ball_number=Eye.COLOR_AND_TYPE_TO_NUM[ball_color][ball_type]
+                old_to_new[i]=ball_number
+                print(f'ball {i}= %white: {proportion_white_pixels}, color: {ball_color}, ball_type: {ball_type}, ball num: {ball_number}')
 
         return {old_to_new[k]: v for k, v in d_centroids.items()}
 
-    def split_connected_balls(self,warp,connected_centroids):
+    def tune_ball_color(self,img,numbered_balls,color_space='hsv'):
+        """
+        """
+
+        for i in np.unique(numbered_balls):
+            if i!=0:
+                masked_ball = np.zeros((img.shape[:-1]), dtype=np.uint8)#1 ch
+                masked_ball[numbered_balls==i] = 255
+                masked = cv2.bitwise_and(img, img, mask=masked_ball)
+                contour_ball,_ = cv2.findContours(masked_ball, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+                x, y, w, h = cv2.boundingRect(contour_ball[0])
+                masked_ball=masked_ball[y:y+h, x:x+w]
+                masked_ball_color = np.zeros_like(masked_ball)#1 ch
+                masked=masked[y:y+h, x:x+w, :]
+                palette=np.zeros((masked.shape), dtype=np.uint8)
+                masked_hsv=cv2.cvtColor(masked, cv2.COLOR_BGR2HSV)
+                masked_lab=cv2.cvtColor(masked, cv2.COLOR_BGR2LAB)
+
+                if color_space=='hsv':
+                    lower = self.lower_hsv
+                    upper = self.upper_hsv
+                    thresholded_ball = cv2.inRange(masked_hsv, lower, upper)
+                elif color_space=='lab':
+                    lower = self.lower_lab
+                    upper = self.upper_lab
+                    thresholded_ball = cv2.inRange(masked_lab, lower, upper)
+                    
+                
+                num_pixels_ball=np.count_nonzero((numbered_balls==i))
+                num_white_pixels_ball=np.count_nonzero(thresholded_ball)
+                proportion_white_pixels=num_white_pixels_ball/num_pixels_ball
+
+                if 0.15<=proportion_white_pixels<0.85:
+                    ball_type='striped'
+                elif proportion_white_pixels<0.15:
+                    ball_type='solid'
+                else:
+                    ball_type='cue ball'
+
+                if ball_type != 'cue ball':
+                    avg_lab=masked_lab[(thresholded_ball==0) & (masked_ball==255)].mean(axis=0)
+                    colored_ball_pixels=masked[(thresholded_ball==0) & (masked_ball==255)]
+                    avg=colored_ball_pixels.mean(axis=0)
+                    palette[:]=avg.astype(np.uint8)
+                    masked_ball_color[(thresholded_ball==0) & (masked_ball==255)]=255
+                else:
+                    avg_lab=masked_lab[(masked_ball==255)].mean(axis=0)
+                    colored_ball_pixels=masked[(masked_ball==255)]
+                    avg=colored_ball_pixels.mean(axis=0)
+                    palette[:]=avg.astype(np.uint8)
+                    masked_ball_color[(masked_ball==255)]=255
+
+                measured_lab=np.tile(avg_lab, (9, 1))#there are 9 colors
+                error=np.sqrt(np.sum(np.power(measured_lab[:,1:] - self.color_to_lab[:,1:], 2), axis=1)) #we use chroma instead of euclidean distance
+                row_with_min_error=np.unravel_index(np.nanargmin(error, axis=None), error.shape)[0]
+                ball_color=Eye.NUM_TO_COLOR[row_with_min_error]
+                ball_number=Eye.COLOR_AND_TYPE_TO_NUM[ball_color][ball_type]
+
+                
+                fig = plt.figure()
+                # show original image
+                fig.add_subplot(151)
+                fig.set_figwidth(10)
+                fig.set_figheight(3)
+                plt.title('lab histogram')
+                color = ('k','r','yellow')
+                for ch,col in enumerate(color):
+                    histr = cv2.calcHist([masked_lab],[ch],None,[256],[1,256])
+                    plt.plot(histr,color = col)
+                    plt.xlim([0,256])
+                    plt.title(f'ball {i+1}', fontsize=9)
+
+                fig.add_subplot(152)
+                plt.title(f'total ball pixels: {num_pixels_ball}', fontsize=9)
+                plt.imshow(cv2.cvtColor(masked,cv2.COLOR_BGR2RGB))
+                plt.axis('off')
+
+                fig.add_subplot(153)
+                plt.title(f'white pixels: {num_white_pixels_ball}', fontsize=9)
+                plt.imshow(thresholded_ball,cmap=plt.cm.gray)
+                plt.axis('off')
+                
+                fig.add_subplot(154)
+                plt.title(f'colored pixels', fontsize=9)
+                plt.imshow(masked_ball_color,cmap=plt.cm.gray)
+                plt.axis('off')
+
+                fig.add_subplot(155)
+                plt.title(f'avg_lab: {int(avg_lab[0])}, {int(avg_lab[1])}, {int(avg_lab[2])}', fontsize=9)
+                plt.imshow(cv2.cvtColor(palette,cv2.COLOR_BGR2RGB))
+                plt.axis('off')
+
+                fig.suptitle(f'ball: {ball_number}') 
+
+                plt.show()
+
+
+    def find_ball_blobs_opencv(self,warp,connected_centroids):
 
         # noise removal
         #kernel = np.ones((3,3),np.uint8)
@@ -459,27 +567,3 @@ class Eye(object):
         markers[unknown==255] = 0
 
         markers = cv2.watershed(warp,markers)
-
-    def split_connected_balls_v2(self,thresh):
-
-        d_connected_centroids={}
-
-        # Compute Euclidean distance from every binary pixel
-        # to the nearest zero pixel then find peaks
-        distance_map = ndimage.distance_transform_edt(thresh)
-        local_max = peak_local_max(distance_map, indices=False, min_distance=20, labels=thresh)
-
-        # Perform connected component analysis then apply Watershed
-        markers = ndimage.label(local_max, structure=np.ones((3, 3)))[0]
-        labels = watershed(-distance_map, markers, mask=thresh)
-        l_unique=[ball_num for ball_num in labels if ball_num!=0]
-
-        for i in l_unique:
-            masked_ball = np.zeros((thresh.shape), dtype=np.uint8)#1 ch
-            masked_ball[labels==i] = 255
-            M = cv2.moments(masked_ball)
-            # calculate x,y coordinate of center
-            centroid= [(M["m10"] / M["m00"]),(M["m01"] / M["m00"])]
-            d_connected_centroids[i]=centroid
-
-        return labels,d_connected_centroids
