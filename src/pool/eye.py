@@ -306,6 +306,10 @@ class Eye(object):
     def crop_image(self, img, h_offset, v_offset):
         return img[v_offset:-v_offset, h_offset:-h_offset]
 
+    def substract_background(self, thresh, bg_mask):
+        thresh[bg_mask==255]=0
+        return thresh
+
     def find_ball_bolbs(self,thresh,connectivity, thresh_convexity, thresh_roundness):
         """
         Finds all image blobs that are below or between an area threshold and gets rid of them.
@@ -315,6 +319,7 @@ class Eye(object):
         ----------
         
         """
+        #define max and min size
         factor_of_safety=0.7
         H=thresh.shape[1]
         V=thresh.shape[0]
