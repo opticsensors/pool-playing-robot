@@ -232,21 +232,34 @@ class Eye(object):
 
         return lower_color, upper_color
 
-    def color_segmentation(self,hsv, lower_color, upper_color,filter_radius):
+    def color_segmentation(self,hsv, lower_color, upper_color,**kwargs):
         """
         Find the region where pixels are between lower_color and upper_color
         """
 
+        param = {  # with defaults
+            'filter_radius': 17,
+            'kernel_size': 11,
+            'iterations': 2,
+            'postprocessing': 'median'
+            }
+        param.update(kwargs)
+
         # Threshold the HSV image to get only cloth colors
         mask = cv2.inRange(hsv, lower_color, upper_color)
-
-        #use a median filter to get rid of speckle noise
-        median = cv2.medianBlur(mask,filter_radius)
-        
         inverted_mask=cv2.bitwise_not(mask)
-        inverted_median = cv2.bitwise_not(median)
 
-        return inverted_mask,inverted_median
+        if param['postprocessing']=='median':
+            #use a median filter to get rid of speckle noise
+            median = cv2.medianBlur(mask,param['filter_radius'])
+            prostprocessed_mask = cv2.bitwise_not(median)
+
+        elif param['postprocessing']=='morph':
+            #use morphological operations to get rid of noise
+            kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (param['kernel_size'],param['kernel_size']))
+            prostprocessed_mask = cv2.morphologyEx(inverted_mask, cv2.MORPH_OPEN, kernel,iterations = param['iterations'])
+
+        return inverted_mask,prostprocessed_mask
 
     def perspective_transform(self,image, corners):
         """
@@ -327,18 +340,18 @@ class Eye(object):
 
         #we satrt at 1 because first element is bg
         for i in range(1, nb_components): 
-
-            #we analize one blob at a time
-            blob= np.zeros((thresh.shape), dtype=np.uint8)#1 ch
-            blob[output==i] = 255
-            table = dip.MeasurementTool.Measure(blob, features=["Convexity", "Roundness"])
-            table=np.array(table)
-            convexity=table[:,0]
-            roundness=table[:,1]
-
+            
             # check if blob is between desired sizes
             if min_size<sizes[i] <max_size:
-                
+                #we analize one blob at a time
+                blob= np.zeros((thresh.shape), dtype=np.uint8)#1 ch
+                blob[output==i] = 255
+                table = dip.MeasurementTool.Measure(blob, features=["Convexity", "Roundness"])
+                table=np.array(table)
+                convexity=table[:,0]
+                roundness=table[:,1]
+                print(i, convexity, roundness)
+                     
                 #if convexity of blob is below thresh, blob is two or more balls touching
                 if convexity<thresh_convexity :
                     connected_blobs[output == i]=255

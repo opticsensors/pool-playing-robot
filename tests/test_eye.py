@@ -28,7 +28,7 @@ warp=eye.perspective_transform(img,corners)
 #get a more accurate hsv color of the pool table cloth using only the pool table pixels (wrap img)
 hsv=cv2.cvtColor(warp.copy(), cv2.COLOR_BGR2HSV)
 lower_color, upper_color = eye.get_cloth_color(hsv,search_width=25)
-warped_mask,warped_median=eye.color_segmentation(hsv, lower_color, upper_color,filter_radius=17)
+warped_mask,warped_median=eye.color_segmentation(hsv, lower_color, upper_color)
 cv2.imwrite('./results/warped_median.png', warped_median)
 
 numbered_single_blobs, single_centroids, single_blobs,connected_blobs = eye.find_ball_bolbs(warped_median,connectivity=8,thresh_convexity=0.95, thresh_roundness=0.85)
