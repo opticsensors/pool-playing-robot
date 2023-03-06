@@ -2,21 +2,21 @@ import cv2
 import numpy as np
 from pool.eye import Eye
 
-#read image with random ball config
-img = cv2.imread('./results/config_1.jpg')
-bg = cv2.imread('./results/background.jpg')
+#read image with random ball config and background
+img = cv2.imread('./data/config_3.jpg')
+bg = cv2.imread('./data/background.jpg')
 
 eye=Eye()
 eye.color_to_lab={
-    'white': [227, 130, 148],
-    'yellow': [216.18407452, 124.80355131, 195.73519079],
-    'blue': [89.64986175, 134.93342045, 103.84520826],
-    'red': [147.45829885, 172.49603901, 178.22393935],
-    'purple': [78.6311673, 135.5586135, 123.057679],
-    'orange': [180.62554741, 151.8795586 , 187.98600759],
-    'green': [110.05696026, 106.50088757, 132.41375192],
-    'burgundy': [121.56706638, 160.19773476, 158.41379201],
-    'black': [58, 129, 136]
+    'white':  [227, 127, 163],
+    'yellow': [216, 132, 189],
+    'blue':   [89, 134, 103],
+    'red':    [147, 181, 181],
+    'purple': [78, 137, 119],
+    'orange': [180, 165 , 175],
+    'green':  [110, 106, 132],
+    'burgundy':[121, 154, 154],
+    'black':  [58, 128, 130]
 }
 
 #eye.lower_lab=[175, 0, 0]
@@ -83,7 +83,7 @@ for label in np.unique(numbered_blobs):
 cv2.imwrite('./results/split_blobs.png', found_balls)
 
 #tune white color
-#eye.tune_white_color(warp, numbered_blobs)
+eye.tune_white_color(warp, numbered_blobs)
 
 # tune ball color
 eye.tune_ball_color(warp,numbered_blobs,color_space='hsv')

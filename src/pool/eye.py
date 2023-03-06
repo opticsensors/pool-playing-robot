@@ -384,7 +384,7 @@ class Eye(object):
                 contour_ball,_ = cv2.findContours(masked_ball, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
                 x, y, w, h = cv2.boundingRect(contour_ball[0])
                 masked=masked[y:y+h, x:x+w, :]
-                cv2.imwrite(f'./masked_{i}.png', masked)
+                cv2.imwrite(f'./results/masked_{i}.png', masked)
 
     def classify_balls(self,img,numbered_balls,d_centroids,color_space='hsv'):
         """
@@ -421,9 +421,9 @@ class Eye(object):
                 num_white_pixels_ball=np.count_nonzero(thresholded_ball)
                 proportion_white_pixels=num_white_pixels_ball/num_pixels_ball
 
-                if 0.15<=proportion_white_pixels<0.85:
+                if 0.13<=proportion_white_pixels<0.85:
                     ball_type='striped'
-                elif proportion_white_pixels<0.15:
+                elif proportion_white_pixels<0.13:
                     ball_type='solid'
                 else:
                     ball_type='cue ball'
