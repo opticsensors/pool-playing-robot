@@ -611,7 +611,11 @@ class Eye(object):
                 plt.show()
 
 
-    def find_ball_blobs_opencv(self,warp,connected_centroids):
+    def _find_ball_blobs_opencv(self,warp,connected_centroids):
+        """
+        Maybe faster than find_ball_blobs method
+        """
+
 
         # noise removal
         #kernel = np.ones((3,3),np.uint8)
