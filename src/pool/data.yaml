@@ -1,0 +1,27 @@
+names:
+- '0'
+- '1'
+- '10'
+- '11'
+- '12'
+- '13'
+- '14'
+- '15'
+- '2'
+- '3'
+- '4'
+- '5'
+- '6'
+- '7'
+- '8'
+- '9'
+nc: 16
+roboflow:
+  license: CC BY 4.0
+  project: pool-ball-detector
+  url: https://universe.roboflow.com/edual-almal-zuynd/pool-ball-detector/dataset/5
+  version: 5
+  workspace: edual-almal-zuynd
+test: ../test/images
+train: pool-ball-detector-5/train/images
+val: pool-ball-detector-5/valid/images

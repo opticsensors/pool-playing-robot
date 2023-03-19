@@ -4,9 +4,12 @@ from matplotlib import pyplot as plt
 from skimage.feature import peak_local_max
 from skimage.segmentation import watershed
 from scipy import ndimage
+from ultralytics import YOLO
+from ultralytics.yolo.utils.plotting import Annotator
 
 class Eye(object):
     """
+    A class that finds the centroid of the pool balls and classifies them
 
     Attributes
     ----------    
@@ -444,6 +447,73 @@ class Eye(object):
 
         return {old_to_new[k]: v for k, v in d_centroids.items()}
 
+    def YOLO(self, img, conf, overlap_threshold):
+        model = YOLO('./yolov8s.pt')
+        # source image understands bgr cv2 format
+        results = model.predict(task='detect', mode='predict', source=img, conf=conf, data='./data.yaml', model='./yolov8s.pt')
+
+        for r in results:
+            
+            num_predictions=r.boxes.shape[0]
+
+            #conf, ball id and ball centroid will be stored in predictions
+            predictions=np.zeros((num_predictions,4))
+            annotator = Annotator(img)
+            
+            boxes = r.boxes
+            for id,box in enumerate(boxes):
+                
+                b = box.xyxy[0]  # get box coordinates in (top, left, bottom, right) format
+                c = box.cls #get the predicted class 
+                conf = box.conf #get the confidence of thr prediction
+                annotator.box_label(b, model.names[int(c)])
+                
+                x_top_left, y_top_left, x_bottom_right, y_bottom_right=b
+                cx=(x_top_left+x_bottom_right)/2
+                cy=(y_top_left+y_bottom_right)/2        
+                #img = cv2.circle(img, (int(cx),int(cy)), radius=7, color=(0, 255, 0), thickness=-1)
+                
+                ball_number=int(model.names[int(c)])
+                cx=float(cx)
+                cy=float(cy)
+                conf=float(conf)
+
+                predictions[id,0]=conf
+                predictions[id,1]=ball_number
+                predictions[id,2]=cx
+                predictions[id,3]=cy
+
+        #img = annotator.result()  
+        #cv2.imwrite('YOLO_Detection.jpg', img)     
+
+        list_of_balls=[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15]
+        valid_centroids=np.zeros((1,2))
+        d_centroids={}
+
+        #we should take into account that predictions is already sorted from high conf to low
+        for i,pred in enumerate(predictions):
+            ball_number = pred[1]
+            centroid = pred[-2:]
+            
+            #first prediction has a different treatment:
+            if i==0:
+                list_of_balls.remove(ball_number)
+                valid_centroids[:]=centroid
+                d_centroids[ball_number]=[centroid[0],centroid[1]]
+
+            else:
+                if ball_number in list_of_balls: #ball num not assigned yet
+                    
+                    distances=np.linalg.norm(centroid - valid_centroids, axis=1)
+                    
+                    if (distances>overlap_threshold).any():
+
+                        list_of_balls.remove(ball_number)
+                        valid_centroids = np.vstack([valid_centroids, centroid])
+                        d_centroids[ball_number]=[centroid[0],centroid[1]]
+
+        return d_centroids
+
     def tune_ball_color(self,img,numbered_balls,color_space='hsv'):
         """
         """
@@ -567,3 +637,5 @@ class Eye(object):
         markers[unknown==255] = 0
 
         markers = cv2.watershed(warp,markers)
+
+        return markers

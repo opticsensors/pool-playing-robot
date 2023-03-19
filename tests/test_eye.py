@@ -40,6 +40,8 @@ hsv=cv2.cvtColor(warp.copy(), cv2.COLOR_BGR2HSV)
 bg_hsv=cv2.cvtColor(warp_bg.copy(), cv2.COLOR_BGR2HSV)
 
 lower_color, upper_color = eye.get_cloth_color(hsv,search_width=30)
+
+#hardcoded hsv range values are more accurate (obtained with tuning_in_range_cloth_hsv.py)
 lower_color=np.array([42,73,5])
 upper_color=np.array([99,182,54])
 
@@ -100,3 +102,12 @@ if cv2.countNonZero(blobs)!=0:
     cv2.imwrite('./results/labeled_balls.png', labeled_balls)
 
 print('classify balls done!')
+
+# Yolov8 results
+#d_centroids=eye.YOLO(warp,conf=0.25, overlap_threshold=100)
+#for ball_num in d_centroids:
+#    x,y=d_centroids[ball_num]
+#    img=cv2.putText(img, "#{}".format(ball_num), (int(x) - 10, int(y)),
+#    cv2.FONT_HERSHEY_SIMPLEX, 4, (0, 255, 0), 3)
+#
+#cv2.imwrite('./chosen_YOLO_Detection.jpg', img)
