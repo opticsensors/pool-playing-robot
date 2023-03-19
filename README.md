@@ -4,4 +4,12 @@ A project that ...
 
 ----
 
-This is the README file for the project.
+# Dependencies
+- python -m pip install opencv-python
+- python -m pip install matplotlib
+- python -m pip install scipy
+- python -m pip install scikit-image
+- python -m pip install opencv-contrib-python
+- python -m pip install ultralytics
+
+
