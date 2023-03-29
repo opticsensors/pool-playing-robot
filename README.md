@@ -10,6 +10,7 @@ A project that ...
 - python -m pip install scikit-image
 - python -m pip install opencv-contrib-python
 - python -m pip install ultralytics
+- python -m pip install pyserial
 
 # Usage example
 
