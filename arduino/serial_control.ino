@@ -4,8 +4,8 @@
 #include <AccelStepper.h>
 
 // Define the stepper motor and the pins that is connected to
-AccelStepper stepper1(1, 2, 5); // (Typeof driver: with 2 pins, STEP, DIR)
-AccelStepper stepper2(1, 3, 6);
+AccelStepper stepper1(1, 5, 2); // (Typeof driver: with 2 pins, STEP, DIR)
+AccelStepper stepper2(1, 6, 3);
 
 const byte numChars = 64;
 char receivedChars[numChars];

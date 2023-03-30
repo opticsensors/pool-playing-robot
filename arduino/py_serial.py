@@ -84,7 +84,7 @@ def waitForArduino():
     # the program
 
 
-setupSerial(9600, "COM4")
+setupSerial(9600, "COM3")
 count = 0
 sendToArduino(f"{randrange(500,1500)},{randrange(500,1500)}")
 while True:
