@@ -1,6 +1,33 @@
 [build-system]
-requires = [
-    "setuptools>=42",
-    "wheel"
-]
+requires = ["setuptools>=61.0"]
 build-backend = "setuptools.build_meta"
+
+[project]
+name = "automatic_pool_robot"
+version = "0.0.1"
+authors = [
+  { name="Eduard Almar", email="edu12due@gmail.com" },
+]
+description = "An automatic pool playing robot"
+readme = "README.md"
+requires-python = ">=3.7"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+dependencies = [
+    "opencv-python",
+    "opencv-contrib-python",
+    "matplotlib",
+    "numpy",
+    "scipy",
+    "scikit-image",
+    "opencv-contrib-python",
+    "ultralytics",
+    "pyserial",
+]
+
+[project.urls]
+"Homepage" = "https://github.com/opticsensors/pool-playing-robot"
+"Bug Tracker" = "https://github.com/opticsensors/pool-playing-robot/issues"
