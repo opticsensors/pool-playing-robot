@@ -1,5 +1,9 @@
 import serial
 
+from typing import * # type: ignore
+
+
+
 class Stepper(object):
     """
     A class that finds the centroid of the pool balls and classifies them
@@ -9,16 +13,38 @@ class Stepper(object):
     ...
 
     """
-    def __init__(self, baudRate=9600,
-                       serialPortName='COM3' ):
+    def __init__(self, baudRate : int =9600,
+                       serialPortName : Optional[str]=None):
         
+        if serialPortName is None:
+            # get the first port that has "Arduino" in the name
+            for port in self._list_com_ports():
+                if "Arduino" in port['name']:
+                    serialPortName = port['device']
+                    break        
+        assert serialPortName is not None, "No Arduino found"
+
         self.startMarker='<'
         self.endMarker='>'
         self.dataStarted=False
         self.dataBuf=""
         self.messageComplete=False
         self.baudRate=baudRate
-        self.serialPortName=serialPortName
+        self.serialPortName : str =serialPortName
+
+    @staticmethod
+    def _list_com_ports():
+        com_ports = serial.tools.list_ports.comports()
+        port_list = []
+        
+        for port in com_ports:
+            port_info = {
+                'device': port.device,
+                'name': port.description
+            }
+            port_list.append(port_info)
+        
+        return port_list
 
     def waitForArduino(self):
 
