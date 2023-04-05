@@ -3,9 +3,18 @@
 
 #include <AccelStepper.h>
 
+//stepper control outputs
+#define mot1StepPin 5
+#define mot1DirPin 2
+#define mot2StepPin 6
+#define mot2DirPin 3
+#define motMS1Pin 7
+#define motMS2Pin 8
+#define motMS3Pin 9
+
 // Define the stepper motor and the pins that is connected to
-AccelStepper stepper1(1, 5, 2); // (Typeof driver: with 2 pins, STEP, DIR)
-AccelStepper stepper2(1, 6, 3);
+AccelStepper stepper1(1, mot1StepPin, mot1DirPin); // (Typeof driver: with 2 pins, STEP, DIR)
+AccelStepper stepper2(1, mot2StepPin, mot2DirPin);
 
 const byte numChars = 64;
 char receivedChars[numChars];
@@ -21,7 +30,14 @@ int relative_position_stepper2 = 0;
 int absolute_position_stepper1 = 0;
 int absolute_position_stepper2 = 0;
 int mode;
-
+byte microSteps[6] = {
+    B000, // full step
+    B100, // half step
+    B010, // 1/4 step
+    B110, // 1/8 step
+    B001, // 1/16 step
+    B101, // 1/32 step
+}
 
 //===============
 
@@ -59,20 +75,24 @@ void loop() {
             //   because strtok() used in parseData() replaces the commas with \0
         parseData();
         
-        // normal step mode
-        if (mode == 0) {
+        // step mode (includes microstepping option)
+        if (mode != -1) {
+            digitalWrite(motMS1Pin, bitRead(microSteps[mode]), 2)
+            digitalWrite(motMS2Pin, bitRead(microSteps[mode]), 1)
+            digitalWrite(motMS3Pin, bitRead(microSteps[mode]), 0)
+
             stepper1.moveTo(relative_position_stepper1);
             stepper2.moveTo(relative_position_stepper2);
                 // when we achieved the desired position, we exit the while loop
-            while (stepper1.currentPosition() != relative_position_stepper1 || stepper2.currentPosition() != relative_position_stepper2) {
+            while (stepper1.currentPosition() != relative_position_stepper1 || stepper2.currentPosition() != relative_position_stepper2 ) {
                 stepper1.run();  // Move or step the motor implementing accelerations and decelerations to achieve the target position. Non-blocking function
                 stepper2.run();
             }
         }
 
-        // switch to microstepping
-        else if (mode == 1) {
-
+        // calibration mode (find corners)
+        else {
+            
         }
 
     replyToPython();
