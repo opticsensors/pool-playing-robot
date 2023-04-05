@@ -11,14 +11,17 @@ const byte numChars = 64;
 char receivedChars[numChars];
 char tempChars[numChars];        // temporary array for use when parsing
 
-
 boolean newData = false;
 
 byte ledPin = 13;   // the onboard LED
 
-      // variables to hold the parsed data
-int x = 0;
-int y = 0;
+// variables to hold the parsed data
+int relative_position_stepper1 = 0;
+int relative_position_stepper2 = 0;
+int absolute_position_stepper1 = 0;
+int absolute_position_stepper2 = 0;
+int mode;
+
 
 //===============
 
@@ -45,7 +48,7 @@ void setup() {
 void loop() {
     recvWithStartEndMarkers();
     
-    // every time new data comes, we sset the curretn position of the motors to 0 steps
+    // every time new data comes, we set the current position of the motors to 0 steps
     // this is because we will move the motors with visual servoing (error vector)
     stepper1.setCurrentPosition(0); 
     stepper2.setCurrentPosition(0);
@@ -55,15 +58,25 @@ void loop() {
             // this temporary copy is necessary to protect the original data
             //   because strtok() used in parseData() replaces the commas with \0
         parseData();
-        replyToPython();
         
-        stepper1.moveTo(x);
-        stepper2.moveTo(y);
-            // when we achieved the desired position, we exit the while loop
-        while (stepper1.currentPosition() != x || stepper2.currentPosition() != y) {
-            stepper1.run();  // Move or step the motor implementing accelerations and decelerations to achieve the target position. Non-blocking function
-            stepper2.run();
-    }
+        // normal step mode
+        if (mode == 0) {
+            stepper1.moveTo(relative_position_stepper1);
+            stepper2.moveTo(relative_position_stepper2);
+                // when we achieved the desired position, we exit the while loop
+            while (stepper1.currentPosition() != relative_position_stepper1 || stepper2.currentPosition() != relative_position_stepper2) {
+                stepper1.run();  // Move or step the motor implementing accelerations and decelerations to achieve the target position. Non-blocking function
+                stepper2.run();
+            }
+        }
+
+        // switch to microstepping
+        else if (mode == 1) {
+
+        }
+
+    replyToPython();
+
     }
 }
 
@@ -73,9 +86,15 @@ void parseData() {      // split the data into its parts
 
     char * strtokIndx; // this is used by strtok() as an index
     strtokIndx = strtok(tempChars,",");      // get the first part - the string
-    x = atoi(strtokIndx);     // convert this part to an integer
+    mode = atoi(strtokIndx);     // convert this part to an integer
     strtokIndx = strtok(NULL, ","); // this continues where the previous call left off
-    y = atoi(strtokIndx);     // convert this part to an integer
+    relative_position_stepper1 = atoi(strtokIndx);     // convert this part to an integer
+    strtokIndx = strtok(NULL, ","); // this continues where the previous call left off
+    relative_position_stepper2 = atoi(strtokIndx);     // convert this part to an integer
+
+    // update absolute position
+    absolute_position_stepper1=absolute_position_stepper1+relative_position_stepper1;
+    absolute_position_stepper2=absolute_position_stepper2+relative_position_stepper2;
 }
 
 void recvWithStartEndMarkers() {
@@ -113,13 +132,16 @@ void recvWithStartEndMarkers() {
 //===============
 
 void replyToPython() {
-    Serial.print("<Motor stopped at: ");
-    Serial.print("   ");
-    Serial.print(x);
-    Serial.print("   ");
-    Serial.print(y);
-    Serial.print("   ");
-    Serial.print(millis());
+    Serial.print("<");
+    Serial.print(mode);
+    Serial.print(",");
+    Serial.print(relative_position_stepper1);
+    Serial.print(",");
+    Serial.print(relative_position_stepper2);
+    Serial.print(",");
+    Serial.print(absolute_position_stepper1);
+    Serial.print(",");
+    Serial.print(absolute_position_stepper2);
     Serial.print('>');
         // change the state of the LED everytime a reply is sent
     digitalWrite(ledPin, ! digitalRead(ledPin));
