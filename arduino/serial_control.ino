@@ -11,6 +11,10 @@
 #define motMS1Pin 7
 #define motMS2Pin 8
 #define motMS3Pin 9
+#define topSwitch 10
+#define bottomSwitch 11
+#define leftSwitch 12
+#define rightSwitch 13
 
 // Define the stepper motor and the pins that is connected to
 AccelStepper stepper1(1, mot1StepPin, mot1DirPin); // (Typeof driver: with 2 pins, STEP, DIR)
@@ -19,6 +23,8 @@ AccelStepper stepper2(1, mot2StepPin, mot2DirPin);
 const byte numChars = 64;
 char receivedChars[numChars];
 char tempChars[numChars];        // temporary array for use when parsing
+int initial_homing1 = 1;
+int initial_homing2 = 1;
 
 boolean newData = false;
 
@@ -37,17 +43,27 @@ byte microSteps[6] = {
     B110, // 1/8 step
     B001, // 1/16 step
     B101, // 1/32 step
-}
+};
 
 //===============
 
 void setup() {
-    stepper1.setMaxSpeed(500); // Set maximum speed value for the stepper
-    stepper1.setAcceleration(250); // Set acceleration value for the stepper
-    stepper2.setMaxSpeed(500);
-    stepper2.setAcceleration(250);
 
     Serial.begin(9600);
+
+    // configure initial motor settings
+    pinMode(motMS1Pin, OUTPUT);
+    pinMode(motMS2Pin, OUTPUT);
+    pinMode(motMS3Pin, OUTPUT);
+
+    pinMode(topSwitch, INPUT_PULLUP);
+    pinMode(bottomSwitch, INPUT_PULLUP);
+    pinMode(leftSwitch, INPUT_PULLUP);
+    pinMode(rightSwitch, INPUT_PULLUP);
+
+    digitalWrite(motMS1Pin, LOW);
+    digitalWrite(motMS2Pin, LOW);
+    digitalWrite(motMS3Pin, LOW);
 
     pinMode(ledPin, OUTPUT);
     digitalWrite(ledPin, HIGH);
@@ -57,6 +73,14 @@ void setup() {
     digitalWrite(ledPin, HIGH);
 
     Serial.println("<Arduino is ready>");
+
+    
+    stepper1.setMaxSpeed(500); // Set maximum speed value for the stepper
+    stepper1.setAcceleration(250); // Set acceleration value for the stepper
+    stepper2.setMaxSpeed(500);
+    stepper2.setAcceleration(250);
+    //homing()
+
 }
 
 //===============
@@ -77,22 +101,31 @@ void loop() {
         
         // step mode (includes microstepping option)
         if (mode != -1) {
-            digitalWrite(motMS1Pin, bitRead(microSteps[mode]), 2)
-            digitalWrite(motMS2Pin, bitRead(microSteps[mode]), 1)
-            digitalWrite(motMS3Pin, bitRead(microSteps[mode]), 0)
+            digitalWrite(motMS1Pin, bitRead(microSteps[mode], 2));
+            digitalWrite(motMS2Pin, bitRead(microSteps[mode], 1));
+            digitalWrite(motMS3Pin, bitRead(microSteps[mode], 0));
 
             stepper1.moveTo(relative_position_stepper1);
             stepper2.moveTo(relative_position_stepper2);
                 // when we achieved the desired position, we exit the while loop
             while (stepper1.currentPosition() != relative_position_stepper1 || stepper2.currentPosition() != relative_position_stepper2 ) {
-                stepper1.run();  // Move or step the motor implementing accelerations and decelerations to achieve the target position. Non-blocking function
-                stepper2.run();
+                
+                if (digitalRead(topSwitch) || digitalRead(bottomSwitch) || digitalRead(leftSwitch) || digitalRead(rightSwitch)){
+                    stepper1.run();  // Move or step the motor implementing accelerations and decelerations to achieve the target position. Non-blocking function
+                    stepper2.run();
+                }
+
+                else{
+                    mode = -1;
+                    break;
+                }
             }
         }
 
         // calibration mode (find corners)
         else {
-            
+            delay(7000);
+            //homing()
         }
 
     replyToPython();
@@ -101,6 +134,75 @@ void loop() {
 }
 
 //===============
+
+void homing() {
+    stepper1.setMaxSpeed(50); // Set maximum speed value for the stepper
+    stepper1.setAcceleration(25); // Set acceleration value for the stepper
+    stepper2.setMaxSpeed(50);
+    stepper2.setAcceleration(25);
+
+    while (digitalRead(leftSwitch)) {  // Make the Stepper move CCW until the switch is activated   
+        stepper1.moveTo(initial_homing1);  // Set the position to move to
+        stepper2.moveTo(initial_homing2);  // Set the position to move to
+        initial_homing1++;  // Decrease by 1 for next move if needed
+        initial_homing2++;  // Decrease by 1 for next move if needed
+        stepper1.run();  // Start moving the stepper
+        stepper2.run();  // Start moving the stepper
+        delay(5);
+    }
+
+    stepper1.setCurrentPosition(0);  // Set the current position as zero for now
+    stepper2.setCurrentPosition(0);  // Set the current position as zero for now
+    initial_homing1=-1;
+    initial_homing2=-1;
+
+    while (!digitalRead(leftSwitch)) { // Make the Stepper move CW until the switch is deactivated
+        stepper1.moveTo(initial_homing1);  // Set the position to move to
+        stepper2.moveTo(initial_homing2);  // Set the position to move to
+        stepper1.run();
+        stepper2.run();
+        initial_homing1--;
+        initial_homing2--;
+        delay(5);
+    }
+    
+    stepper1.setCurrentPosition(0);  // Set the current position as zero for now
+    stepper2.setCurrentPosition(0);  // Set the current position as zero for now
+    initial_homing1=1;
+    initial_homing2=-1;
+
+    while (digitalRead(topSwitch)) {  // Make the Stepper move CCW until the switch is activated   
+        stepper1.moveTo(initial_homing1);  // Set the position to move to
+        stepper2.moveTo(initial_homing2);  // Set the position to move to
+        initial_homing1++;  // Decrease by 1 for next move if needed
+        initial_homing2--;  // Decrease by 1 for next move if needed
+        stepper1.run();  // Start moving the stepper
+        stepper2.run();  // Start moving the stepper
+        delay(5);
+    }
+
+    stepper1.setCurrentPosition(0);  // Set the current position as zero for now
+    stepper2.setCurrentPosition(0);  // Set the current position as zero for now
+
+    initial_homing1=-1;
+    initial_homing2=+1;
+
+    while (!digitalRead(topSwitch)) { // Make the Stepper move CW until the switch is deactivated
+        stepper1.moveTo(initial_homing1);  // Set the position to move to
+        stepper2.moveTo(initial_homing2);  // Set the position to move to
+        stepper1.run();
+        stepper2.run();
+        initial_homing1--;
+        initial_homing2++;
+        delay(5);
+    }
+
+    stepper1.setMaxSpeed(500); // Set maximum speed value for the stepper
+    stepper1.setAcceleration(250); // Set acceleration value for the stepper
+    stepper2.setMaxSpeed(500);
+    stepper2.setAcceleration(250);
+
+}
 
 void parseData() {      // split the data into its parts
 

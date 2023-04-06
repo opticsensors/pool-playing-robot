@@ -7,7 +7,7 @@ stp=Stepper(baudRate=9600,
 
 stp.setupSerial()
 
-motor_position = f"0,{randrange(500,1500)},{randrange(500,1500)}"
+motor_position = f"2,{randrange(500,1500)},{randrange(500,1500)}"
 
 stp.sendToArduino(motor_position)
 
@@ -21,4 +21,4 @@ while True:
         # send a message at intervals
         time.sleep(10)
         print('send to arduino:')
-        stp.sendToArduino(f"0,{randrange(500,1500)},{randrange(500,1500)}")
+        stp.sendToArduino(f"2,{randrange(1500,3500)},{randrange(1500,3500)}")
