@@ -26,6 +26,7 @@ dependencies = [
     "opencv-contrib-python",
     "ultralytics",
     "pyserial",
+    "dynamixel-sdk",
 ]
 
 [project.urls]

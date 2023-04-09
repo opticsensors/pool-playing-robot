@@ -28,8 +28,6 @@ int initial_homing2 = 1;
 
 boolean newData = false;
 
-byte ledPin = 13;   // the onboard LED
-
 // variables to hold the parsed data
 int relative_position_stepper1 = 0;
 int relative_position_stepper2 = 0;
@@ -65,15 +63,8 @@ void setup() {
     digitalWrite(motMS2Pin, LOW);
     digitalWrite(motMS3Pin, LOW);
 
-    pinMode(ledPin, OUTPUT);
-    digitalWrite(ledPin, HIGH);
     delay(200);
-    digitalWrite(ledPin, LOW);
-    delay(200);
-    digitalWrite(ledPin, HIGH);
-
     Serial.println("<Arduino is ready>");
-
     
     stepper1.setMaxSpeed(500); // Set maximum speed value for the stepper
     stepper1.setAcceleration(250); // Set acceleration value for the stepper
@@ -124,7 +115,7 @@ void loop() {
 
         // calibration mode (find corners)
         else {
-            delay(7000);
+            delay(5000);
             //homing()
         }
 
@@ -183,17 +174,16 @@ void homing() {
 
     stepper1.setCurrentPosition(0);  // Set the current position as zero for now
     stepper2.setCurrentPosition(0);  // Set the current position as zero for now
-
     initial_homing1=-1;
     initial_homing2=+1;
 
     while (!digitalRead(topSwitch)) { // Make the Stepper move CW until the switch is deactivated
         stepper1.moveTo(initial_homing1);  // Set the position to move to
         stepper2.moveTo(initial_homing2);  // Set the position to move to
-        stepper1.run();
-        stepper2.run();
         initial_homing1--;
         initial_homing2++;
+        stepper1.run();
+        stepper2.run();
         delay(5);
     }
 
@@ -265,8 +255,7 @@ void replyToPython() {
     Serial.print(",");
     Serial.print(absolute_position_stepper2);
     Serial.print('>');
-        // change the state of the LED everytime a reply is sent
-    digitalWrite(ledPin, ! digitalRead(ledPin));
+        // change the state of the data bool everytime a reply is sent
     newData = false;
 }
 

@@ -2,7 +2,7 @@ import serial
 
 class Stepper(object):
     """
-    A class that finds the centroid of the pool balls and classifies them
+    A class that ...
 
     Attributes
     ----------    
