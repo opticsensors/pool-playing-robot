@@ -16,12 +16,12 @@ void setup() {
 void loop() {
 
     while (digitalRead(leftSwitch)) {  // print until the switch is activated   
-        Serial.print("switch is not pressed");
-        delay(5);
+        Serial.println("switch is not pressed");
+        //delay(5);
     }
 
     while (!digitalRead(leftSwitch)) { // print until the switch is deactivated
-        Serial.print("switch is pressed");
-        delay(5);
+        Serial.println("switch is pressed");
+        //delay(5);
     }
 }

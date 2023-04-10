@@ -18,4 +18,4 @@ while True:
 
         if not abs(goal_position - present_position) > dxl.moving_status_threshold:
             break
-    time.sleep(3)
+    time.sleep(5)
