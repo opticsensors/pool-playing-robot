@@ -27,6 +27,7 @@ dependencies = [
     "ultralytics",
     "pyserial",
     "dynamixel-sdk",
+    "pandas",
 ]
 
 [project.urls]
