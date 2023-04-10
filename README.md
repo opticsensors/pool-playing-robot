@@ -19,7 +19,6 @@ Make sure you have the latest version of PyPA’s build installed:
 Now run these commands from the same directory where pyproject.toml is located:
 
 - ```py -m build```
-- ```py setup.py install ``` 
 - ```py -m pip install . ```   
 
 # Dependencies

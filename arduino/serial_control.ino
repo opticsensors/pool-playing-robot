@@ -98,9 +98,9 @@ void loop() {
 
             stepper1.moveTo(relative_position_stepper1);
             stepper2.moveTo(relative_position_stepper2);
-                // when we achieved the desired position, we exit the while loop
+            // when we achieved the desired position, we exit the while loop
             while (stepper1.currentPosition() != relative_position_stepper1 || stepper2.currentPosition() != relative_position_stepper2 ) {
-                
+                // before running we make sure that switches are not pressed
                 if (digitalRead(topSwitch) || digitalRead(bottomSwitch) || digitalRead(leftSwitch) || digitalRead(rightSwitch)){
                     stepper1.run();  // Move or step the motor implementing accelerations and decelerations to achieve the target position. Non-blocking function
                     stepper2.run();

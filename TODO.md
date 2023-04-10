@@ -1,6 +1,13 @@
 # To do list
-- try sketch dynamixel
-- solder and try micro limit switch script
-- try homing function arduino
+- try (manual) homing function arduino, i.e., make motors stop when limit switch is pressed
 - add background substraction script
 - incorporate camera lens correction
+- Buy the following parts:
+    - 1/4" inch screw (for dslr cameras) of length > 5 cm
+    - zip ties of length > 40 cm
+    - micro limit switch wires: x2 4m red, x2 4m black, x2 2m red, x2 2m black
+    - micro limit switch 'helper' (smth to help solder the wires to the micro limit switches)
+    - TTL wire of length 4m
+    - white things needed to connect TTL wire 
+    - Solenoid components:
+        - ...
