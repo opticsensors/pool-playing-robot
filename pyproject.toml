@@ -28,6 +28,7 @@ dependencies = [
     "pyserial",
     "dynamixel-sdk",
     "pandas",
+    "keyboard",
 ]
 
 [project.urls]
