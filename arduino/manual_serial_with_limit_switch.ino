@@ -8,7 +8,10 @@ You can: copy it, use it, modify it, share it or just plain ignore it!
 Thx!
 
 */
-#define leftSwitch 12
+#define topSwitch 10
+#define bottomSwitch 12
+#define leftSwitch 11
+#define rightSwitch 13
 
 #include "AccelStepper.h" 
 // Library created by Mike McCauley at http://www.airspayce.com/mikem/arduino/AccelStepper/
@@ -32,9 +35,11 @@ int move_finished=1;  // Used to check if move is completed
 void setup() {
   
   Serial.begin(9600);  // Start the Serial monitor with speed of 9600 Bauds    
+  pinMode(topSwitch, INPUT_PULLUP);
+  pinMode(bottomSwitch, INPUT_PULLUP);
   pinMode(leftSwitch, INPUT_PULLUP);
+  pinMode(rightSwitch, INPUT_PULLUP);
 
-  
 // Print out Instructions on the Serial Monitor at Start
   Serial.println("Enter Travel distance seperated by a comma: X,Z ");
   Serial.print("Enter Move Values Now: ");
@@ -72,7 +77,7 @@ while (Serial.available()>0)  { // Check if values are available in the Serial B
 
 // Check if the Steppers have reached desired position
   if ((stepperX.distanceToGo() != 0) || (stepperZ.distanceToGo() !=0)) {
-    if (digitalRead(leftSwitch)){  
+    if (digitalRead(topSwitch) && digitalRead(bottomSwitch) && digitalRead(leftSwitch) && digitalRead(rightSwitch)){  
       stepperX.run();  // Move Stepper X into position
       stepperZ.run();  // Move Stepper Z into position
     }
