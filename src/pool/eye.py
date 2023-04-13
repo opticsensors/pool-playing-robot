@@ -187,10 +187,10 @@ class Eye(object):
                 cY = (topLeft[1] + bottomRight[1]) / 2.0
                 id_to_centroids[markerID]=(cX,cY)
 
-        bottomLine=np.array([id_to_centroids[aruco_id] for aruco_id in Eye.BOTTOM_ARUCO_IDS])
-        topLine=   np.array([id_to_centroids[aruco_id] for aruco_id in Eye.TOP_ARUCO_IDS])
-        rightLine= np.array([id_to_centroids[aruco_id] for aruco_id in Eye.LEFT_ARUCO_IDS])
-        leftLine=  np.array([id_to_centroids[aruco_id] for aruco_id in Eye.RIGHT_ARUCO_IDS])
+        bottomLine=np.array([id_to_centroids[aruco_id] for aruco_id in self.bottom_aruco_ids])
+        topLine=   np.array([id_to_centroids[aruco_id] for aruco_id in self.top_aruco_ids])
+        rightLine= np.array([id_to_centroids[aruco_id] for aruco_id in self.left_aruco_ids])
+        leftLine=  np.array([id_to_centroids[aruco_id] for aruco_id in self.right_aruco_ids])
         lines={}
 
         for edge,position in zip([bottomLine,topLine,rightLine,leftLine], ['bottom', 'top', 'right', 'left']):

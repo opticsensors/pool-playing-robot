@@ -19,14 +19,15 @@ objpoints = [] # 3d point in real world space
 imgpoints = [] # 2d points in image plane.
 
 
-for count in range(0,25):
+for count in [0,1,2,3,5,6,9,10,11,12,13,14,15,16,17,18,19,21,23,24,25]:
 
-    img = cv.imread("img%d.jpg" % count)
+    img = cv.imread(f"./results/img_{count}.jpg")
     gray = cv.cvtColor(img, cv.COLOR_BGR2GRAY)
 
     # Find the chess board corners
     ret, corners = cv.findChessboardCorners(gray, chessboardSize, None)
-
+    print(count, ret)
+    
     # If found, add object points, image points (after refining them)
     if ret == True:
 
@@ -36,8 +37,8 @@ for count in range(0,25):
 
         # Draw and display the corners
         cv.drawChessboardCorners(img, chessboardSize, corners2, ret)
-        cv.imshow('img', img)
-        cv.waitKey(2500)
+        cv.imshow(f'img_{count}', cv.resize(img, (0,0), fx=0.2, fy=0.2))
+        cv.waitKey(2000)
 
 
 cv.destroyAllWindows()
@@ -56,8 +57,7 @@ print("\nTranslation Vectors:\n", tvecs)
 
 ############## UNDISTORTION #####################################################
 
-"""
-img = cv.imread('cali5.png')
+img = cv.imread('./results/config_0.jpg')
 h,  w = img.shape[:2]
 newCameraMatrix, roi = cv.getOptimalNewCameraMatrix(cameraMatrix, dist, (w,h), 1, (w,h))
 
@@ -67,7 +67,7 @@ dst = cv.undistort(img, cameraMatrix, dist, None, newCameraMatrix)
 # crop the image
 x, y, w, h = roi
 dst = dst[y:y+h, x:x+w]
-cv.imwrite('caliResult1.png', dst)
+cv.imwrite('./results/calibrated.jpg', dst)
 
 # Undistort with Remapping
 mapx, mapy = cv.initUndistortRectifyMap(cameraMatrix, dist, None, newCameraMatrix, (w,h), 5)
@@ -76,7 +76,7 @@ dst = cv.remap(img, mapx, mapy, cv.INTER_LINEAR)
 # crop the image
 x, y, w, h = roi
 dst = dst[y:y+h, x:x+w]
-cv.imwrite('caliResult2.png', dst)
+cv.imwrite('./results/calibrated2.jpg', dst)
 
 # Reprojection Error
 mean_error = 0
@@ -87,4 +87,3 @@ for i in range(len(objpoints)):
     mean_error += error
 
 print( "total error: {}".format(mean_error/len(objpoints)) )
-"""
