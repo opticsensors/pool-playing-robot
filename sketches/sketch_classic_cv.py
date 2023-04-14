@@ -102,12 +102,3 @@ if cv2.countNonZero(blobs)!=0:
     cv2.imwrite('./results/labeled_balls.png', labeled_balls)
 
 print('classify balls done!')
-
-# Yolov8 results
-#d_centroids=eye.YOLO(warp,conf=0.25, overlap_threshold=100)
-#for ball_num in d_centroids:
-#    x,y=d_centroids[ball_num]
-#    img=cv2.putText(img, "#{}".format(ball_num), (int(x) - 10, int(y)),
-#    cv2.FONT_HERSHEY_SIMPLEX, 4, (0, 255, 0), 3)
-#
-#cv2.imwrite('./chosen_YOLO_Detection.jpg', img)
