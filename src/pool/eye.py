@@ -447,10 +447,11 @@ class Eye(object):
 
         return {old_to_new[k]: v for k, v in d_centroids.items()}
 
-    def YOLO(self, img, conf, overlap_threshold):
-        model = YOLO('./yolov8s.pt')
+    def YOLO(self, img, conf, overlap_threshold, data_path , model_path):
+        model = YOLO(model_path)
+        _img = img.copy() # to make annotations
         # source image understands bgr cv2 format
-        results = model.predict(task='detect', mode='predict', source=img, conf=conf, data='./data.yaml', model='./yolov8s.pt')
+        results = model.predict(task='detect', mode='predict', source=img, conf=conf, data=data_path, model=model_path)
 
         for r in results:
             
@@ -458,7 +459,7 @@ class Eye(object):
 
             #conf, ball id and ball centroid will be stored in predictions
             predictions=np.zeros((num_predictions,4))
-            annotator = Annotator(img)
+            annotator = Annotator(_img)
             
             boxes = r.boxes
             for id,box in enumerate(boxes):
