@@ -46,27 +46,3 @@ if len(corners) > 0:
 cv2.imwrite('./results/aruco_ids.png', img)
 
 
-"""
-import cv2
-from pool.eye import Eye
-import os
-
-eye=Eye()
-eye.bottom_aruco_ids=[17,8]
-eye.top_aruco_ids=[9,3]
-eye.left_aruco_ids=[1,11]
-eye.right_aruco_ids=[23,10]
-path='./dataset2 canon/'
-save_path='./dataset2 canon enhanced/'
-l_img_numbers=[]
-
-for counter,img_name in enumerate(os.listdir(path)):
-
-    img = cv2.imread(path+img_name)
-
-    if counter==0:
-        corners=eye.get_pool_corners(img)
-
-    warp=eye.perspective_transform(img,corners)
-    cv2.imwrite(save_path+img_name, warp)
-"""

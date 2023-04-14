@@ -483,10 +483,8 @@ class Eye(object):
                 predictions[id,1]=ball_number
                 predictions[id,2]=cx
                 predictions[id,3]=cy
-                predictions[id,4]=x_top_left
-                predictions[id,5]=y_top_left
-                predictions[id,6]=x_bottom_right-x_top_left
-                predictions[id,7]=y_bottom_right-y_top_left
+                predictions[id,4]=x_bottom_right-x_top_left
+                predictions[id,5]=y_bottom_right-y_top_left
 
         #img = annotator.result()  
         #cv2.imwrite('YOLO_Detection.jpg', img)     
@@ -502,10 +500,8 @@ class Eye(object):
             ball_number = pred[1]
             centroid = pred[2:4]
             conf=pred[0]
-            x_top_left=pred[4]
-            y_top_left=pred[5]
-            h=pred[6]
-            w=pred[7]
+            h=pred[4]
+            w=pred[5]
             
             #first prediction has a different treatment:
             if i==0:
