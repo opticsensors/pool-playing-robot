@@ -62,10 +62,10 @@ class Eye(object):
     WHITE_LOWER_HSV=[0, 0, 179]
     WHITE_UPPER_HSV=[180, 106, 255]
 
-    BOTTOM_ARUCO_IDS=[23,15,7,6,14,22]
-    TOP_ARUCO_IDS   =[2,10,18,3,11,19]
-    LEFT_ARUCO_IDS  =[20, 12, 4]
-    RIGHT_ARUCO_IDS =[21,13, 5]
+    BOTTOM_ARUCO_IDS= [17,8]
+    TOP_ARUCO_IDS   = [9,3]
+    LEFT_ARUCO_IDS  = [1,11]
+    RIGHT_ARUCO_IDS = [23,10]
     
     RECTANGLE_AREA=382352 #HxV
     BALL_AREA=1134.115 #PI*RADI^2
@@ -159,6 +159,27 @@ class Eye(object):
     def color_to_lab(self,color_to_lab):
         if isinstance(color_to_lab, dict):
             self._color_to_lab=color_to_lab
+
+    def undistort_image(self,img, cameraMatrix, dist, remapping=False):
+        h,  w = img.shape[:2]
+        newCameraMatrix, roi = cv2.getOptimalNewCameraMatrix(cameraMatrix, dist, (w,h), 1, (w,h))
+
+        if not remapping:
+            # Undistort
+            dst = cv2.undistort(img, cameraMatrix, dist, None, newCameraMatrix)
+            x, y, w, h = roi
+            dst_cropped = dst[y:y+h, x:x+w]
+
+        else:
+            # Undistort with Remapping
+            mapx, mapy = cv2.initUndistortRectifyMap(cameraMatrix, dist, None, newCameraMatrix, (w,h), 5)
+            dst = cv2.remap(img, mapx, mapy, cv2.INTER_LINEAR)
+
+            # crop the image
+            x, y, w, h = roi
+            dst_cropped = dst[y:y+h, x:x+w]
+        
+        return dst_cropped
 
     def get_pool_corners(self, img):
 
