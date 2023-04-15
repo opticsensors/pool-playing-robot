@@ -7,11 +7,16 @@ stp=Stepper(baudRate=9600,
 
 stp.setupSerial()
 
-motor_position = f"2,{randrange(500,1500)},{randrange(500,1500)}"
+data = [(0,0,1500),(0,-500,500), (0,700,-700)]
+count=0
 
-stp.sendToArduino(motor_position)
+data_to_send=data[count]
+mode,pos1,pos2=data_to_send
+stp.sendToArduino(f"{mode},{pos1},{pos2}")
 
 while True:
+    count+=1
+    data_to_send=data[count]
     # check for a reply
     arduinoReply = stp.recvLikeArduino()
     if not (arduinoReply == 'XXX'):
@@ -21,4 +26,4 @@ while True:
         # send a message at intervals
         time.sleep(10)
         print('send to arduino:')
-        stp.sendToArduino(f"2,{randrange(1500,3500)},{randrange(1500,3500)}")
+        stp.sendToArduino(f"{mode},{pos1},{pos2}")

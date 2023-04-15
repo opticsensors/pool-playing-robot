@@ -4,10 +4,10 @@
 #include <AccelStepper.h>
 
 //stepper control outputs
-#define mot1StepPin 5
-#define mot1DirPin 2
-#define mot2StepPin 6
-#define mot2DirPin 3
+#define mot1StepPin 6
+#define mot1DirPin 3
+#define mot2StepPin 5
+#define mot2DirPin 2
 #define motMS1Pin 7
 #define motMS2Pin 8
 #define motMS3Pin 9
@@ -19,6 +19,16 @@
 // Define the stepper motor and the pins that is connected to
 AccelStepper stepper1(1, mot1StepPin, mot1DirPin); // (Typeof driver: with 2 pins, STEP, DIR)
 AccelStepper stepper2(1, mot2StepPin, mot2DirPin);
+
+// Define velocities and accelerations
+int calibrationVelocity = 500;
+int calibrationAcceleration = 250;
+int workingVelocity = 300;
+int workingAcceleration = 150;
+
+// variables to store calibration positions
+int max_position1;
+int max_position2;
 
 const byte numChars = 64;
 char receivedChars[numChars];
@@ -66,11 +76,9 @@ void setup() {
     delay(200);
     Serial.println("<Arduino is ready>");
     
-    //stepper1.setMaxSpeed(500); // Set maximum speed value for the stepper
-    //stepper1.setAcceleration(250); // Set acceleration value for the stepper
-    //stepper2.setMaxSpeed(500);
-    //stepper2.setAcceleration(250);
+    setSpeedAccel(calibrationVelocity, calibrationAcceleration);
     homing();
+    setSpeedAccel(workingVelocity, workingAcceleration);
 
 }
 
@@ -113,10 +121,20 @@ void loop() {
             }
         }
 
-        // calibration mode (find corners)
-        else {
+        // homing
+        else if (mode == -1) {
             delay(5000);
+            setSpeedAccel(calibrationVelocity, calibrationAcceleration);
             homing();
+            setSpeedAccel(workingVelocity, workingAcceleration);
+        }
+
+        // calibration mode (find corners)
+        else if (mode == -2) {
+            delay(5000);
+            setSpeedAccel(calibrationVelocity, calibrationAcceleration);
+            calibrate();
+            setSpeedAccel(workingVelocity, workingAcceleration);
         }
 
     replyToPython();
@@ -126,76 +144,108 @@ void loop() {
 
 //===============
 
-void homing() {
-    stepper1.setMaxSpeed(300); // Set maximum speed value for the stepper
-    stepper1.setAcceleration(150); // Set acceleration value for the stepper
-    stepper2.setMaxSpeed(300);
-    stepper2.setAcceleration(150);
+void setSpeedAccel(int speed, int accel){
+    stepper1.setMaxSpeed(speed); // Set maximum speed value for the stepper
+    stepper1.setAcceleration(accel); // Set acceleration value for the stepper
+    stepper2.setMaxSpeed(speed);
+    stepper2.setAcceleration(accel);
+}
 
-    while (digitalRead(leftSwitch)) {  // Make the Stepper move CCW until the switch is activated   
-        stepper1.moveTo(initial_homing1);  // Set the position to move to
-        stepper2.moveTo(initial_homing2);  // Set the position to move to
-        initial_homing1++;  // Decrease by 1 for next move if needed
-        initial_homing2++;  // Decrease by 1 for next move if needed
-        stepper1.run();  // Start moving the stepper
-        stepper2.run();  // Start moving the stepper
-        delay(5);
+void positionChange(int pin){
+
+    // when we touch a limit switch, we need to back off a little bit until 
+    // it stops being pressed. For this reason, negative values on limit  
+    // switched pins are considered  
+
+    if (pin==leftSwitch || pin==-rightSwitch) {
+        initial_homing1--;  
+        initial_homing2--;  
     }
-
-    stepper1.setCurrentPosition(0);  // Set the current position as zero for now
-    stepper2.setCurrentPosition(0);  // Set the current position as zero for now
-    initial_homing1=-1;
-    initial_homing2=-1;
-
-    while (!digitalRead(leftSwitch)) { // Make the Stepper move CW until the switch is deactivated
-        stepper1.moveTo(initial_homing1);  // Set the position to move to
-        stepper2.moveTo(initial_homing2);  // Set the position to move to
-        stepper1.run();
-        stepper2.run();
-        initial_homing1--;
-        initial_homing2--;
-        delay(5);
+    else if (pin==rightSwitch || pin==-leftSwitch) {
+        initial_homing1++;  
+        initial_homing2++;  
     }
+    else if (pin==topSwitch || pin==-bottomSwitch) {
+        initial_homing1++;  
+        initial_homing2--;  
+    }
+    else if (pin==bottomSwitch || pin==-topSwitch) {
+        initial_homing1--;  
+        initial_homing2++;  
+    }
+}
+
+void reachExtrem(int pin) {
     
     stepper1.setCurrentPosition(0);  // Set the current position as zero for now
     stepper2.setCurrentPosition(0);  // Set the current position as zero for now
-    initial_homing1=1;
-    initial_homing2=-1;
+    initial_homing1=0;
+    initial_homing2=0;
 
-    while (digitalRead(topSwitch)) {  // Make the Stepper move CCW until the switch is activated   
+    while (digitalRead(pin)) {  // Make the Stepper move CCW until the switch is activated   
         stepper1.moveTo(initial_homing1);  // Set the position to move to
         stepper2.moveTo(initial_homing2);  // Set the position to move to
-        initial_homing1++;  // Decrease by 1 for next move if needed
-        initial_homing2--;  // Decrease by 1 for next move if needed
+        positionChange(pin);
         stepper1.run();  // Start moving the stepper
         stepper2.run();  // Start moving the stepper
         delay(5);
     }
 
+    max_position1 = initial_homing1;
+    max_position2 = initial_homing2;
     stepper1.setCurrentPosition(0);  // Set the current position as zero for now
     stepper2.setCurrentPosition(0);  // Set the current position as zero for now
-    initial_homing1=-1;
-    initial_homing2=+1;
+    initial_homing1=0;
+    initial_homing2=0;
 
-    while (!digitalRead(topSwitch)) { // Make the Stepper move CW until the switch is deactivated
+    while (!digitalRead(pin)) { // Make the Stepper move CW until the switch is deactivated
         stepper1.moveTo(initial_homing1);  // Set the position to move to
         stepper2.moveTo(initial_homing2);  // Set the position to move to
-        initial_homing1--;
-        initial_homing2++;
         stepper1.run();
         stepper2.run();
+        positionChange(-pin);
         delay(5);
     }
+    
+    max_position1 = max_position1 + initial_homing1;
+    max_position2 = max_position2 + initial_homing2;
+    stepper1.setCurrentPosition(0);  // Set the current position as zero for now
+    stepper2.setCurrentPosition(0);  // Set the current position as zero for now
+}
+
+void homing() {
+
+    reachExtrem(leftSwitch);
+    reachExtrem(topSwitch);
 
     relative_position_stepper1 = 0;
     relative_position_stepper2 = 0;
     absolute_position_stepper1 = 0;
     absolute_position_stepper2 = 0;
 
-    stepper1.setMaxSpeed(500); // Set maximum speed value for the stepper
-    stepper1.setAcceleration(250); // Set acceleration value for the stepper
-    stepper2.setMaxSpeed(500);
-    stepper2.setAcceleration(250);
+}
+
+void calibrate() {
+
+    homing();
+
+    reachExtrem(rightSwitch);
+    Serial.print("<");
+    Serial.print('right');
+    Serial.print(",");
+    Serial.print(max_position1);
+    Serial.print(",");
+    Serial.print(max_position2);
+    Serial.print('>');
+
+    reachExtrem(bottomSwitch);
+    Serial.print("<");
+    Serial.print('bottom');
+    Serial.print(",");
+    Serial.print(max_position1);
+    Serial.print(",");
+    Serial.print(max_position2);
+    Serial.print('>');
 }
 
 void parseData() {      // split the data into its parts
@@ -248,6 +298,7 @@ void recvWithStartEndMarkers() {
 //===============
 
 void replyToPython() {
+
     Serial.print("<");
     Serial.print(mode);
     Serial.print(",");
@@ -259,6 +310,7 @@ void replyToPython() {
     Serial.print(",");
     Serial.print(absolute_position_stepper2);
     Serial.print('>');
+
         // change the state of the data bool everytime a reply is sent
     newData = false;
 }
