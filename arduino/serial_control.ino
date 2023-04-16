@@ -21,10 +21,10 @@ AccelStepper stepper1(1, mot1StepPin, mot1DirPin); // (Typeof driver: with 2 pin
 AccelStepper stepper2(1, mot2StepPin, mot2DirPin);
 
 // Define velocities and accelerations
-int calibrationVelocity = 500;
-int calibrationAcceleration = 250;
-int workingVelocity = 300;
-int workingAcceleration = 150;
+int calibrationVelocity = 700;
+int calibrationAcceleration = 1500;
+int workingVelocity = 700;
+int workingAcceleration = 1500;
 
 // variables to store calibration positions
 int reach_position1;
@@ -35,7 +35,7 @@ char receivedChars[numChars];
 char tempChars[numChars];        // temporary array for use when parsing
 int sign1 = 1;
 int sign2 = 1;
-int backup_position = 200;
+int backup_position = 300;
 int infinity = 32766;
 int untilTheEnd1 = 0;
 int untilTheEnd2 = 0;
@@ -109,9 +109,6 @@ void loop() {
         // homing
         else if (mode == -1) {
             delay(5000);
-            digitalWrite(motMS1Pin, bitRead(microSteps[1], 2));
-            digitalWrite(motMS2Pin, bitRead(microSteps[1], 1));
-            digitalWrite(motMS3Pin, bitRead(microSteps[1], 0));
             setSpeedAccel(calibrationVelocity, calibrationAcceleration);
             homing();
             setSpeedAccel(workingVelocity, workingAcceleration);
@@ -121,10 +118,7 @@ void loop() {
         else if (mode == -2) {
             delay(5000);
             setSpeedAccel(calibrationVelocity, calibrationAcceleration);
-            homing();
             findMaxPositions();
-            delay(5000);
-            homing();
             setSpeedAccel(workingVelocity, workingAcceleration);
         }
 
@@ -167,10 +161,13 @@ void positionSigns(int pin){
 }
 
 void reachEnd(int pin) {
-    
+    untilTheEnd1=0;
+    untilTheEnd2=0;
     stepper1.setCurrentPosition(0);  // Set the current position as zero for now
     stepper2.setCurrentPosition(0);  // Set the current position as zero for now
     positionSigns( pin );
+    delay(200);
+
     stepper1.moveTo(sign1*infinity);  // Set the position to move to
     stepper2.moveTo(sign2*infinity);  // Set the position to move to
     while (digitalRead(pin)) {  // Make the Stepper move CCW until the switch is activated   
@@ -199,8 +196,6 @@ void reachEnd(int pin) {
     
     stepper1.setCurrentPosition(0);  // Set the current position as zero for now
     stepper2.setCurrentPosition(0);  // Set the current position as zero for now
-    untilTheEnd1=0;
-    untilTheEnd2=0;
     delay(200);
 
 }
@@ -217,15 +212,13 @@ void homing() {
 
 void findMaxPositions() {
 
-    homing();
-
     reachEnd(rightSwitch);
-    absolute_position_stepper1=absolute_position_stepper1+untilTheEnd1;
-    absolute_position_stepper2=absolute_position_stepper2+untilTheEnd2;
+    //absolute_position_stepper1=absolute_position_stepper1+untilTheEnd1;
+    //absolute_position_stepper2=absolute_position_stepper2+untilTheEnd2;
 
     reachEnd(bottomSwitch);
-    absolute_position_stepper1=absolute_position_stepper1+untilTheEnd1;
-    absolute_position_stepper2=absolute_position_stepper2+untilTheEnd2;
+    //absolute_position_stepper1=absolute_position_stepper1+untilTheEnd1;
+    //absolute_position_stepper2=absolute_position_stepper2+untilTheEnd2;
 }
 
 void moveSafe() {
@@ -242,7 +235,7 @@ void moveSafe() {
         else{
             stepper1.stop(); // Stop as fast as possible
             stepper2.stop(); // Stop as fast as possible  
-            mode = -1;
+            homing();
             break;
         }
     }
