@@ -7,7 +7,7 @@ stp=Stepper(baudRate=9600,
 
 stp.setupSerial()
 
-data = [(0,0,1500),(0,-500,500), (0,700,-700)]
+data = [(-1,0,0),(0,0,1000),(2,0,500),(3,-500,1000),(-2,0,0)]
 count=0
 
 data_to_send=data[count]
@@ -15,8 +15,7 @@ mode,pos1,pos2=data_to_send
 stp.sendToArduino(f"{mode},{pos1},{pos2}")
 
 while True:
-    count+=1
-    data_to_send=data[count]
+
     # check for a reply
     arduinoReply = stp.recvLikeArduino()
     if not (arduinoReply == 'XXX'):
@@ -25,5 +24,9 @@ while True:
         # when we recieve the data from arduino, we assume the motors have stopped?
         # send a message at intervals
         time.sleep(10)
-        print('send to arduino:')
+        count+=1
+        data_to_send=data[count]
+        #print(count, data,data_to_send)
+        mode,pos1,pos2=data_to_send
+        print('Send to arduino:', mode, pos1, pos2)
         stp.sendToArduino(f"{mode},{pos1},{pos2}")

@@ -13,11 +13,11 @@ Thx!
 // Library created by Mike McCauley at http://www.airspayce.com/mikem/arduino/AccelStepper/
 
 // AccelStepper Setup
-AccelStepper stepperX(1, 5, 2);   // 1 = Easy Driver interface
+AccelStepper stepperX(1, 6, 3);   // 1 = Easy Driver interface
                                   // UNO Pin 2 connected to STEP pin of Easy Driver
                                   // UNO Pin 3 connected to DIR pin of Easy Driver
                                   
-AccelStepper stepperZ(1, 6, 3);   // 1 = Easy Driver interface
+AccelStepper stepperZ(1, 5, 2);   // 1 = Easy Driver interface
                                   // UNO Pin 5 connected to STEP pin of Easy Driver
                                   // UNO Pin 6 connected to DIR pin of Easy Driver
 
@@ -38,10 +38,10 @@ void setup() {
 
 //  Set Max Speed and Acceleration of each Steppers
   stepperX.setMaxSpeed(500.0);      // Set Max Speed of X axis
-  stepperX.setAcceleration(250.0);  // Acceleration of X axis
+  stepperX.setAcceleration(800.0);  // Acceleration of X axis
 
   stepperZ.setMaxSpeed(500.0);      // Set Max Speed of Y axis slower for rotation
-  stepperZ.setAcceleration(250.0);  // Acceleration of Y axis
+  stepperZ.setAcceleration(800.0);  // Acceleration of Y axis
 
 }
 

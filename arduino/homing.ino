@@ -4,10 +4,10 @@
 #include <AccelStepper.h>
 
 //stepper control outputs
-#define mot1StepPin 5
-#define mot1DirPin 2
-#define mot2StepPin 6
-#define mot2DirPin 3
+#define mot1StepPin 6
+#define mot1DirPin 3
+#define mot2StepPin 5
+#define mot2DirPin 2
 #define topSwitch 10
 #define bottomSwitch 12
 #define leftSwitch 11
@@ -20,8 +20,12 @@ AccelStepper stepper2(1, mot2StepPin, mot2DirPin);
 int initial_homing1 = -1;
 int initial_homing2 = -1;
 
-int pos1 = 500;
-int pos2 = 500;
+int pos1 = 1500;
+int pos2 = 1500;
+int time = 0;
+
+int maxTravel1=5000;
+int maxTravel2=5000;
 
 //===============
 
@@ -37,13 +41,14 @@ void setup() {
     delay(200);
     Serial.println("<Arduino is ready>");
     
-    homing();
+    //homing();
 
 }
 
 //===============
 
 void loop() {
+    homing_v2();
     // every time new data comes, we set the current position of the motors to 0 steps
     // this is because we will move the motors with visual servoing (error vector)
     stepper1.setCurrentPosition(0); 
@@ -62,18 +67,18 @@ void loop() {
     }   
 
     pos1=-pos1;
-    pos2=-pos2;
-    delay(2000);
+    //pos2=-pos2;
+    delay(3000);
 
 }
 
 //===============
 
 void homing() {
-    stepper1.setMaxSpeed(50); // Set maximum speed value for the stepper
-    stepper1.setAcceleration(25); // Set acceleration value for the stepper
-    stepper2.setMaxSpeed(50);
-    stepper2.setAcceleration(25);
+    stepper1.setMaxSpeed(400); // Set maximum speed value for the stepper
+    stepper1.setAcceleration(700); // Set acceleration value for the stepper
+    stepper2.setMaxSpeed(400);
+    stepper2.setAcceleration(700);
 
     while (digitalRead(leftSwitch)) {  // Make the Stepper move CCW until the switch is activated   
         stepper1.moveTo(initial_homing1);  // Set the position to move to
@@ -82,58 +87,147 @@ void homing() {
         initial_homing2--;  // Decrease by 1 for next move if needed
         stepper1.run();  // Start moving the stepper
         stepper2.run();  // Start moving the stepper
-        delay(5);
+        delay(time);
     }
-
+    Serial.println("left reached");
     stepper1.setCurrentPosition(0);  // Set the current position as zero for now
     stepper2.setCurrentPosition(0);  // Set the current position as zero for now
     initial_homing1=1;
     initial_homing2=1;
+    delay(200);
 
-    while (!digitalRead(leftSwitch)) { // Make the Stepper move CW until the switch is deactivated
+    //while (!digitalRead(leftSwitch)) { // Make the Stepper move CW until the switch is deactivated
+    //    stepper1.moveTo(initial_homing1);  // Set the position to move to
+    //    stepper2.moveTo(initial_homing2);  // Set the position to move to
+    //    stepper1.run();
+    //    stepper2.run();
+    //    initial_homing1++;
+    //    initial_homing2++;
+        //delay(5);
+    //}
+    for (int i = 0; i <= 200; i++) {
         stepper1.moveTo(initial_homing1);  // Set the position to move to
         stepper2.moveTo(initial_homing2);  // Set the position to move to
-        stepper1.run();
-        stepper2.run();
-        initial_homing1++;
-        initial_homing2++;
-        delay(5);
+        initial_homing1++;  // Decrease by 1 for next move if needed
+        initial_homing2++;  // Decrease by 1 for next move if needed
+        stepper1.run();  // Start moving the stepper
+        stepper2.run();  // Start moving the stepper
+        //Serial.println(i);
+        delay(time);
     }
-    
+    stepper1.setCurrentPosition(0);  // Set the current position as zero for now
+    stepper2.setCurrentPosition(0);  // Set the current position as zero for now
+    initial_homing1=1;
+    initial_homing2=-1;
+    delay(200);
+
+    while (digitalRead(topSwitch)) {  // Make the Stepper move CCW until the switch is activated   
+        stepper1.moveTo(initial_homing1);  // Set the position to move to
+        stepper2.moveTo(initial_homing2);  // Set the position to move to
+        initial_homing1++;  // Decrease by 1 for next move if needed
+        initial_homing2--;  // Decrease by 1 for next move if needed
+        stepper1.run();  // Start moving the stepper
+        stepper2.run();  // Start moving the stepper
+        delay(time);
+    }
+    Serial.println("top reached");
     stepper1.setCurrentPosition(0);  // Set the current position as zero for now
     stepper2.setCurrentPosition(0);  // Set the current position as zero for now
     initial_homing1=-1;
     initial_homing2=1;
+    delay(200);
 
-    while (digitalRead(topSwitch)) {  // Make the Stepper move CCW until the switch is activated   
+    //while (!digitalRead(topSwitch)) { // Make the Stepper move CW until the switch is deactivated
+    //    stepper1.moveTo(initial_homing1);  // Set the position to move to
+    //    stepper2.moveTo(initial_homing2);  // Set the position to move to
+    //    initial_homing1--;
+    //    initial_homing2++;
+    //    stepper1.run();
+    //    stepper2.run();
+        //delay(5);
+    //}
+    for (int i = 0; i <= 200; i++) {
         stepper1.moveTo(initial_homing1);  // Set the position to move to
         stepper2.moveTo(initial_homing2);  // Set the position to move to
         initial_homing1--;  // Decrease by 1 for next move if needed
         initial_homing2++;  // Decrease by 1 for next move if needed
         stepper1.run();  // Start moving the stepper
         stepper2.run();  // Start moving the stepper
-        delay(5);
+        //Serial.println(i);
+        delay(time);
+
     }
-
-    stepper1.setCurrentPosition(0);  // Set the current position as zero for now
-    stepper2.setCurrentPosition(0);  // Set the current position as zero for now
-    initial_homing1=1;
-    initial_homing2=-1;
-
-    while (!digitalRead(topSwitch)) { // Make the Stepper move CW until the switch is deactivated
-        stepper1.moveTo(initial_homing1);  // Set the position to move to
-        stepper2.moveTo(initial_homing2);  // Set the position to move to
-        initial_homing1++;
-        initial_homing2--;
-        stepper1.run();
-        stepper2.run();
-        delay(5);
-    }
-
-    stepper1.setMaxSpeed(500); // Set maximum speed value for the stepper
-    stepper1.setAcceleration(250); // Set acceleration value for the stepper
-    stepper2.setMaxSpeed(500);
-    stepper2.setAcceleration(250);
+    stepper1.setMaxSpeed(600); // Set maximum speed value for the stepper
+    stepper1.setAcceleration(800); // Set acceleration value for the stepper
+    stepper2.setMaxSpeed(600);
+    stepper2.setAcceleration(800);
+    delay(200);
 }
 
+void homing_v2() {
+    stepper1.setMaxSpeed(400); // Set maximum speed value for the stepper
+    stepper1.setAcceleration(700); // Set acceleration value for the stepper
+    stepper2.setMaxSpeed(400);
+    stepper2.setAcceleration(700);
+
+    stepper1.moveTo(-maxTravel1);  // Set the position to move to
+    stepper2.moveTo(-maxTravel2);  // Set the position to move to
+    while (digitalRead(leftSwitch)) {  // Make the Stepper move CCW until the switch is activated   
+        stepper1.run();  // Start moving the stepper
+        stepper2.run();  // Start moving the stepper
+        //delay(time);
+    }
+    stepper1.stop(); // Stop as fast as possible
+    stepper2.stop(); // Stop as fast as possible  
+    Serial.println("left reached");
+    stepper1.setCurrentPosition(0);  // Set the current position as zero for now
+    stepper2.setCurrentPosition(0);  // Set the current position as zero for now
+    delay(200);
+
+    stepper1.moveTo(200);  // Set the position to move to
+    stepper2.moveTo(200);  // Set the position to move to
+    while (stepper1.currentPosition() != 200 || stepper2.currentPosition() != 200) { // Make the Stepper move CW until the switch is deactivated
+        stepper1.run();
+        stepper2.run();
+        //delay(5);
+    }
+
+    Serial.println("left backup");
+    stepper1.setCurrentPosition(0);  // Set the current position as zero for now
+    stepper2.setCurrentPosition(0);  // Set the current position as zero for now
+    delay(200);
+
+    stepper1.moveTo(maxTravel1);  // Set the position to move to
+    stepper2.moveTo(-maxTravel2);  // Set the position to move to
+    while (digitalRead(topSwitch)) {  // Make the Stepper move CCW until the switch is activated   
+        stepper1.run();  // Start moving the stepper
+        stepper2.run();  // Start moving the stepper
+        //delay(time);
+    }
+    stepper1.stop(); // Stop as fast as possible
+    stepper2.stop(); // Stop as fast as possible  
+    Serial.println("top reached");
+    stepper1.setCurrentPosition(0);  // Set the current position as zero for now
+    stepper2.setCurrentPosition(0);  // Set the current position as zero for now
+    delay(200);
+
+    stepper1.moveTo(-200);  // Set the position to move to
+    stepper2.moveTo(200);  // Set the position to move to
+    while (stepper1.currentPosition() != -200 || stepper2.currentPosition() != 200) { // Make the Stepper move CW until the switch is deactivated
+        stepper1.run();
+        stepper2.run();
+        //delay(5);
+    }
+ 
+    Serial.println("top backup");
+    stepper1.setCurrentPosition(0);  // Set the current position as zero for now
+    stepper2.setCurrentPosition(0);  // Set the current position as zero for now
+    delay(200);
+
+    stepper1.setMaxSpeed(600); // Set maximum speed value for the stepper
+    stepper1.setAcceleration(800); // Set acceleration value for the stepper
+    stepper2.setMaxSpeed(600);
+    stepper2.setAcceleration(800);
+    delay(200);
+}
 

@@ -27,20 +27,22 @@ int workingVelocity = 300;
 int workingAcceleration = 150;
 
 // variables to store calibration positions
-int max_position1;
-int max_position2;
+int reach_position1;
+int reach_position2;
 
 const byte numChars = 64;
 char receivedChars[numChars];
 char tempChars[numChars];        // temporary array for use when parsing
-int initial_homing1 = 1;
-int initial_homing2 = 1;
+int sign1 = 1;
+int sign2 = 1;
+int backup_position = 200;
+int infinity = 32766;
+int untilTheEnd1 = 0;
+int untilTheEnd2 = 0;
 
 boolean newData = false;
 
 // variables to hold the parsed data
-int relative_position_stepper1 = 0;
-int relative_position_stepper2 = 0;
 int absolute_position_stepper1 = 0;
 int absolute_position_stepper2 = 0;
 int mode = -1;
@@ -74,11 +76,9 @@ void setup() {
     digitalWrite(motMS3Pin, LOW);
 
     delay(200);
-    Serial.println("<Arduino is ready>");
-    
-    setSpeedAccel(calibrationVelocity, calibrationAcceleration);
-    homing();
     setSpeedAccel(workingVelocity, workingAcceleration);
+    Serial.println("<Arduino is ready>");
+   
 
 }
 
@@ -89,8 +89,8 @@ void loop() {
     
     // every time new data comes, we set the current position of the motors to 0 steps
     // this is because we will move the motors with visual servoing (error vector)
-    stepper1.setCurrentPosition(0); 
-    stepper2.setCurrentPosition(0);
+    // stepper1.setCurrentPosition(0); 
+    // stepper2.setCurrentPosition(0);
 
     if (newData == true) {
         strcpy(tempChars, receivedChars);
@@ -99,31 +99,19 @@ void loop() {
         parseData();
         
         // step mode (includes microstepping option)
-        if (mode != -1) {
+        if (mode >= 0) {
             digitalWrite(motMS1Pin, bitRead(microSteps[mode], 2));
             digitalWrite(motMS2Pin, bitRead(microSteps[mode], 1));
             digitalWrite(motMS3Pin, bitRead(microSteps[mode], 0));
-
-            stepper1.moveTo(relative_position_stepper1);
-            stepper2.moveTo(relative_position_stepper2);
-            // when we achieved the desired position, we exit the while loop
-            while (stepper1.currentPosition() != relative_position_stepper1 || stepper2.currentPosition() != relative_position_stepper2 ) {
-                // before running we make sure that switches are not pressed
-                if (digitalRead(topSwitch) && digitalRead(bottomSwitch) && digitalRead(leftSwitch) && digitalRead(rightSwitch)){
-                    stepper1.run();  // Move or step the motor implementing accelerations and decelerations to achieve the target position. Non-blocking function
-                    stepper2.run();
-                }
-
-                else{
-                    mode = -1;
-                    break;
-                }
-            }
+            moveSafe();
         }
 
         // homing
         else if (mode == -1) {
             delay(5000);
+            digitalWrite(motMS1Pin, bitRead(microSteps[1], 2));
+            digitalWrite(motMS2Pin, bitRead(microSteps[1], 1));
+            digitalWrite(motMS3Pin, bitRead(microSteps[1], 0));
             setSpeedAccel(calibrationVelocity, calibrationAcceleration);
             homing();
             setSpeedAccel(workingVelocity, workingAcceleration);
@@ -133,7 +121,10 @@ void loop() {
         else if (mode == -2) {
             delay(5000);
             setSpeedAccel(calibrationVelocity, calibrationAcceleration);
-            calibrate();
+            homing();
+            findMaxPositions();
+            delay(5000);
+            homing();
             setSpeedAccel(workingVelocity, workingAcceleration);
         }
 
@@ -151,101 +142,110 @@ void setSpeedAccel(int speed, int accel){
     stepper2.setAcceleration(accel);
 }
 
-void positionChange(int pin){
+void positionSigns(int pin){
 
     // when we touch a limit switch, we need to back off a little bit until 
     // it stops being pressed. For this reason, negative values on limit  
     // switched pins are considered  
 
     if (pin==leftSwitch || pin==-rightSwitch) {
-        initial_homing1--;  
-        initial_homing2--;  
+        sign1=-1;  
+        sign2=-1;  
     }
     else if (pin==rightSwitch || pin==-leftSwitch) {
-        initial_homing1++;  
-        initial_homing2++;  
+        sign1=1;  
+        sign2=1;
     }
     else if (pin==topSwitch || pin==-bottomSwitch) {
-        initial_homing1++;  
-        initial_homing2--;  
+        sign1=1;  
+        sign2=-1;
     }
     else if (pin==bottomSwitch || pin==-topSwitch) {
-        initial_homing1--;  
-        initial_homing2++;  
+        sign1=-1;  
+        sign2=1;
     }
 }
 
-void reachExtrem(int pin) {
+void reachEnd(int pin) {
     
     stepper1.setCurrentPosition(0);  // Set the current position as zero for now
     stepper2.setCurrentPosition(0);  // Set the current position as zero for now
-    initial_homing1=0;
-    initial_homing2=0;
-
+    positionSigns( pin );
+    stepper1.moveTo(sign1*infinity);  // Set the position to move to
+    stepper2.moveTo(sign2*infinity);  // Set the position to move to
     while (digitalRead(pin)) {  // Make the Stepper move CCW until the switch is activated   
-        stepper1.moveTo(initial_homing1);  // Set the position to move to
-        stepper2.moveTo(initial_homing2);  // Set the position to move to
-        positionChange(pin);
         stepper1.run();  // Start moving the stepper
         stepper2.run();  // Start moving the stepper
-        delay(5);
-    }
+        untilTheEnd1=untilTheEnd1+sign1;
+        untilTheEnd2=untilTheEnd2+sign2;
 
-    max_position1 = initial_homing1;
-    max_position2 = initial_homing2;
+    }
+    stepper1.stop(); // Stop as fast as possible
+    stepper2.stop(); // Stop as fast as possible  
+
     stepper1.setCurrentPosition(0);  // Set the current position as zero for now
     stepper2.setCurrentPosition(0);  // Set the current position as zero for now
-    initial_homing1=0;
-    initial_homing2=0;
+    positionSigns( -pin );
+    delay(200);
 
-    while (!digitalRead(pin)) { // Make the Stepper move CW until the switch is deactivated
-        stepper1.moveTo(initial_homing1);  // Set the position to move to
-        stepper2.moveTo(initial_homing2);  // Set the position to move to
+    stepper1.moveTo(sign1*backup_position);  // Set the position to move to
+    stepper2.moveTo(sign2*backup_position);  // Set the position to move to
+    while (stepper1.currentPosition() != sign1*backup_position || stepper2.currentPosition() != sign2*backup_position) { // Make the Stepper move CW until the switch is deactivated
         stepper1.run();
         stepper2.run();
-        positionChange(-pin);
-        delay(5);
+        untilTheEnd1=untilTheEnd1+sign1;
+        untilTheEnd2=untilTheEnd2+sign2;
     }
     
-    max_position1 = max_position1 + initial_homing1;
-    max_position2 = max_position2 + initial_homing2;
     stepper1.setCurrentPosition(0);  // Set the current position as zero for now
     stepper2.setCurrentPosition(0);  // Set the current position as zero for now
+    untilTheEnd1=0;
+    untilTheEnd2=0;
+    delay(200);
+
 }
 
 void homing() {
 
-    reachExtrem(leftSwitch);
-    reachExtrem(topSwitch);
+    reachEnd(leftSwitch);
+    reachEnd(topSwitch);
 
-    relative_position_stepper1 = 0;
-    relative_position_stepper2 = 0;
     absolute_position_stepper1 = 0;
     absolute_position_stepper2 = 0;
 
 }
 
-void calibrate() {
+void findMaxPositions() {
 
     homing();
 
-    reachExtrem(rightSwitch);
-    Serial.print("<");
-    Serial.print('right');
-    Serial.print(",");
-    Serial.print(max_position1);
-    Serial.print(",");
-    Serial.print(max_position2);
-    Serial.print('>');
+    reachEnd(rightSwitch);
+    absolute_position_stepper1=absolute_position_stepper1+untilTheEnd1;
+    absolute_position_stepper2=absolute_position_stepper2+untilTheEnd2;
 
-    reachExtrem(bottomSwitch);
-    Serial.print("<");
-    Serial.print('bottom');
-    Serial.print(",");
-    Serial.print(max_position1);
-    Serial.print(",");
-    Serial.print(max_position2);
-    Serial.print('>');
+    reachEnd(bottomSwitch);
+    absolute_position_stepper1=absolute_position_stepper1+untilTheEnd1;
+    absolute_position_stepper2=absolute_position_stepper2+untilTheEnd2;
+}
+
+void moveSafe() {
+    stepper1.moveTo(absolute_position_stepper1);
+    stepper2.moveTo(absolute_position_stepper2);
+    // when we achieved the desired position, we exit the while loop
+    while (stepper1.currentPosition() != absolute_position_stepper1 || stepper2.currentPosition() != absolute_position_stepper2 ) {
+        // before running we make sure that switches are not pressed
+        if (digitalRead(topSwitch) && digitalRead(bottomSwitch) && digitalRead(leftSwitch) && digitalRead(rightSwitch)){
+            stepper1.run();  // Move or step the motor implementing accelerations and decelerations to achieve the target position. Non-blocking function
+            stepper2.run();
+        }
+
+        else{
+            stepper1.stop(); // Stop as fast as possible
+            stepper2.stop(); // Stop as fast as possible  
+            mode = -1;
+            break;
+        }
+    }
 }
 
 void parseData() {      // split the data into its parts
@@ -254,13 +254,9 @@ void parseData() {      // split the data into its parts
     strtokIndx = strtok(tempChars,",");      // get the first part - the string
     mode = atoi(strtokIndx);     // convert this part to an integer
     strtokIndx = strtok(NULL, ","); // this continues where the previous call left off
-    relative_position_stepper1 = atoi(strtokIndx);     // convert this part to an integer
+    absolute_position_stepper1 = atoi(strtokIndx);     // convert this part to an integer
     strtokIndx = strtok(NULL, ","); // this continues where the previous call left off
-    relative_position_stepper2 = atoi(strtokIndx);     // convert this part to an integer
-
-    // update absolute position
-    absolute_position_stepper1=absolute_position_stepper1+relative_position_stepper1;
-    absolute_position_stepper2=absolute_position_stepper2+relative_position_stepper2;
+    absolute_position_stepper2 = atoi(strtokIndx);     // convert this part to an integer
 }
 
 void recvWithStartEndMarkers() {
@@ -301,10 +297,6 @@ void replyToPython() {
 
     Serial.print("<");
     Serial.print(mode);
-    Serial.print(",");
-    Serial.print(relative_position_stepper1);
-    Serial.print(",");
-    Serial.print(relative_position_stepper2);
     Serial.print(",");
     Serial.print(absolute_position_stepper1);
     Serial.print(",");
