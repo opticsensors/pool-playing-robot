@@ -61,11 +61,6 @@ class Eye(object):
     WHITE_UPPER_LAB=[255, 147, 164]
     WHITE_LOWER_HSV=[0, 0, 179]
     WHITE_UPPER_HSV=[180, 106, 255]
-
-    BOTTOM_ARUCO_IDS= [17,8]
-    TOP_ARUCO_IDS   = [9,3]
-    LEFT_ARUCO_IDS  = [1,11]
-    RIGHT_ARUCO_IDS = [23,10]
     
     RECTANGLE_AREA=382352 #HxV
     BALL_AREA=1134.115 #PI*RADI^2
@@ -78,10 +73,6 @@ class Eye(object):
             'lower_hsv': Eye.WHITE_LOWER_HSV,
             'upper_hsv': Eye.WHITE_UPPER_HSV,
             'colors':    Eye.COLOR_TO_LAB,
-            'bottom_aruco_ids':Eye.BOTTOM_ARUCO_IDS,
-            'top_aruco_ids':Eye.TOP_ARUCO_IDS   ,
-            'left_aruco_ids':Eye.LEFT_ARUCO_IDS  ,
-            'right_aruco_ids':Eye.RIGHT_ARUCO_IDS ,
             }
         param.update(kwargs)
         
@@ -90,10 +81,6 @@ class Eye(object):
         self._upper_hsv=param['upper_hsv']
         self._upper_lab=param['upper_lab']
         self._color_to_lab=param['colors']
-        self.bottom_aruco_ids=param['bottom_aruco_ids']
-        self.top_aruco_ids=param['top_aruco_ids']
-        self.left_aruco_ids=param['left_aruco_ids']
-        self.right_aruco_ids=param['right_aruco_ids']
 
     @staticmethod
     def _dict_to_arr( color_to_lab):
@@ -181,7 +168,7 @@ class Eye(object):
         
         return dst_cropped
 
-    def get_pool_corners(self, img):
+    def get_pool_corners(self, img, left_aruco_ids, right_aruco_ids, top_aruco_ids, bottom_aruco_ids):
 
         arucoDict=cv2.aruco.DICT_4X4_100
         arucoDict = cv2.aruco.getPredefinedDictionary(arucoDict)
@@ -208,10 +195,10 @@ class Eye(object):
                 cY = (topLeft[1] + bottomRight[1]) / 2.0
                 id_to_centroids[markerID]=(cX,cY)
 
-        bottomLine=np.array([id_to_centroids[aruco_id] for aruco_id in self.bottom_aruco_ids])
-        topLine=   np.array([id_to_centroids[aruco_id] for aruco_id in self.top_aruco_ids])
-        rightLine= np.array([id_to_centroids[aruco_id] for aruco_id in self.left_aruco_ids])
-        leftLine=  np.array([id_to_centroids[aruco_id] for aruco_id in self.right_aruco_ids])
+        bottomLine=np.array([id_to_centroids[aruco_id] for aruco_id in bottom_aruco_ids])
+        topLine=   np.array([id_to_centroids[aruco_id] for aruco_id in top_aruco_ids])
+        rightLine= np.array([id_to_centroids[aruco_id] for aruco_id in left_aruco_ids])
+        leftLine=  np.array([id_to_centroids[aruco_id] for aruco_id in right_aruco_ids])
         lines={}
 
         for edge,position in zip([bottomLine,topLine,rightLine,leftLine], ['bottom', 'top', 'right', 'left']):
@@ -235,6 +222,35 @@ class Eye(object):
 
         return pool_corners
     
+    def get_aruco_coordinates(self, img, aruco_to_track):
+
+        arucoDict=cv2.aruco.DICT_4X4_100
+        arucoDict = cv2.aruco.getPredefinedDictionary(arucoDict)
+        arucoParams = cv2.aruco.DetectorParameters()
+        arucoDetector = cv2.aruco.ArucoDetector(
+            arucoDict, arucoParams)
+
+        corners, ids, rejected = arucoDetector.detectMarkers(img)
+        id_to_centroids={}
+
+        if len(corners) > 0:
+            # flatten the ArUco IDs list
+            ids = ids.flatten()
+            # loop over the detected ArUCo corners
+            for (markerCorner, markerID) in zip(corners, ids):
+                # extract the marker corners (which are always returned in
+                # top-left, top-right, bottom-right, and bottom-left order)
+                corners = markerCorner.reshape((4, 2))
+                (topLeft, topRight, bottomRight, bottomLeft) = corners
+
+                # compute and draw the center (x, y)-coordinates of the ArUco
+                # marker
+                cX = (topLeft[0] + bottomRight[0]) / 2.0
+                cY = (topLeft[1] + bottomRight[1]) / 2.0
+                id_to_centroids[markerID]=(cX,cY)
+                
+        return id_to_centroids[aruco_to_track]
+
     def get_cloth_color(self,hsv,search_width=45):
         """
         Find the most common HSV values in the image.

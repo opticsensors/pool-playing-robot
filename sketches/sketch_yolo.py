@@ -6,11 +6,7 @@ from pool.eye import Eye
 img = cv2.imread('./data/config_1.jpg')
 
 eye=Eye()
-eye.bottom_aruco_ids=[17,8]
-eye.top_aruco_ids=[9,3]
-eye.left_aruco_ids=[1,11]
-eye.right_aruco_ids=[23,10]
-#corners=eye.get_pool_corners(img)
+#corners=eye.get_pool_corners(img,bottom_aruco_ids=[17,8],top_aruco_ids=[9,3],left_aruco_ids=[1,11],right_aruco_ids=[23,10])
 #warp=eye.perspective_transform(img,corners)
 
 # Yolov8 results

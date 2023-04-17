@@ -43,7 +43,7 @@ eye.right_aruco_ids=[23,10]
 stp=Stepper(baudRate=9600,serialPortName='COM3' )
 stp.setupSerial()
 
-def get_image(count):
+def get_undistorted_warp_image(count):
     test_camera.capture_single_image()
     name=f'{test_camera.collection_name}_{count}'
     img = cv2.imread(f'./data/{name}.jpg')
@@ -70,14 +70,15 @@ while True:
     if not (arduinoReply == 'XXX'):
         print ("Reply: ", arduinoReply)
         time.sleep(3)
-        img=get_image(count)
-        x,y=eye.get_aruco_coordinates(aruco_to_track)
-        point=points[count,:]
-        pos1,pos2=interpolation_steps(point,max_phi1,max_phi2)
-        
-        print('Send to arduino:', mode, pos1, pos2)
-        stp.sendToArduino(f"{mode},{pos1},{pos2}")
+        if mode>=0:
+            img=get_undistorted_warp_image(count)
+            x,y=eye.get_aruco_coordinates(img, aruco_to_track)
+            point=points[count,:]
+            pos1,pos2=interpolation_steps(point,max_phi1,max_phi2)
+            
+            print('Send to arduino:', mode, pos1, pos2)
+            stp.sendToArduino(f"{mode},{pos1},{pos2}")
 
-        count+=1
+            count+=1
 
 
