@@ -213,12 +213,12 @@ void homing() {
 void findMaxPositions() {
 
     reachEnd(rightSwitch);
-    //absolute_position_stepper1=absolute_position_stepper1+untilTheEnd1;
-    //absolute_position_stepper2=absolute_position_stepper2+untilTheEnd2;
+    absolute_position_stepper1=absolute_position_stepper1+untilTheEnd1;
+    absolute_position_stepper2=absolute_position_stepper2+untilTheEnd2;
 
     reachEnd(bottomSwitch);
-    //absolute_position_stepper1=absolute_position_stepper1+untilTheEnd1;
-    //absolute_position_stepper2=absolute_position_stepper2+untilTheEnd2;
+    absolute_position_stepper1=absolute_position_stepper1+untilTheEnd1;
+    absolute_position_stepper2=absolute_position_stepper2+untilTheEnd2;
 }
 
 void moveSafe() {
