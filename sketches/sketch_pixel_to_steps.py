@@ -4,7 +4,7 @@ import cv2
 from pool.eye import Eye
 import numpy as np
 from pool.stepper import Stepper
-from random import randrange
+import pandas as pd
 import time
 
 def generate_grid(num_horizontal_points, num_vertical_points):
@@ -17,10 +17,9 @@ def generate_grid(num_horizontal_points, num_vertical_points):
     rescaled_points[:,1] = beta*points[:,1]
     return rescaled_points
 
-def interpolation_steps(point, max_phi1, max_phi2):
-    alpha, beta = point
-    phi1 = 0.5 * (beta*(max_phi1+max_phi2)-alpha*(-max_phi1+max_phi2))
-    phi2 = 0.5 * (beta*(max_phi1+max_phi2)+alpha*(-max_phi1+max_phi2))
+def interpolation_steps(incr_x, incr_y, max_phi1, max_phi2):
+    phi1 = 0.5 * (incr_y*(max_phi1+max_phi2)-incr_x*(-max_phi1+max_phi2))
+    phi2 = 0.5 * (incr_y*(max_phi1+max_phi2)+incr_x*(-max_phi1+max_phi2))
     return phi1,phi2
 
 
@@ -59,26 +58,47 @@ points=generate_grid(2,2)
 np.random.shuffle(points) 
 mode=0
 count=0
-max_phi1 = -4107
-max_phi2 = 24263
+dict_to_save={}
+list_of_dict=[]
+pos1 = 0
+pos2 = 0
+prev_point_x=0
+prev_point_y=0
+max_pos1 = -4107
+max_pos2 = 24263
 aruco_to_track=1
 stp.sendToArduino(f"-1,0,0")
 
 while True:
+    if count>point.shape[0]:
+        break
+
     # check for a reply
     arduinoReply = stp.recvLikeArduino()
     if not (arduinoReply == 'XXX'):
         print ("Reply: ", arduinoReply)
         time.sleep(3)
-        if mode>=0:
-            img=get_undistorted_warp_image(count)
-            x,y=eye.get_aruco_coordinates(img, aruco_to_track)
-            point=points[count,:]
-            pos1,pos2=interpolation_steps(point,max_phi1,max_phi2)
-            
-            print('Send to arduino:', mode, pos1, pos2)
-            stp.sendToArduino(f"{mode},{pos1},{pos2}")
+        img=get_undistorted_warp_image(count)
+        x,y=eye.get_aruco_coordinates(img, aruco_to_track)
+        dict_to_save['id']=count
+        dict_to_save['x']=x
+        dict_to_save['y']=y
+        dict_to_save['pos1']=pos1
+        dict_to_save['pos2']=pos2
+        list_of_dict.append(dict_to_save.copy())
 
-            count+=1
+        point=points[count,:]
+        new_point_x,new_point_y=point
+        incr_x=new_point_x-prev_point_x
+        incr_y=new_point_y-prev_point_y
+        pos1,pos2=interpolation_steps(incr_x,incr_y,max_pos1,max_pos2)
+        print('Send to arduino:', mode, pos1, pos2)
+        stp.sendToArduino(f"{mode},{pos1},{pos2}")
 
+        count+=1
+        prev_point_x=new_point_x
+        prev_point_y=new_point_y
 
+#for convenience we convert the list of dict to a dataframe
+df = pd.DataFrame(list_of_dict, columns=list(list_of_dict[0].keys()))
+df.to_csv(path_or_buf=f'./data/pixel_step.csv', sep=' ',index=False)

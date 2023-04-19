@@ -248,7 +248,7 @@ class Eye(object):
                 cX = (topLeft[0] + bottomRight[0]) / 2.0
                 cY = (topLeft[1] + bottomRight[1]) / 2.0
                 id_to_centroids[markerID]=(cX,cY)
-                
+
         return id_to_centroids[aruco_to_track]
 
     def get_cloth_color(self,hsv,search_width=45):
