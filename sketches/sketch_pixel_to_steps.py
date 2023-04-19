@@ -70,7 +70,7 @@ aruco_to_track=1
 stp.sendToArduino(f"-1,0,0")
 
 while True:
-    if count>point.shape[0]:
+    if count>=point.shape[0]:
         break
 
     # check for a reply
