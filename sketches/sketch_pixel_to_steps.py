@@ -17,9 +17,10 @@ def generate_grid(num_horizontal_points, num_vertical_points):
     rescaled_points[:,1] = beta*points[:,1]
     return rescaled_points
 
-def interpolation_steps(incr_x, incr_y, max_phi1, max_phi2):
-    phi1 = 0.5 * (incr_y*(max_phi1+max_phi2)-incr_x*(-max_phi1+max_phi2))
-    phi2 = 0.5 * (incr_y*(max_phi1+max_phi2)+incr_x*(-max_phi1+max_phi2))
+def cm_to_steps(incr_x, incr_y, W, H):
+    scaler=0.00794
+    phi1 = 1/(2*scaler) * (-incr_x*W+incr_y*H)
+    phi2 = 1/(2*scaler) * (incr_x*W+incr_y*H)
     return phi1,phi2
 
 
@@ -32,28 +33,24 @@ test_camera.collection_name = 'img'
 
 ##############################################
 eye=Eye()
-eye.bottom_aruco_ids=[17,8]
-eye.top_aruco_ids=[9,3]
-eye.left_aruco_ids=[1,11]
-eye.right_aruco_ids=[23,10]
 
 ###############################################
 
 stp=Stepper(baudRate=9600,serialPortName='COM3' )
 stp.setupSerial()
 
-def get_undistorted_warp_image(count):
+def get_undistorted_warp_image(count, cameraMatrix, dist, corners):
     test_camera.capture_single_image()
     name=f'{test_camera.collection_name}_{count}'
-    img = cv2.imread(f'./data/{name}.jpg')
-    cameraMatrix=np.load('./data/cameraMatrix.npy')
-    dist=np.load('./data/dist.npy')
-
+    img = cv2.imread(f'./results/{name}.jpg')
     undistorted=eye.undistort_image(img, cameraMatrix, dist, remapping=False)
-    corners=eye.get_pool_corners(undistorted)
     warp=eye.perspective_transform(undistorted,corners)
     return warp
 
+img=cv2.imread(f'./results/corners.jpg')
+corners=eye.get_pool_corners(img, bottom_aruco_ids=[9,10,11,0],top_aruco_ids=[3,4,5,6],left_aruco_ids=[1,2],right_aruco_ids=[7,8])
+cameraMatrix=np.load('./data/cameraMatrix.npy')
+dist=np.load('./data/dist.npy')
 points=generate_grid(2,2)
 np.random.shuffle(points) 
 mode=0
@@ -64,13 +61,13 @@ pos1 = 0
 pos2 = 0
 prev_point_x=0
 prev_point_y=0
-max_pos1 = -4107
-max_pos2 = 24263
-aruco_to_track=1
+W = 84
+H = 44
+aruco_to_track=23
 stp.sendToArduino(f"-1,0,0")
 
 while True:
-    if count>=point.shape[0]:
+    if count>=points.shape[0]:
         break
 
     # check for a reply
@@ -78,8 +75,15 @@ while True:
     if not (arduinoReply == 'XXX'):
         print ("Reply: ", arduinoReply)
         time.sleep(3)
-        img=get_undistorted_warp_image(count)
-        x,y=eye.get_aruco_coordinates(img, aruco_to_track)
+
+        img=get_undistorted_warp_image(count,cameraMatrix, dist, corners)
+        try:
+            x,y=eye.get_aruco_coordinates(img, aruco_to_track)
+
+        except ValueError:
+            x=None
+            y=None
+
         dict_to_save['id']=count
         dict_to_save['x']=x
         dict_to_save['y']=y
@@ -91,7 +95,7 @@ while True:
         new_point_x,new_point_y=point
         incr_x=new_point_x-prev_point_x
         incr_y=new_point_y-prev_point_y
-        pos1,pos2=interpolation_steps(incr_x,incr_y,max_pos1,max_pos2)
+        pos1,pos2=cm_to_steps(incr_x,incr_y,W,H)
         print('Send to arduino:', mode, pos1, pos2)
         stp.sendToArduino(f"{mode},{pos1},{pos2}")
 

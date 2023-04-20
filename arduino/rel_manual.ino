@@ -17,11 +17,11 @@ Thx!
 // Library created by Mike McCauley at http://www.airspayce.com/mikem/arduino/AccelStepper/
 
 // AccelStepper Setup
-AccelStepper stepperX(1, 5, 2);   // 1 = Easy Driver interface
+AccelStepper stepperX(1, 6, 3);   // 1 = Easy Driver interface
                                   // UNO Pin 2 connected to STEP pin of Easy Driver
                                   // UNO Pin 3 connected to DIR pin of Easy Driver
                                   
-AccelStepper stepperZ(1, 6, 3);   // 1 = Easy Driver interface
+AccelStepper stepperZ(1, 5, 2);   // 1 = Easy Driver interface
                                   // UNO Pin 5 connected to STEP pin of Easy Driver
                                   // UNO Pin 6 connected to DIR pin of Easy Driver
 
@@ -45,11 +45,11 @@ void setup() {
   Serial.print("Enter Move Values Now: ");
 
 //  Set Max Speed and Acceleration of each Steppers
-  stepperX.setMaxSpeed(100.0);      // Set Max Speed of X axis
-  stepperX.setAcceleration(150.0);  // Acceleration of X axis
+  stepperX.setMaxSpeed(500.0);      // Set Max Speed of X axis
+  stepperX.setAcceleration(1700.0);  // Acceleration of X axis
 
-  stepperZ.setMaxSpeed(100.0);      // Set Max Speed of Y axis slower for rotation
-  stepperZ.setAcceleration(150.0);  // Acceleration of Y axis
+  stepperZ.setMaxSpeed(500.0);      // Set Max Speed of Y axis slower for rotation
+  stepperZ.setAcceleration(1700.0);  // Acceleration of Y axis
 
 }
 
@@ -60,6 +60,9 @@ while (Serial.available()>0)  { // Check if values are available in the Serial B
 
   move_finished=0;  // Set variable for checking move of the Steppers
   
+  stepperX.setCurrentPosition(0); 
+  stepperZ.setCurrentPosition(0);
+
   TravelX= Serial.parseInt();  // Put First numeric value from buffer in TravelX variable
   Serial.print(TravelX);
   Serial.print(" X Travel , ");

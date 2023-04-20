@@ -248,8 +248,12 @@ class Eye(object):
                 cX = (topLeft[0] + bottomRight[0]) / 2.0
                 cY = (topLeft[1] + bottomRight[1]) / 2.0
                 id_to_centroids[markerID]=(cX,cY)
-
-        return id_to_centroids[aruco_to_track]
+        
+        if aruco_to_track in id_to_centroids:
+            return id_to_centroids[aruco_to_track]
+        else:   
+            raise ValueError('the aruco specified is not found in the img')
+            
 
     def get_cloth_color(self,hsv,search_width=45):
         """
