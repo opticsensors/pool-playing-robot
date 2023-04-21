@@ -318,8 +318,6 @@ class Eye(object):
         #       2 - bottom-left
         #       3 - bottom-right
         top_r, top_l, bottom_l, bottom_r = corners[0], corners[1], corners[2], corners[3]
-        ordered_corners= (top_l, top_r, bottom_r, bottom_l)
-        top_l, top_r, bottom_r, bottom_l = ordered_corners
 
         # Determine width of new image which is the max distance between 
         # (bottom right and bottom left) or (top right and top left) x-coordinates
@@ -339,10 +337,10 @@ class Eye(object):
                         [0, height - 1]], dtype = "float32")
 
         # Convert to Numpy format
-        ordered_corners = np.array(ordered_corners, dtype="float32")
+        corners = np.array(corners, dtype="float32")
 
         # Find perspective transform matrix
-        matrix = cv2.getPerspectiveTransform(ordered_corners, dimensions)
+        matrix = cv2.getPerspectiveTransform(corners, dimensions)
 
         # Return the transformed image
         return cv2.warpPerspective(image, matrix, (width, height)), matrix
