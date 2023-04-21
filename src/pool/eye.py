@@ -345,7 +345,7 @@ class Eye(object):
         matrix = cv2.getPerspectiveTransform(ordered_corners, dimensions)
 
         # Return the transformed image
-        return cv2.warpPerspective(image, matrix, (width, height))
+        return cv2.warpPerspective(image, matrix, (width, height)), matrix
 
     def crop_image(self, img, h_offset, v_offset):
         return img[v_offset:-v_offset, h_offset:-h_offset]

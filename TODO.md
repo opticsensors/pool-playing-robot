@@ -3,8 +3,7 @@
     - heat shrink
     - multiple usb ports
 - create aruco supports attached to end effector and pool table
-- make sure invalid positions after homing are not considered:
-    - for example, after homing, top left corner is set to 0,0 so positions like -100,-100 are not valid
-- add an arduino function to know what are the maximum positions the motor can go without touching the switches
-- add a calibration proceddure to know the relationship between pixels and steps
+- aruco detection is not accurate after camera undistortion
+- make a script to compute the repeatability error of aruco detection (take 5 images without moving anything and calculate the coord pixel error)
+
 
