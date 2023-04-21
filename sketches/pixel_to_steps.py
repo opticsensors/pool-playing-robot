@@ -87,9 +87,28 @@ for name in ['img_0', 'img_1', 'img_2', 'img_3']:
     new_point_x,new_point_y=point
     incr_x=new_point_x-prev_point_x
     incr_y=new_point_y-prev_point_y
-    pos1,pos2=cm_to_steps(incr_x,incr_y,W,H)
-    print('steps send to arduino', pos1, pos2)
+
+    if name == 'img_0':
+        prev_x_pix = x
+        prev_y_pix = y
+
+    incr_x_pix = x - prev_x_pix
+    incr_y_pix = y - prev_y_pix
+    print(x,y,prev_x_pix,prev_y_pix)
+    pos1,pos2 = cm_to_steps(incr_x,incr_y,W,H)
+    dict_to_save['id']=count
+    dict_to_save['incr_x']=incr_x_pix
+    dict_to_save['incr_y']=incr_y_pix
+    dict_to_save['pos1']=pos1
+    dict_to_save['pos2']=pos2
+    list_of_dict.append(dict_to_save.copy())
 
     count+=1
-    prev_point_x=new_point_x
-    prev_point_y=new_point_y
+    prev_point_x = new_point_x
+    prev_point_y = new_point_y
+    prev_x_pix = x
+    prev_y_pix = y
+
+#for convenience we convert the list of dict to a dataframe
+df = pd.DataFrame(list_of_dict, columns=list(list_of_dict[0].keys()))
+df.to_csv(path_or_buf=f'./data/pixel_step.csv', sep=' ',index=False)
