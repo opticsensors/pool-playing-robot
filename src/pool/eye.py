@@ -149,6 +149,7 @@ class Eye(object):
 
     def undistort_image(self,img, cameraMatrix, dist, remapping=False):
         h,  w = img.shape[:2]
+        # this new matrix is only for when you don't want to the black sides while undistorting an entire image
         newCameraMatrix, roi = cv2.getOptimalNewCameraMatrix(cameraMatrix, dist, (w,h), 1, (w,h))
 
         if not remapping:

@@ -61,6 +61,7 @@ for name in ['img_0', 'img_1', 'img_2', 'img_3']:
     undistorted=eye.undistort_image(img, cameraMatrix, dist, remapping=False)
     dist_warp,dist_matrix=eye.perspective_transform(img,dist_corners)
     undist_warp,undist_matrix=eye.perspective_transform(undistorted,undist_corners)
+    #print(dist_matrix,undist_matrix)
 
     # aruco centroid
     x,y=eye.get_aruco_coordinates(img, aruco_to_track)
