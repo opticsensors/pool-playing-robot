@@ -12,6 +12,8 @@ def generate_grid(num_horizontal_points, num_vertical_points):
     rescaled_points = np.zeros_like(points)
     rescaled_points[:,0] = alpha*points[:,0]
     rescaled_points[:,1] = beta*points[:,1]
+    home_point = [0,0]
+    rescaled_points = np.vstack([home_point,rescaled_points])
     return rescaled_points
 
 def cm_to_steps(incr_x, incr_y, W, H):
@@ -89,11 +91,11 @@ for name in ['img_0', 'img_1', 'img_2', 'img_3']:
     incr_y=new_point_y-prev_point_y
 
     if name == 'img_0':
-        prev_x_pix = x
-        prev_y_pix = y
+        prev_x_pix = undist_warp_x
+        prev_y_pix = undist_warp_y
 
-    incr_x_pix = x - prev_x_pix
-    incr_y_pix = y - prev_y_pix
+    incr_x_pix = undist_warp_x - prev_x_pix
+    incr_y_pix = undist_warp_y - prev_y_pix
     pos1,pos2 = cm_to_steps(incr_x,incr_y,W,H)
     dict_to_save['id']=count
     dict_to_save['incr_x']=incr_x_pix

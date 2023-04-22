@@ -109,7 +109,9 @@ while True:
         incr_x=new_point_x-prev_point_x
         incr_y=new_point_y-prev_point_y
         pos1,pos2=cm_to_steps(incr_x,incr_y,W,H)
-
+        pos1=int(pos1)
+        pos2=int(pos2)
+        
         #we are home in the first iteration
         if count == 0:
             prev_x_pix = warp_x
