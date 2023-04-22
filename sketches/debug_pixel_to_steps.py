@@ -1,9 +1,6 @@
-from pool.cam import Camera
-import time
 import cv2
 from pool.eye import Eye
 import numpy as np
-from pool.stepper import Stepper
 import pandas as pd
 import time
 
@@ -67,13 +64,14 @@ for name in ['img_0', 'img_1', 'img_2', 'img_3']:
     x,y=eye.get_aruco_coordinates(img, aruco_to_track)
     cv2.circle(img,(int(x),int(y)), 13, (0,0,255), -1)
     undist_x,undist_y=eye.get_aruco_coordinates(undistorted, aruco_to_track)
-    cv2.circle(undistorted,(int(x),int(y)), 13, (0,0,255), -1)
+    cv2.circle(undistorted,(int(undist_x),int(undist_y)), 13, (0,0,255), -1)
     point_to_transform = np.array([[x,y]], dtype='float32')
     point_to_transform = np.array([point_to_transform])
-
     transformed_point = cv2.perspectiveTransform(point_to_transform, dist_matrix)
     dist_warp_x,dist_warp_y = transformed_point[0][0]
     cv2.circle(dist_warp,(int(dist_warp_x),int(dist_warp_y)), 13, (0,0,255), -1)
+    point_to_transform = np.array([[undist_x,undist_y]], dtype='float32')
+    point_to_transform = np.array([point_to_transform])
     transformed_point = cv2.perspectiveTransform(point_to_transform, undist_matrix)
     undist_warp_x,undist_warp_y = transformed_point[0][0]
     cv2.circle(undist_warp,(int(undist_warp_x),int(undist_warp_y)), 13, (0,0,255), -1)
@@ -86,6 +84,7 @@ for name in ['img_0', 'img_1', 'img_2', 'img_3']:
 
     point=points[count,:]
     new_point_x,new_point_y=point
+    print(new_point_x, prev_point_x, new_point_y, prev_point_y)
     incr_x=new_point_x-prev_point_x
     incr_y=new_point_y-prev_point_y
 
@@ -95,7 +94,6 @@ for name in ['img_0', 'img_1', 'img_2', 'img_3']:
 
     incr_x_pix = x - prev_x_pix
     incr_y_pix = y - prev_y_pix
-    print(x,y,prev_x_pix,prev_y_pix)
     pos1,pos2 = cm_to_steps(incr_x,incr_y,W,H)
     dict_to_save['id']=count
     dict_to_save['incr_x']=incr_x_pix

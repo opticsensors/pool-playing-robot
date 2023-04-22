@@ -22,7 +22,6 @@ stp=Stepper(baudRate=9600,serialPortName='COM3' )
 stp.setupSerial()
 
 #helper functions to make code more readable
-
 def generate_grid(num_horizontal_points, num_vertical_points):
     alpha = 1/(num_horizontal_points+1)
     beta = 1/(num_vertical_points+1)
@@ -48,9 +47,12 @@ img=cv2.imread(f'./results/corners.jpg')
 undist_img=eye.undistort_image(img, cameraMatrix, dist, remapping=False)
 dist_corners=eye.get_pool_corners(img, bottom_aruco_ids=[9,10,11,0],top_aruco_ids=[3,4,5,6],left_aruco_ids=[1,2],right_aruco_ids=[7,8])
 undist_corners=eye.get_pool_corners(undist_img, bottom_aruco_ids=[9,10,11,0],top_aruco_ids=[3,4,5,6],left_aruco_ids=[1,2],right_aruco_ids=[7,8])
-corners_to_transform = np.array(dist_corners, dtype='float32')
-corners_to_transform = np.array([corners_to_transform])
-undist_corners_v2=cv2.undistortPoints(corners_to_transform, cameraMatrix, dist, None, cameraMatrix)
+#corners_to_transform = np.array(dist_corners, dtype='float32')
+#corners_to_transform = np.array([corners_to_transform])
+#undist_corners_v2=cv2.undistortPoints(corners_to_transform, cameraMatrix, dist, None, cameraMatrix)
+#h,  w = img.shape[:2]
+#newCameraMatrix, roi = cv2.getOptimalNewCameraMatrix(cameraMatrix, dist, (w,h), 1, (w,h))
+#undist_corners_v3=cv2.undistortPoints(corners_to_transform, cameraMatrix, dist,None, newCameraMatrix)
 
 #compute prespective transform matrix
 # the prespective trans matrix should be the same for all the captured images
@@ -82,14 +84,15 @@ while True:
     if not (arduinoReply == 'XXX'):
         print ("Reply: ", arduinoReply)
         time.sleep(1)
+        # take, read and undistort image
         test_camera.capture_single_image()
         name=f'{test_camera.collection_name}_{count}'
         img = cv2.imread(f'./results/{name}.jpg')
         undistorted=eye.undistort_image(img, cameraMatrix, dist, remapping=False)
 
         try:
-            x,y=eye.get_aruco_coordinates(img, aruco_to_track)
-            #x,y=eye.get_aruco_coordinates(undistorted, aruco_to_track)
+            #x,y=eye.get_aruco_coordinates(img, aruco_to_track)
+            x,y=eye.get_aruco_coordinates(undistorted, aruco_to_track)
 
         except ValueError:
             x=None
@@ -97,8 +100,8 @@ while True:
 
         point_to_transform = np.array([[x,y]], dtype='float32')
         point_to_transform = np.array([point_to_transform])
-        transformed_point = cv2.perspectiveTransform(point_to_transform, dist_matrix)
-        #transformed_point = cv2.perspectiveTransform(point_to_transform, undist_matrix)
+        #transformed_point = cv2.perspectiveTransform(point_to_transform, dist_matrix)
+        transformed_point = cv2.perspectiveTransform(point_to_transform, undist_matrix)
         warp_x, warp_y = transformed_point[0][0]
 
         point=points[count,:]
@@ -107,6 +110,7 @@ while True:
         incr_y=new_point_y-prev_point_y
         pos1,pos2=cm_to_steps(incr_x,incr_y,W,H)
 
+        #we are home in the first iteration
         if count == 0:
             prev_x_pix = warp_x
             prev_y_pix = warp_y
