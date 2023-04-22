@@ -30,12 +30,12 @@ eye=Eye()
 
 cameraMatrix=np.load('./data/cameraMatrix.npy')
 dist=np.load('./data/dist.npy')
-img=cv2.imread(f'./results/corners.jpg')
+img=cv2.imread(f'./data/corners.jpg')
 undistorted=eye.undistort_image(img, cameraMatrix, dist, remapping=False)
 dist_corners=eye.get_pool_corners(img, bottom_aruco_ids=[9,10,11,0],top_aruco_ids=[3,4,5,6],left_aruco_ids=[1,2],right_aruco_ids=[7,8])
 undist_corners=eye.get_pool_corners(undistorted, bottom_aruco_ids=[9,10,11,0],top_aruco_ids=[3,4,5,6],left_aruco_ids=[1,2],right_aruco_ids=[7,8])
 
-#points=generate_grid(2,2)
+#points=generate_grid(2,2) 
 #np.random.shuffle(points) 
 points=np.array([[    0        ,   0      ],
                  [    0.66667  ,   0.66667],
