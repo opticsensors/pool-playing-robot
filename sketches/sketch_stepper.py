@@ -7,7 +7,7 @@ stp=Stepper(baudRate=9600,
 
 stp.setupSerial()
 
-data = [(-1,0,0),(-2,0,0)]
+data = [(-1,0,0),(0,0,700)]
 count=0
 
 data_to_send=data[count]

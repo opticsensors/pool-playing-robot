@@ -21,10 +21,10 @@ AccelStepper stepper1(1, mot1StepPin, mot1DirPin); // (Typeof driver: with 2 pin
 AccelStepper stepper2(1, mot2StepPin, mot2DirPin);
 
 // Define velocities and accelerations
-int calibrationVelocity = 700;
-int calibrationAcceleration = 1500;
-int workingVelocity = 700;
-int workingAcceleration = 1500;
+int calibrationVelocity = 500;
+int calibrationAcceleration = 1700;
+int workingVelocity = 500;
+int workingAcceleration = 1700;
 
 // variables to store calibration positions
 int reach_position1;

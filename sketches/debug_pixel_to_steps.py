@@ -82,7 +82,7 @@ for name in ['img_0', 'img_1', 'img_2', 'img_3']:
     cv2.imwrite(f'./results/undist_{name}.jpg', undistorted)
     cv2.imwrite(f'./results/dist_warp_{name}.jpg', dist_warp)
     cv2.imwrite(f'./results/undist_warp_{name}.jpg', undist_warp)
-    print('error pix coord: ', (x, y), (undist_x, undist_y), (dist_warp_x, dist_warp_y), (undist_warp_x, undist_warp_y))
+    #print('error pix coord: ', (x, y), (undist_x, undist_y), (dist_warp_x, dist_warp_y), (undist_warp_x, undist_warp_y))
 
     point=points[count,:]
     new_point_x,new_point_y=point
@@ -97,6 +97,7 @@ for name in ['img_0', 'img_1', 'img_2', 'img_3']:
     incr_x_pix = undist_warp_x - prev_x_pix
     incr_y_pix = undist_warp_y - prev_y_pix
     pos1,pos2 = cm_to_steps(incr_x,incr_y,W,H)
+    print(incr_x, incr_y, pos1,pos2)
     dict_to_save['id']=count
     dict_to_save['incr_x']=incr_x_pix
     dict_to_save['incr_y']=incr_y_pix

@@ -21,7 +21,7 @@ imgpoints = [] # 2d points in image plane.
 # bad images are not considered (manually removed)
 for count in [0,1,2,3,5,6,9,10,11,12,13,14,15,16,17,18,19,21,23,24,25]:
 
-    img = cv.imread(f"./calibration_dataset/img_{count}.jpg")
+    img = cv.imread(f"./camera_calibration/img_{count}.jpg")
     gray = cv.cvtColor(img, cv.COLOR_BGR2GRAY)
 
     # Find the chess board corners
@@ -59,7 +59,7 @@ np.save('./data/dist.npy', dist)
 
 ############## UNDISTORTION #####################################################
 
-img = cv.imread('./data/config_1.jpg')
+img = cv.imread('./data/corners.jpg')
 h,  w = img.shape[:2]
 newCameraMatrix, roi = cv.getOptimalNewCameraMatrix(cameraMatrix, dist, (w,h), 1, (w,h))
 
