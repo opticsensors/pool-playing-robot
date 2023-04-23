@@ -26,7 +26,7 @@ _,undist_matrix=eye.perspective_transform(undist_img,undist_corners)
 #define needed variables
 points=np.load('./data/calibration_points.npy')
 home_point = [0,0]
-points = np.vstack([home_point,points])
+points = np.vstack([home_point,points]) # img_0 is when end effector is at home
 h_num_points=np.unique(points[:,0]).shape[0]
 v_num_points=np.unique(points[:,1]).shape[0]
 d_points={}
@@ -45,19 +45,13 @@ for full_img_name in os.listdir('./stepper_calibration/'):
     img_format=os.path.splitext(full_img_name)[1]
 
     if img_format=='.jpg':
-
+        print(full_img_name)
         img_number=int(img_name.split('_')[1])
         img = cv2.imread(f'./stepper_calibration/{full_img_name}')
         undistorted=eye.undistort_image(img, cameraMatrix, dist, remapping=False)
 
-        try:
-            x_dist,y_dist=eye.get_aruco_coordinates(img, aruco_to_track)
-            x_undist,y_undist=eye.get_aruco_coordinates(undistorted, aruco_to_track)
-
-
-        except ValueError:
-            x=None
-            y=None
+        x_dist,y_dist=eye.get_aruco_coordinates(img, aruco_to_track)
+        x_undist,y_undist=eye.get_aruco_coordinates(undistorted, aruco_to_track)
 
         point_to_transform = np.array([[x_dist,y_dist]], dtype='float32')
         point_to_transform = np.array([point_to_transform])
@@ -68,7 +62,6 @@ for full_img_name in os.listdir('./stepper_calibration/'):
         point_to_transform = np.array([point_to_transform])
         transformed_point = cv2.perspectiveTransform(point_to_transform, undist_matrix)
         x_undist_warp, y_undist_warp = transformed_point[0][0]
-        
         dict_to_save['img_num']=img_number
         dict_to_save['img_name']=img_name
         dict_to_save['x_dist']=x_dist
@@ -84,7 +77,7 @@ for full_img_name in os.listdir('./stepper_calibration/'):
 
         list_of_dict.append(dict_to_save.copy())
 
-#for convenience we convert the list of dict to a dataframe
+# for convenience we convert the list of dict to a dataframe
 df = pd.DataFrame(list_of_dict, columns=list(list_of_dict[0].keys()))
 df=df.sort_values('img_num')
 df.to_csv(path_or_buf=f'./data/calibration_image_data.csv', sep=' ',index=False)
@@ -123,5 +116,5 @@ incr_df['incr_id'] = df.apply(lambda x: img_num_to_incr_id(x['img_num']), axis=1
 incr_df['incr_steps1'] = incr_df.apply(lambda x: cm_to_steps1(x['incr_point_x'], x['incr_point_y'],W,H), axis=1)
 incr_df['incr_steps2'] = incr_df.apply(lambda x: cm_to_steps2(x['incr_point_x'], x['incr_point_y'],W,H), axis=1)
 incr_df=incr_df.dropna()
-df.to_csv(path_or_buf=f'./data/calibration_pixel_to_step.csv', sep=' ',index=False)
+incr_df.to_csv(path_or_buf=f'./data/calibration_pixel_to_step.csv', sep=' ',index=False)
 
