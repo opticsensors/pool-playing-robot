@@ -13,7 +13,7 @@ stp.setupSerial()
 camera_control_cmd_path = 'C:\\Program Files (x86)\\digiCamControl\\CameraControlCmd.exe'
 test_camera = Camera(control_cmd_location=camera_control_cmd_path)
 test_setting: Camera.Settings = Camera.Settings(aperture='4', shutter_speed='1/10', iso='400')
-test_camera.save_folder='./stepper_calibration/'
+test_camera.save_folder='./stepper_repeatability/'
 test_camera.collection_name = 'img'
 
 #helper functions to make code more readable
@@ -34,12 +34,16 @@ def cm_to_steps(incr_x, incr_y, W, H):
     return phi1,phi2
 
 #define needed variables
-points=generate_grid(4,3)
+repeatability=10
+points=generate_grid(2,1)
+repe_points=points.copy()
 np.random.shuffle(points) 
-np.save('./data/calibration_points.npy', points)
+for _ in range(repeatability):
+    repe_points = np.vstack([repe_points, points])
+np.save('./data/repeatability_points.npy', repe_points)
 homig_position = [0,0]
-points = np.vstack([homig_position, points])
-print(points)
+repe_points = np.vstack([homig_position, repe_points])
+print(repe_points)
 mode = 0
 count = 0
 pos1 = 0
