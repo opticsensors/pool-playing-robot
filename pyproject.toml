@@ -29,6 +29,7 @@ dependencies = [
     "dynamixel-sdk",
     "pandas",
     "keyboard",
+    "scikit-learn",
 ]
 
 [project.urls]

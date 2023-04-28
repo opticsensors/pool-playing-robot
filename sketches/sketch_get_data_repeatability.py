@@ -25,10 +25,11 @@ _,undist_matrix=eye.perspective_transform(undist_img,undist_corners)
 
 #define needed variables
 points=np.load('./data/repeatability_points.npy')
+#unique_points=np.unique(points, axis=0)
 home_point = [0,0]
 points = np.vstack([home_point,points]) # img_0 is when end effector is at home
-h_num_points=np.unique(points[:,0]).shape[0]
-v_num_points=np.unique(points[:,1]).shape[0]
+#h_num_points=np.unique(points[:,0]).shape[0]
+#v_num_points=np.unique(points[:,1]).shape[0]
 #num_points_without_repeatability=h_num_points*v_num_points
 #repeatability=points.shape[0]//num_points_without_repeatability
 d_points={}
@@ -84,5 +85,25 @@ df = pd.DataFrame(list_of_dict, columns=list(list_of_dict[0].keys()))
 df=df.sort_values('img_num')
 df.to_csv(path_or_buf=f'./data/repeatability_image_data.csv', sep=' ',index=False)
 
+#get unique points
+#for point in unique_points:
+#    point_x=point[0]
+#    point_y=point[1]
+#    same_point_df = df.loc[(df['point_x'] == point_x) & (df['point_y'] == point_y)]
+#    x_undist_warp = same_point_df['x_undist_warp']
+#    y_undist_warp = same_point_df['y_undist_warp']
+#    error= ((df.p - df.x) ** 2).mean() ** .5
 
 
+df['point_id'] = df.groupby(['point_x','point_y']).ngroup()
+
+def std(x): 
+    return np.std(x)
+
+#rms_x_undist_warp = df.groupby(['point_x', 'point_y'])["x_undist_warp"].apply(std)
+rms_x_undist_warp = df.groupby(['point_id'])["x_undist_warp"].apply(std)
+#rms_y_undist_warp = df.groupby(['point_x', 'point_y'])["y_undist_warp"].apply(std)
+rms_y_undist_warp = df.groupby(['point_id'])["y_undist_warp"].apply(std)
+
+out = pd.DataFrame([rms_x_undist_warp, rms_y_undist_warp]).transpose()
+out.to_csv(path_or_buf=f'./data/repeatability_error.csv', sep=' ',index=False)
