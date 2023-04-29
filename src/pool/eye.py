@@ -32,29 +32,29 @@ class Eye(object):
 
     #decision tree: knowing ball color and type, we can know its number
     COLOR_AND_TYPE_TO_NUM={
-        'white': {'cue ball': 0},
-        'yellow': {'solid':1, 'striped':9},
-        'blue': {'solid':2, 'striped':10},
-        'red': {'solid':3, 'striped':11},
-        'purple': {'solid':4, 'striped':12},
-        'orange': {'solid':5, 'striped':13},
-        'green': {'solid':6, 'striped':14},
+        'white'   : {'cue ball': 0},
+        'yellow'  : {'solid':1, 'striped':9},
+        'blue'    : {'solid':2, 'striped':10},
+        'red'     : {'solid':3, 'striped':11},
+        'purple'  : {'solid':4, 'striped':12},
+        'orange'  : {'solid':5, 'striped':13},
+        'green'   : {'solid':6, 'striped':14},
         'burgundy': {'solid':7, 'striped':15},
-        'black': {'solid':8}
+        'black'   : {'solid':8}
     }
     
     #lab calibration results of ball colors
     #sorted by rows like: white, yellow, blue, red,... (same order as pool balls)
     COLOR_TO_LAB={
-        'white': [227, 130, 148],
-        'yellow': [216.18407452, 124.80355131, 195.73519079],
-        'blue': [89.64986175, 134.93342045, 103.84520826],
-        'red': [147.45829885, 172.49603901, 178.22393935],
-        'purple': [78.6311673, 135.5586135, 123.057679],
-        'orange': [180.62554741, 151.8795586 , 187.98600759],
-        'green': [110.05696026, 106.50088757, 132.41375192],
+        'white'   : [227, 130, 148],
+        'yellow'  : [216.18407452, 124.80355131, 195.73519079],
+        'blue'    : [89.64986175, 134.93342045, 103.84520826],
+        'red'     : [147.45829885, 172.49603901, 178.22393935],
+        'purple'  : [78.6311673, 135.5586135, 123.057679],
+        'orange'  : [180.62554741, 151.8795586 , 187.98600759],
+        'green'   : [110.05696026, 106.50088757, 132.41375192],
         'burgundy': [121.56706638, 160.19773476, 158.41379201],
-        'black': [58, 129, 136]
+        'black'   : [58, 129, 136]
     }
     
     WHITE_LOWER_LAB=[175, 0, 0]

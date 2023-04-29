@@ -1,3 +1,4 @@
+# pip install dynamixel-sdk
 from dynamixel_sdk import * # Uses Dynamixel SDK library
 
 class Dynamixel(object):
