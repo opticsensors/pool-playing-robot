@@ -56,6 +56,9 @@ class Camera:
         assert os.path.isfile(control_cmd_location), 'Unable to locate: ' + control_cmd_location \
             + '. Please ensure this is the correct path to CameraControlCmd.exe. ' \
             + 'It is likely held within Program Files\\digiCamControl\\'
+        
+        if not os.path.exists(save_folder):
+            makedirs(save_folder)
 
         # Initialize variables
         self.control_cmd_location = control_cmd_location
