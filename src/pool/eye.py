@@ -195,7 +195,7 @@ class Eye(object):
                 cX = (topLeft[0] + bottomRight[0]) / 2.0
                 cY = (topLeft[1] + bottomRight[1]) / 2.0
                 id_to_centroids[markerID]=(cX,cY)
-
+                #print(f"[INFO] ArUco marker ID: {markerID}, ({cX},{cY})")
         bottomLine=np.array([id_to_centroids[aruco_id] for aruco_id in bottom_aruco_ids])
         topLine=   np.array([id_to_centroids[aruco_id] for aruco_id in top_aruco_ids])
         rightLine= np.array([id_to_centroids[aruco_id] for aruco_id in left_aruco_ids])

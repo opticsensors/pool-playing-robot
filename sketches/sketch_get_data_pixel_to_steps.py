@@ -13,7 +13,7 @@ cameraMatrix=np.load('./data/cameraMatrix.npy')
 dist=np.load('./data/dist.npy')
 
 #compute corners ---------------------- picture corners.jpg should be updated in another script or in here in case the structure moves
-img=cv2.imread(f'./data/corners.jpg')
+img=cv2.imread(f'./data/corners_0.jpg')
 undist_img=eye.undistort_image(img, cameraMatrix, dist, remapping=False)
 dist_corners=eye.get_pool_corners(img, bottom_aruco_ids=[9,10,11,0],top_aruco_ids=[3,4,5,6],left_aruco_ids=[1,2],right_aruco_ids=[7,8])
 undist_corners=eye.get_pool_corners(undist_img, bottom_aruco_ids=[9,10,11,0],top_aruco_ids=[3,4,5,6],left_aruco_ids=[1,2],right_aruco_ids=[7,8])

@@ -1,6 +1,6 @@
 import cv2
 
-img = cv2.imread('./results/corners.jpg')
+img = cv2.imread('./data/corners_0.jpg')
 
 arucoDict=cv2.aruco.DICT_4X4_100
 arucoDict = cv2.aruco.getPredefinedDictionary(arucoDict)
@@ -39,7 +39,7 @@ if len(corners) > 0:
 		cv2.putText(img, str(markerID),
 			(topLeft[0], topLeft[1] - 15), cv2.FONT_HERSHEY_SIMPLEX,
 			2.5, (0, 255, 0), 2)
-		print("[INFO] ArUco marker ID: {}".format(markerID))
+		print(f"[INFO] ArUco marker ID: {markerID}, ({cX},{cY})")
 		# show the output img
 	cv2.imshow("img", cv2.resize(img,(0,0),fx=0.5,fy=0.5))
 	cv2.waitKey(0)

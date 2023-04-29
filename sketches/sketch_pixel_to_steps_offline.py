@@ -37,8 +37,8 @@ def cm_to_steps(incr_x, incr_y, W, H):
 points=generate_grid(4,3)
 np.random.shuffle(points) 
 np.save('./data/calibration_points.npy', points)
-homig_position = [0,0]
-points = np.vstack([homig_position, points])
+#homig_position = [0,0]
+#points = np.vstack([homig_position, points])
 print(points)
 mode = 0
 count = 0

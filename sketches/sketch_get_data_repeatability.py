@@ -13,10 +13,10 @@ cameraMatrix=np.load('./data/cameraMatrix.npy')
 dist=np.load('./data/dist.npy')
 
 #compute corners ---------------------- picture corners.jpg should be updated in another script or in here in case the structure moves
-img=cv2.imread(f'./data/corners.jpg')
+img=cv2.imread(f'./data/corners_0.jpg')
 undist_img=eye.undistort_image(img, cameraMatrix, dist, remapping=False)
-dist_corners=eye.get_pool_corners(img, bottom_aruco_ids=[9,10,11,0],top_aruco_ids=[3,4,5,6],left_aruco_ids=[1,2],right_aruco_ids=[7,8])
-undist_corners=eye.get_pool_corners(undist_img, bottom_aruco_ids=[9,10,11,0],top_aruco_ids=[3,4,5,6],left_aruco_ids=[1,2],right_aruco_ids=[7,8])
+dist_corners=eye.get_pool_corners(img, bottom_aruco_ids=[6,7],top_aruco_ids=[2,3],left_aruco_ids=[0,1],right_aruco_ids=[4,5])
+undist_corners=eye.get_pool_corners(undist_img, bottom_aruco_ids=[6,7],top_aruco_ids=[2,3],left_aruco_ids=[0,1],right_aruco_ids=[4,5])
 
 #compute prespective transform matrix
 # the prespective trans matrix should be the same for all the captured images
@@ -37,8 +37,6 @@ for i,point in enumerate(points):
     d_points[i]=point
 dict_to_save = {}
 list_of_dict = []
-W = 84
-H = 44
 aruco_to_track=23
 
 # get data for every image
@@ -100,10 +98,33 @@ df['point_id'] = df.groupby(['point_x','point_y']).ngroup()
 def std(x): 
     return np.std(x)
 
-#rms_x_undist_warp = df.groupby(['point_x', 'point_y'])["x_undist_warp"].apply(std)
-rms_x_undist_warp = df.groupby(['point_id'])["x_undist_warp"].apply(std)
-#rms_y_undist_warp = df.groupby(['point_x', 'point_y'])["y_undist_warp"].apply(std)
-rms_y_undist_warp = df.groupby(['point_id'])["y_undist_warp"].apply(std)
+def max_dev_1D(x):
+    avg = sum(x, 0.0) / len(x)
+    max_dev = max(abs(el - avg) for el in x)
+    return max_dev
 
-out = pd.DataFrame([rms_x_undist_warp, rms_y_undist_warp]).transpose()
+def centeroid(arr):
+    length = arr.shape[0]
+    sum_x = np.sum(arr[:, 0])
+    sum_y = np.sum(arr[:, 1])
+    return np.array([sum_x/length, sum_y/length])
+
+#rms_x_undist_warp = df.groupby(['point_x', 'point_y'])["x_undist_warp"].apply(std)
+dev_x_undist_warp = df.groupby(['point_id'])["x_undist_warp"].apply(max_dev_1D)
+#rms_y_undist_warp = df.groupby(['point_x', 'point_y'])["y_undist_warp"].apply(std)
+dev_y_undist_warp = df.groupby(['point_id'])["y_undist_warp"].apply(max_dev_1D)
+
+l_max_distances=[]
+l_point_ids=[]
+for point_id in np.unique(df['point_id'] ):
+    df_point_id = df[df['point_id']==point_id]
+    xy_undist_warp = df_point_id[['x_undist_warp','y_undist_warp']].values
+    centeroid_undist_warp = centeroid(xy_undist_warp)
+    distances = np.linalg.norm(centeroid_undist_warp - xy_undist_warp, axis=1)
+    l_max_distances.append(np.max(distances))
+    l_point_ids.append(point_id)
+
+uncertanity_radi=pd.Series(l_max_distances,index=l_point_ids,name='uncertanity_radi' )
+
+out = pd.DataFrame([dev_x_undist_warp, dev_y_undist_warp,uncertanity_radi]).transpose()
 out.to_csv(path_or_buf=f'./data/repeatability_error.csv', sep=' ',index=False)

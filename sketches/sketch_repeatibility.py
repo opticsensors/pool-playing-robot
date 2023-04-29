@@ -34,15 +34,15 @@ def cm_to_steps(incr_x, incr_y, W, H):
     return phi1,phi2
 
 #define needed variables
-repeatability=10
-points=generate_grid(2,1)
-repe_points=points.copy()
+repeatability=3
+points=generate_grid(2,2)
 np.random.shuffle(points) 
+repe_points=points.copy()
 for _ in range(repeatability):
     repe_points = np.vstack([repe_points, points])
 np.save('./data/repeatability_points.npy', repe_points)
-homig_position = [0,0]
-repe_points = np.vstack([homig_position, repe_points])
+#homig_position = [0,0]
+#repe_points = np.vstack([homig_position, repe_points])
 print(repe_points)
 mode = 0
 count = 0
@@ -55,7 +55,7 @@ H = 44
 stp.sendToArduino(f"-1,0,0")
 
 while True:
-    if count>points.shape[0]:
+    if count>repe_points.shape[0]:
         break
 
     # check for a reply
@@ -65,7 +65,7 @@ while True:
         time.sleep(1)
         test_camera.capture_single_image()
         time.sleep(1)
-        point=points[count,:]
+        point=repe_points[count,:]
         new_point_x,new_point_y=point
         incr_x=new_point_x-prev_point_x
         incr_y=new_point_y-prev_point_y
