@@ -1,7 +1,7 @@
 import time
 import numpy as np
 from pool.stepper import Stepper
-from pool.cam import Camera
+from pool.cam import Camera, Camera_settings
 import time
 
 
@@ -12,7 +12,7 @@ stp.setupSerial()
 #camera initialization
 camera_control_cmd_path = 'C:\\Program Files (x86)\\digiCamControl\\CameraControlCmd.exe'
 test_camera = Camera(control_cmd_location=camera_control_cmd_path)
-test_setting: Camera.Settings = Camera.Settings(aperture='4', shutter_speed='1/10', iso='400')
+test_setting: Camera_settings = Camera_settings(aperture='4', shutter_speed='1/10', iso='400')
 test_camera.save_folder='./stepper_repeatability/'
 test_camera.collection_name = 'img'
 
