@@ -2,14 +2,15 @@
 """Camera.py: """
 from __future__ import annotations
 
+
 __author__ = 'Jacob Taylor Cassady'
 __email__ = 'jacobtaylorcassady@outlook.com'
 
+import subprocess
 import os
-from os import system, getcwd, makedirs
+from os import getcwd, makedirs, system
 from os.path import isfile
-from typing import Union, IO, Optional, Dict
-
+from typing import IO, Dict, Optional, Union
 
 
 class Camera_settings:
@@ -35,7 +36,7 @@ class Camera_settings:
 
 class Camera:
 
-    PATH_DEFAULT_EXECUTABLE = "C:\\Program Files (x86)\\digiCamControl\\CameraControlCmd.exe"
+    PATH_DEFAULT_EXECUTABLE = "C:/Program Files (x86)/digiCamControl/CameraControlCmd.exe"
 
     """Camera class object.  Used to control a DSLR camera using digiCamControl's command line interface."""
     def __init__(
@@ -56,7 +57,7 @@ class Camera:
         assert os.path.isfile(control_cmd_location), 'Unable to locate: ' + control_cmd_location \
             + '. Please ensure this is the correct path to CameraControlCmd.exe. ' \
             + 'It is likely held within Program Files\\digiCamControl\\'
-        
+
         if not os.path.exists(save_folder):
             makedirs(save_folder)
 
@@ -158,7 +159,13 @@ class Camera:
         for _ in range(image_count):
             self.capture_single_image()
 
-
+    def test_if_any_cameras_are_connected(self) -> bool:
+        """Just checks if the camera is connected man"""
+            
+        output = subprocess.check_output(f'"{self.control_cmd_location}" /listcameras', shell=True).decode('utf-8')
+        if "New Camera is connected !" in output:
+            return True
+        return False
 
 
 if __name__ == '__main__':
