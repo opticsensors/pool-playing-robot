@@ -1,13 +1,14 @@
 
 
-from pool.stepper import Stepper
-from pool.dynamixel import Dynamixel
-from pool.eye import Eye
-from pool.cam import Camera, Camera_settings
 import time
+
 import cv2
 import numpy as np
 
+from pool.cam import Camera, Camera_settings
+from pool.dynamixel import Dynamixel
+from pool.eye import Eye
+from pool.stepper import Controller_actuators
 
 
 def main():

@@ -9,7 +9,7 @@ from rich import print
 
 from pool.cam import Camera
 from pool.eye import Eye
-from pool.stepper import Stepper
+from pool.stepper import Controller_actuators
 
 
 class Controller:
@@ -24,9 +24,9 @@ class Controller:
 
         self.eye : Eye = Eye()
 
-        self.stepper : Stepper = Stepper(
-            baudRate       = 9600,
-            serialPortName = 'COM3',
+        self.stepper : Controller_actuators = Controller_actuators(
+            baudRate = 9600,
+            # serialPortName = 'COM3',
         )
 
     def check_status(self) -> bool:

@@ -1,24 +1,64 @@
-import serial
 
-class Stepper(object):
+from typing import *  # type: ignore
+
+import serial
+import serial.tools.list_ports
+
+
+class Controller_actuators(object):
     """
     A class that ...
 
     Attributes
-    ----------    
+    ----------
     ...
 
     """
-    def __init__(self, baudRate=9600,
-                       serialPortName='COM3' ):
+    def __init__(
+        self,
+        baudRate       : int           = 9600,
+        serialPortName : Optional[str] = None
+    ):
+        self.connected : bool = False
+
+        if serialPortName is None:
+            self._automatically_connenct_to_arduino()
+
+        self.startMarker     : str           = '<'
+        self.endMarker       : str           = '>'
+        self.dataStarted     : bool          = False
+        self.dataBuf         : str           = ""
+        self.messageComplete : bool          = False
+        self.baudRate        : int           = baudRate
+        self.serialPortName  : Optional[str] = serialPortName
+
+    def _automatically_connenct_to_arduino(self):
+        """Connects to the arduino"""
+
+        # get the first port that has "Arduino" in the name
+        for port in self._list_com_ports():
+            if "Arduino" in port['name']:
+                self.serialPortName = port['device']
+                self.connected      = True
+                break
+
+    @staticmethod
+    def _list_com_ports():
+        com_ports = serial.tools.list_ports.comports()
+        port_list = []
         
-        self.startMarker='<'
-        self.endMarker='>'
-        self.dataStarted=False
-        self.dataBuf=""
-        self.messageComplete=False
-        self.baudRate=baudRate
-        self.serialPortName=serialPortName
+        for port in com_ports:
+            port_info = {
+                'device': port.device,
+                'name'  : port.description
+            }
+            port_list.append(port_info)
+        
+        return port_list
+
+    def test_if_connected(self) -> bool:
+        """Tests if the arduino is connected"""
+        return self.connected
 
     def waitForArduino(self):
 
@@ -42,6 +82,7 @@ class Stepper(object):
         self.waitForArduino()
 
     def sendToArduino(self,stringToSend):
+        assert self.connected, "Arduino is not connected"
         
         stringWithMarkers = (self.startMarker)
         stringWithMarkers += stringToSend

@@ -22,7 +22,7 @@
 
 ## Software
 
-- [ ] Fix: Possible issue with `C:\Github\pool-playing-robot` when calling `save_folder = "data/photos/",`
+- [ ] Fix: Possible issue with `C:\Github\pool-playing-robot` when calling `save_folder = "data/photos/",` if CWD is different
 - [ ] Add UX to camera when being used from main.py
 - [ ] Check if camera can be kept alive from the software side
 - [ ] Add UX to arduinos (auto detect them and ping)
@@ -35,6 +35,8 @@
   - [ ] First YOLO detection
   - [ ] Test first YOLO detection
   - [ ] Add UX to YOLO (if file missing or other stuff)
+- [ ] Code main controller
+  - [ ] Make a first iteration
 - [ ] Physics simulation
   - [ ] Make first proposal
 - [ ] Player algorithm
