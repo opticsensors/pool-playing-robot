@@ -7,7 +7,7 @@ it's intended to be used as a high level class for the robot.
 
 from rich import print
 
-from pool.cam import Camera
+from pool.cam import Camera_DLSR
 from pool.eye import Eye
 from pool.stepper import Controller_actuators
 
@@ -16,7 +16,7 @@ class Controller:
 
     def __init__(self) -> None:
         
-        self.camera : Camera = Camera(
+        self.camera_main : Camera_DLSR = Camera_DLSR(
             image_type      = "jpg",
             collection_name = "poolrobot",
             save_folder     = "data/photos/",

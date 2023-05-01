@@ -34,7 +34,7 @@ class Camera_settings:
             'iso'      : self.iso,
         }
 
-class Camera:
+class Camera_DLSR:
 
     PATH_DEFAULT_EXECUTABLE = "C:/Program Files (x86)/digiCamControl/CameraControlCmd.exe"
 

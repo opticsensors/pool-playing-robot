@@ -5,7 +5,7 @@ import time
 import cv2
 import numpy as np
 
-from pool.cam import Camera, Camera_settings
+from pool.cam import Camera_DLSR, Camera_settings
 from pool.dynamixel import Dynamixel
 from pool.eye import Eye
 from pool.stepper import Controller_actuators
@@ -19,7 +19,7 @@ def main():
     #     shutter_speed = '1/60',
     #     iso           = '200',
     # )
-    camera : Camera = Camera(
+    camera : Camera_DLSR = Camera_DLSR(
         image_type      = "jpg",
         collection_name = "poolrobot",
         save_folder     = "data/photos/",
