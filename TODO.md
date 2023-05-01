@@ -10,6 +10,7 @@
 - [ ] multiple usb ports
 - [ ] bigger solenoid pull type
 - [ ] double wire (3m)
+- [ ] logic level mosfet
 
 ## Hardware
 - [x] create aruco supports attached to end effector and pool table
