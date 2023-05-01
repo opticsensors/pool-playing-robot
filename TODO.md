@@ -24,6 +24,9 @@
 
 - [ ] Fix: Possible issue with `C:\Github\pool-playing-robot` when calling `save_folder = "data/photos/",` if CWD is different
 - [ ] Check if camera can be kept alive from the software side
+- [ ] Refactor
+  - [x] Rename `Camera` to `Camera_DLSR`
+  - [x] Rename `Camera_settings` to `Camera_DLSR_settings`
 - [ ] UX
   - [x] Add UX to camera when being used from main.py
   - [x] Add UX to arduinos  detect them

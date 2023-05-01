@@ -1,4 +1,4 @@
-from pool.stepper import Controller_actuators
+from pool.controller_actuators import Controller_actuators
 from random import randrange
 import time
 

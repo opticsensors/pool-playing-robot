@@ -9,7 +9,7 @@ from rich import print
 
 from pool.cam import Camera_DLSR
 from pool.eye import Eye
-from pool.stepper import Controller_actuators
+from pool.controller_actuators import Controller_actuators
 
 
 class Controller:
@@ -24,10 +24,7 @@ class Controller:
 
         self.eye : Eye = Eye()
 
-        self.stepper : Controller_actuators = Controller_actuators(
-            baudRate = 9600,
-            # serialPortName = 'COM3',
-        )
+        self.stepper : Controller_actuators = Controller_actuators(9600)
 
     def check_status(self) -> bool:
         """Makes sure all the parts are connected etc"""
@@ -35,7 +32,7 @@ class Controller:
         to_return : bool = True
 
         # We check the camera
-        o = self.camera.test_if_any_cameras_are_connected()
+        o = self.camera_main.test_if_any_cameras_are_connected()
         if not o: print("[red]No camera has been detected...");to_return = False
         else:     print("[green]Camera ok!")
 

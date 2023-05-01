@@ -6,14 +6,8 @@ import serial.tools.list_ports
 
 
 class Controller_actuators(object):
-    """
-    A class that ...
+    """Goes in pair with `serial_control.ino`"""
 
-    Attributes
-    ----------
-    ...
-
-    """
     def __init__(
         self,
         baudRate       : int           = 9600,
@@ -83,7 +77,7 @@ class Controller_actuators(object):
 
     def sendToArduino(self,stringToSend):
         assert self.connected, "Arduino is not connected"
-        
+
         stringWithMarkers = (self.startMarker)
         stringWithMarkers += stringToSend
         stringWithMarkers += (self.endMarker)

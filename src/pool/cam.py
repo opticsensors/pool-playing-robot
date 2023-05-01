@@ -13,7 +13,7 @@ from os.path import isfile
 from typing import IO, Dict, Optional, Union
 
 
-class Camera_settings:
+class Camera_DLSR_settings:
     def __init__(
         self,
         aperture        : Optional[str]             = None,
@@ -38,7 +38,7 @@ class Camera_DLSR:
 
     PATH_DEFAULT_EXECUTABLE = "C:/Program Files (x86)/digiCamControl/CameraControlCmd.exe"
 
-    """Camera class object.  Used to control a DSLR camera using digiCamControl's command line interface."""
+    """Camera class object. Used to control a DSLR camera using digiCamControl's command line interface."""
     def __init__(
             self,
             control_cmd_location: str            = PATH_DEFAULT_EXECUTABLE,
@@ -68,7 +68,7 @@ class Camera_DLSR:
         self.collection_name      = collection_name
         self.save_folder          = save_folder
 
-    def setup(self, settings: Camera_settings, setup_script_name: str = 'setup.dccscript'):
+    def setup(self, settings: Camera_DLSR_settings, setup_script_name: str = 'setup.dccscript'):
         """Drives the setup of the camera given a set of settings.  Autocodes the setup script and runs it.
         Args:
             settings (Camera_settings): _description_
@@ -76,7 +76,7 @@ class Camera_DLSR:
         self.generate_setup_script(settings=settings, setup_script_name=setup_script_name)
         self.run_script(script_name=setup_script_name)
 
-    def generate_setup_script(self, settings: Camera_settings, setup_script_name: str):
+    def generate_setup_script(self, settings: Camera_DLSR_settings, setup_script_name: str):
         """Generates the setup script to set the aperture, exposure_control, shutter_speed, and iso of the camera if any of these values are passed.
         Args:
             settings (Camera_settings): _description_
@@ -90,7 +90,7 @@ class Camera_DLSR:
             file.write(' '*2 + '</commands>\n')
             file.write('</dccscript>')
 
-    def write_settings(self, file: IO, settings: Camera_settings) -> None:
+    def write_settings(self, file: IO, settings: Camera_DLSR_settings) -> None:
         """Writes the passed dictionary of settings to the passed file.  If a setting has a value of None, it is passed over.
         Args:
             file (IO): [description]

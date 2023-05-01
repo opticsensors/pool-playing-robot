@@ -5,10 +5,10 @@ import time
 import cv2
 import numpy as np
 
-from pool.cam import Camera_DLSR, Camera_settings
+from pool.cam import Camera_DLSR, Camera_DLSR_settings
 from pool.dynamixel import Dynamixel
 from pool.eye import Eye
-from pool.stepper import Controller_actuators
+from pool.controller_actuators import Controller_actuators
 
 
 def main():

@@ -1,7 +1,7 @@
 import time
 import numpy as np
-from pool.stepper import Controller_actuators
-from pool.cam import Camera_DLSR, Camera_settings
+from pool.controller_actuators import Controller_actuators
+from pool.cam import Camera_DLSR, Camera_DLSR_settings
 import time
 
 
@@ -12,7 +12,7 @@ stp.setupSerial()
 #camera initialization
 camera_control_cmd_path = 'C:\\Program Files (x86)\\digiCamControl\\CameraControlCmd.exe'
 test_camera = Camera_DLSR(control_cmd_location=camera_control_cmd_path)
-test_setting: Camera_settings = Camera_settings(aperture='4', shutter_speed='1/10', iso='400')
+test_setting: Camera_DLSR_settings = Camera_DLSR_settings(aperture='4', shutter_speed='1/10', iso='400')
 test_camera.save_folder='./stepper_calibration/'
 test_camera.collection_name = 'img'
 
