@@ -21,9 +21,7 @@ class Controller:
             collection_name = "poolrobot",
             save_folder     = "data/photos/",
         )
-
         self.eye : Eye = Eye()
-
         self.stepper : Controller_actuators = Controller_actuators(9600)
 
     def check_status(self) -> bool:

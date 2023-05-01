@@ -23,7 +23,6 @@
 ## Software
 
 - [ ] Fix: Possible issue with `C:\Github\pool-playing-robot` when calling `save_folder = "data/photos/",` if CWD is different
-- [ ] Check if camera can be kept alive from the software side
 - [ ] Refactor
   - [x] Rename `Camera` to `Camera_DLSR`
   - [x] Rename `Camera_settings` to `Camera_DLSR_settings`
@@ -31,18 +30,22 @@
   - [x] Add UX to camera when being used from main.py
   - [x] Add UX to arduinos  detect them
   - [ ] Add UX to arduinos ping them
-- [ ] Update main to get correct corners etc
+- [ ] Arduino controller
+  - [x] Safety system with detectors in the limtis of the frame
+  - [ ] Change `recvWithStartEndMarkers` so that besides receiving messages like `<X,Y,Z>` it also can receive messages like `/ping/`
 - [ ] FOV deformation
   - [x] First implementation
   - [ ] Execute the implementation
   - [ ] Check the roundness of the balls and the distance in between the centroids
 - [ ] Ball detection
-  - [ ] First YOLO detection
+  - [x] First YOLO detection
   - [ ] Test first YOLO detection
   - [ ] Add UX to YOLO (if file missing or other stuff)
 - [ ] Code main controller
   - [x] Make a first iteration
   - [ ] Main controller has working loop to control stuff
+  - [ ] Update main to get correct corners etc
+  - [ ] Once done, get `main.py` and instantiate the code currently in `Controller.py`
 - [ ] Physics simulation
   - [ ] Make first proposal
 - [ ] Player algorithm
