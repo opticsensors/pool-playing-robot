@@ -36,3 +36,4 @@ Up=math.sqrt(-2*a*desired_incr_x_pool_ball)
 Vc=Up/e
 Uc=math.sqrt(Vc**2-2*a*desired_incr_x_pool_ball)
 F=0.5*mass_ball*Uc**2/desired_stroke_length
+print(F)
