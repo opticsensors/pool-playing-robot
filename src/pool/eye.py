@@ -346,6 +346,64 @@ class Eye(object):
         # Return the transformed image
         return cv2.warpPerspective(image, matrix, (width, height)), matrix
 
+    def calculate_perspective_matrix(self, corners) -> np.ndarray:
+
+        # Order points in clockwise order:
+        # First, we separate corners into individual points
+        # Index 0 - top-right
+        #       1 - top-left
+        #       2 - bottom-left
+        #       3 - bottom-right
+        top_r, top_l, bottom_l, bottom_r = corners[0], corners[1], corners[2], corners[3]
+
+        # Determine width of new image which is the max distance between 
+        # (bottom right and bottom left) or (top right and top left) x-coordinates
+        width_A = np.sqrt(((bottom_r[0] - bottom_l[0]) ** 2) + ((bottom_r[1] - bottom_l[1]) ** 2))
+        width_B = np.sqrt(((top_r[0] - top_l[0]) ** 2) + ((top_r[1] - top_l[1]) ** 2))
+        width = max(int(width_A), int(width_B))
+
+        # Determine height of new image which is the max distance between 
+        # (top right and bottom right) or (top left and bottom left) y-coordinates
+        height_A = np.sqrt(((top_r[0] - bottom_r[0]) ** 2) + ((top_r[1] - bottom_r[1]) ** 2))
+        height_B = np.sqrt(((top_l[0] - bottom_l[0]) ** 2) + ((top_l[1] - bottom_l[1]) ** 2))
+        height = max(int(height_A), int(height_B))
+
+        # Construct new points to obtain top-down view of image in 
+        # top_r, top_l, bottom_l, bottom_r order
+        dimensions = np.array([[0, 0], [width - 1, 0], [width - 1, height - 1], 
+                        [0, height - 1]], dtype = "float32")
+
+        # Convert to Numpy format
+        corners = np.array(corners, dtype="float32")
+
+        # Find perspective transform matrix
+        matrix = cv2.getPerspectiveTransform(corners, dimensions)
+
+        return matrix
+    
+    def transform_image_given_a_matrix(self, image, corners, matrix):
+        # Return the transformed image
+
+        # width  = image.shape[1]
+        # height = image.shape[0]
+
+
+        top_r, top_l, bottom_l, bottom_r = corners[0], corners[1], corners[2], corners[3]
+
+        # Determine width of new image which is the max distance between 
+        # (bottom right and bottom left) or (top right and top left) x-coordinates
+        width_A = np.sqrt(((bottom_r[0] - bottom_l[0]) ** 2) + ((bottom_r[1] - bottom_l[1]) ** 2))
+        width_B = np.sqrt(((top_r[0] - top_l[0]) ** 2) + ((top_r[1] - top_l[1]) ** 2))
+        width = max(int(width_A), int(width_B))
+
+        # Determine height of new image which is the max distance between 
+        # (top right and bottom right) or (top left and bottom left) y-coordinates
+        height_A = np.sqrt(((top_r[0] - bottom_r[0]) ** 2) + ((top_r[1] - bottom_r[1]) ** 2))
+        height_B = np.sqrt(((top_l[0] - bottom_l[0]) ** 2) + ((top_l[1] - bottom_l[1]) ** 2))
+        height = max(int(height_A), int(height_B))
+        
+        return cv2.warpPerspective(image, matrix, (width, height))
+
     def crop_image(self, img, h_offset, v_offset):
         return img[v_offset:-v_offset, h_offset:-h_offset]
 
@@ -388,7 +446,6 @@ class Eye(object):
                 blobs[output==i] = 255
 
         return blobs
-
 
     def find_ball_blobs(self,thresh):
 
@@ -671,7 +728,6 @@ class Eye(object):
                 fig.suptitle(f'ball: {ball_number}') 
 
                 plt.show()
-
 
     def _find_ball_blobs_opencv(self,warp,connected_centroids):
         """
