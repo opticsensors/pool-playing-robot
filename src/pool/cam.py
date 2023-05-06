@@ -61,6 +61,9 @@ class Camera_DLSR:
         if not os.path.exists(save_folder):
             makedirs(save_folder)
 
+        if image_type is None:
+            image_type = '.jpg'
+
         # Initialize variables
         self.control_cmd_location = control_cmd_location
         self.image_type           = self.set_image_type(image_type)
@@ -127,6 +130,9 @@ class Camera_DLSR:
         Returns:
             str: A string representing the image type.  If none is given, the default .jpg is used."""
         
+        if image_type.startswith('.'):
+            image_type = image_type[1:]
+
         if image_type in ['jpeg', 'jpg']:
             return '.jpg'
         elif image_type == 'raw':
