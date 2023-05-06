@@ -17,20 +17,19 @@ classifiers = [
     "Operating System :: OS Independent",
 ]
 dependencies = [
-    "opencv-python",
-    "opencv-contrib-python",
+    "dynamixel-sdk",
+    "keyboard",
     "matplotlib",
     "numpy",
-    "scipy",
-    "scikit-image",
-    "opencv-contrib-python",
-    "ultralytics",
-    "pyserial",
-    "dynamixel-sdk",
+    "opencv-contrib-python>=4.7",
+    "opencv-python",
     "pandas",
-    "keyboard",
-    "scikit-learn",
+    "pyserial",
     "rich",
+    "scikit-image",
+    "scikit-learn",
+    "scipy",
+    "ultralytics",
 ]
 
 [project.urls]
