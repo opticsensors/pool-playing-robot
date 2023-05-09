@@ -5,17 +5,17 @@ import pandas as pd
 
 # mechanism constants
 l1_min=12
-l1_max=17
+l1_max=20
 l2_min=15
-l2_max=20
-x_min=7
-x_max=33
+l2_max=23
+x_min=6
+x_max=35
 a_min=45
-a_max=60
+a_max=58
 b_min=20
 b_max=30
-d_min=18
-d_max=25
+d_min=16
+d_max=23
 
 a_arr=np.arange(a_min,a_max,1)
 b_arr=np.arange(b_min,b_max,1)
@@ -84,35 +84,34 @@ list_of_dict=[]
 dict_to_save={}
 
 #find P(xmax)
+print(np.unique(df['config_id']).max())
 for config in np.unique(df['config_id']):
+    print(config)
     df_config=df[df['config_id']==config]
-    idx=df_config.index[df_config['Px'].abs()==df_config['Px'].abs().min()]
-    try:
-        idx=idx[0]
-    except IndexError:
-        continue
-    desired_x_max_row=df_config.iloc[[idx]]
-    Px_xmax=desired_x_max_row['Px'].values
-    Py_xmax=desired_x_max_row['Py'].values
-    idx=df_config.index[(df_config['Py']-Py_xmax-20).abs()==(df_config['Py']-Py_xmax-20).abs().min()]
-    try:
-        idx=idx[0]
-    except IndexError:
-        continue
-    desired_x_min_row=df_config.iloc[[idx]]
-    Px_xmin=desired_x_min_row['Px'].values
-    Py_xmin=desired_x_min_row['Py'].values
+    df_xmax=df_config[df_config['Px'].abs()<2]
+    
+    if df_xmax.shape[0]!=0:
+        desired_x_max_row=df_xmax[df_xmax['Px'].abs()==df_xmax['Px'].abs().min()]
+        Py_xmax=desired_x_max_row['Py'].values
+        df_xmin=df_config[(df_config['Py']-Py_xmax).abs()>22]
 
-    dict_to_save['config_id']=config
-    dict_to_save['xmin']=-desired_x_min_row['Ax'].values[0]
-    dict_to_save['xmax']=-desired_x_max_row['Ax'].values[0]
-    dict_to_save['d']=  df_config['Ay'][0]
-    dict_to_save['l1']= df_config['l1'][0]
-    dict_to_save['l2']= df_config['l2'][0]
-    dict_to_save['a']=  df_config['a'][0]
-    dict_to_save['b']=  df_config['b'][0]
+        if df_xmin.shape[0]!=0 and df_xmax.shape[0]!=0:
+            desired_x_min_row=df_xmin[(df_xmin['Py']-Py_xmax-22).abs()==(df_xmin['Py']-Py_xmax-22).abs().min()]
+            Py_xmin=desired_x_min_row['Py'].values
 
-    list_of_dict.append(dict_to_save.copy())
+            dict_to_save['config_id']=config
+            #dict_to_save['Py_xmax']=Py_xmax
+            #dict_to_save['Py_xmin']=Py_xmin
+            dict_to_save['xmin']=abs(desired_x_min_row['Ax'].values[0])
+            dict_to_save['xmax']=abs(desired_x_max_row['Ax'].values[0])
+            dict_to_save['x_stroke']=abs(dict_to_save['xmax']-dict_to_save['xmin'])
+            dict_to_save['d']=  df_config['Ay'].values[0]
+            dict_to_save['l1']= df_config['l1'].values[0]
+            dict_to_save['l2']= df_config['l2'].values[0]
+            dict_to_save['a']=  df_config['a'].values[0]
+            dict_to_save['b']=  df_config['b'].values[0]
+
+            list_of_dict.append(dict_to_save.copy())
 
 df = pd.DataFrame(list_of_dict, columns=list(list_of_dict[0].keys()))
 df.to_csv(path_or_buf=f'./data/valid_mechanisms.csv', sep=' ',index=False)

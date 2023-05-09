@@ -44,7 +44,6 @@ def mechanism_configuration(x,C,l1,l2,d,a,b):
     norm_BC_vector=math.sqrt(B[0]**2+B[1]**2)
     BC_vector=(-B[0]/norm_BC_vector, -B[1]/norm_BC_vector)
     perpendicular_BC_vector=(-B[1]/norm_BC_vector, B[0]/norm_BC_vector)    
-    print(perpendicular_BC_vector)
     P=(a*BC_vector[0]+b*perpendicular_BC_vector[0], a*BC_vector[1]+b*perpendicular_BC_vector[1])
     return A,B,P
 
@@ -59,13 +58,13 @@ def plot_config(A,B,C,P):
     plt.show()
 
 # mechanism constants
-l1=15
-l2=20
-x_arr=np.arange(8,24,0.5)
+l1=20
+l2=15
+x_arr=np.arange(13,25,0.5)
 C=(0,0)
-d=19
-a=54
-b=28
+d=21
+a=59
+b=29
 prev_P=None
 list_of_dict=[]
 dict_to_save={}
