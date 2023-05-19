@@ -6,7 +6,7 @@ import time
 eye=Eye()
 cameraMatrix=np.load('./data/cameraMatrix.npy')
 dist=np.load('./data/dist.npy')
-img=cv2.imread(f'./data/corners_0.jpg')
+img=cv2.imread('./data/corners_0.jpg')
 undistorted=eye.undistort_image(img, cameraMatrix, dist, remapping=False)
 corners=eye.get_pool_corners(undistorted, bottom_aruco_ids=[6,7],top_aruco_ids=[2,3],left_aruco_ids=[0,1],right_aruco_ids=[4,5])
 print(corners)

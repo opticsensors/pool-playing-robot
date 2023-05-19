@@ -16,6 +16,7 @@ class Dynamixel(object):
         self.dynamixel_name              = 'X_SERIES'      
         self.addr_torque_enable          = 64
         self.addr_goal_position          = 116
+        self.addr_profile_velocity       = 112
         self.addr_present_position       = 132
         self.min_position                = 0         
         self.max_position                = 4095      
@@ -76,11 +77,17 @@ class Dynamixel(object):
         # Close port
         self.portHandler.closePort()
 
-    def sendToDynamixel(self,goal_position):
+    def sendToDynamixel(self,goal_position, velocity):
         
         # goal position must be between min and max positions
         # clamping
         goal_position=max(self.min_position, min(goal_position, self.max_position))
+
+        # Write profile velocity
+        dxl_comm_result, dxl_error = self.packetHandler.write4ByteTxRx(self.portHandler, 
+                                                                       self.dynamixel_id, 
+                                                                       self.addr_profile_velocity, 
+                                                                       velocity)
         # Write goal position
         dxl_comm_result, dxl_error = self.packetHandler.write4ByteTxRx(self.portHandler, 
                                                                        self.dynamixel_id, 
