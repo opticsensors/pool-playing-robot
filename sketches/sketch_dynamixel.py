@@ -9,7 +9,7 @@ dxl.setupDynamixel()
 
 while True:
     goal_position = randrange(dxl.min_position,dxl.max_position)
-    dxl.sendToDynamixel(goal_position)
+    dxl.sendToDynamixel(goal_position,20)
 
     while True:
         # Read present position
