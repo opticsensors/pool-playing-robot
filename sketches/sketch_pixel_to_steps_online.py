@@ -71,8 +71,8 @@ pos1 = 0
 pos2 = 0
 prev_point_x=0
 prev_point_y=0
-W = 84
-H = 44
+W = 70.25
+H = 38.5
 aruco_to_track=23
 stp.sendToArduino(f"-1,0,0")
 

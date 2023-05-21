@@ -34,8 +34,8 @@ for i,point in enumerate(points):
     d_points[i]=point
 dict_to_save = {}
 list_of_dict = []
-W = 84
-H = 44
+W = 70.25
+H = 38.5
 aruco_to_track=23
 
 # get data for every image
