@@ -13,7 +13,10 @@ class Dynamixel(object):
     def __init__(self, baudRate=115200,
                        serialPortName='com4' ):
         
-        self.dynamixel_name              = 'X_SERIES'      
+        self.dynamixel_name              = 'X_SERIES'
+        self.addr_P                      = 84
+        self.addr_I                      = 82
+        self.addr_D                      = 80
         self.addr_torque_enable          = 64
         self.addr_goal_position          = 116
         self.addr_profile_velocity       = 112
@@ -77,6 +80,24 @@ class Dynamixel(object):
 
         # Close port
         self.portHandler.closePort()
+
+    def setupPID(self, P,I,D):
+        dxl_comm_result, dxl_error = self.packetHandler.write4ByteTxRx(self.portHandler, 
+                                                                       self.dynamixel_id, 
+                                                                       self.addr_P, 
+                                                                       P)
+        dxl_comm_result, dxl_error = self.packetHandler.write4ByteTxRx(self.portHandler, 
+                                                                       self.dynamixel_id, 
+                                                                       self.addr_I, 
+                                                                       I)
+        dxl_comm_result, dxl_error = self.packetHandler.write4ByteTxRx(self.portHandler, 
+                                                                       self.dynamixel_id, 
+                                                                       self.addr_D, 
+                                                                       D)
+        if dxl_comm_result != COMM_SUCCESS:
+            print("%s" % self.packetHandler.getTxRxResult(dxl_comm_result))
+        elif dxl_error != 0:
+            print("%s" % self.packetHandler.getRxPacketError(dxl_error))
 
     def sendToDynamixel(self,goal_position, velocity, acceleration):
         

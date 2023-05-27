@@ -6,10 +6,11 @@ dxl=Dynamixel(baudRate=115200,
              serialPortName='com4' )
 
 dxl.setupDynamixel()
+dxl.setupPID(P=640,I=800,D=0)
 
 while True:
     goal_position = randrange(dxl.min_position,dxl.max_position)
-    dxl.sendToDynamixel(goal_position,20, 500)
+    dxl.sendToDynamixel(goal_position,50, 1)
 
     while True:
         # Read present position
