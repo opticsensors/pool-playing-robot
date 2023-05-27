@@ -4,11 +4,15 @@ import time
 
 camera_control_cmd_path = 'C:\\Program Files (x86)\\digiCamControl\\CameraControlCmd.exe'
 
-test_camera = Camera_DLSR(control_cmd_location=camera_control_cmd_path)
-test_setting: Camera_DLSR_settings = Camera_DLSR_settings(aperture='4', shutter_speed='1/10', iso='400')
-test_camera.save_folder='./data/'
-test_camera.collection_name = 'corners'
+test_setting : Camera_DLSR_settings = Camera_DLSR_settings(aperture='4', shutter_speed='1/10', iso='400')
+camera = Camera_DLSR()
 
+assert camera.test_if_any_cameras_are_connected(), "No camera detected"
+
+camera.save_folder     = './data/'
+camera.collection_name = 'corners'
+
+print ("Press 'q' to quit, 's' to take a photo...")
 
 while True:
     # do something
@@ -18,4 +22,4 @@ while True:
         break
     elif keyboard.is_pressed("s"):
         print("s pressed, taking photo")
-        test_camera.capture_single_image()
+        camera.capture_single_image()

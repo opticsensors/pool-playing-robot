@@ -10,7 +10,7 @@
   - [ ] Document the behaviour of the H configuration (the drawing of the directions motors needs to scroll to advance or not the carriage)
 - [ ] Buy/get
   - [ ] Logic mosfet
-  - [ ] Beefy solenoid pls
+  - [x] Beefy solenoid pls
   - [ ] Mini step motor?
   - [ ] MultiUSB port adaptor
 - [ ] Actuator 0
@@ -37,13 +37,13 @@
 - [ ] Arduino controller
   - [x] Safety system with detectors in the limtis of the frame
   - [ ] Change `recvWithStartEndMarkers` so that besides receiving messages like `<X,Y,Z>` it also can receive messages like `/ping/`
-- [ ] FOV deformation
+- [x] FOV deformation
   - [x] First implementation
-  - [ ] Execute the implementation
-  - [ ] Check the roundness of the balls and the distance in between the centroids
+  - [x] Execute the implementation
+  - [x] Check the roundness of the balls and the distance in between the centroids (measured error might be around 1 or 3 milimeters)
 - [ ] Ball detection
   - [x] First YOLO detection
-  - [ ] Test first YOLO detection
+  - [x] Test first YOLO detection
   - [ ] Add UX to YOLO (if file missing or other stuff)
 - [ ] Code main controller
   - [x] Make a first iteration
