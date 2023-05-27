@@ -48,9 +48,9 @@ for Kp in l_Kp:
         tau, _ = curve_fit(lambda x, tau: model(x, tau, steady_state_position), df_step['mod_time'].values, df_step['mod_present_pos'].values)
         y=model(df_step['mod_time'], tau[0], steady_state_position)
         plt.plot(df_step['mod_time'],y, 'r', linewidth=1.5)
-        #plt.show()
+        plt.show()
 
-        #print(i, tau[0], K_closed_loop)
+        print(i, tau[0], K_closed_loop)
         print(i, tau[0]*(1+Kp*K_open_loop), K_open_loop)
 
 
