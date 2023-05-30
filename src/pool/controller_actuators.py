@@ -13,9 +13,10 @@ class Controller_actuators(object):
         baudRate       : int           = 9600,
         serialPortName : Optional[str] = None
     ):
-        self.connected : bool = False
+        self.connected : bool = True
 
         if serialPortName is None:
+            self.connected : bool = False
             self._automatically_connenct_to_arduino()
 
         self.startMarker     : str           = '<'

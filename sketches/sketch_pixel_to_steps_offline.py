@@ -11,7 +11,7 @@ stp.setupSerial()
 
 #camera initialization
 camera_control_cmd_path = 'C:\\Program Files (x86)\\digiCamControl\\CameraControlCmd.exe'
-test_camera = Camera_DLSR(control_cmd_location=camera_control_cmd_path)
+test_camera = Camera_DLSR(control_cmd_location=camera_control_cmd_path, image_type='jpg')
 test_setting: Camera_DLSR_settings = Camera_DLSR_settings(aperture='4', shutter_speed='1/10', iso='400')
 test_camera.save_folder='./stepper_calibration/'
 test_camera.collection_name = 'img'
@@ -34,7 +34,7 @@ def cm_to_steps(incr_x, incr_y, W, H):
     return phi1,phi2
 
 #define needed variables
-points=generate_grid(4,3)
+points=generate_grid(6,4)
 np.random.shuffle(points) 
 np.save('./data/calibration_points.npy', points)
 #homig_position = [0,0]
