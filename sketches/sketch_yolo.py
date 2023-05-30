@@ -3,7 +3,7 @@ import numpy as np
 from pool.eye import Eye
 
 #read image with random ball config and background
-img = cv2.imread('./results/img_4.jpg')
+img = cv2.imread('./results/warp_4.jpg')
 
 eye=Eye()
 #corners=eye.get_pool_corners(img,bottom_aruco_ids=[17,8],top_aruco_ids=[9,3],left_aruco_ids=[1,11],right_aruco_ids=[23,10])
