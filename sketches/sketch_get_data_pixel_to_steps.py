@@ -15,13 +15,13 @@ dist=np.load('./data/dist.npy')
 #compute corners ---------------------- picture corners.jpg should be updated in another script or in here in case the structure moves
 img=cv2.imread(f'./data/corners_0.jpg')
 undist_img=eye.undistort_image(img, cameraMatrix, dist, remapping=False)
-dist_corners=eye.get_pool_corners(img, bottom_aruco_ids=[9,10,11,0],top_aruco_ids=[3,4,5,6],left_aruco_ids=[1,2],right_aruco_ids=[7,8])
-undist_corners=eye.get_pool_corners(undist_img, bottom_aruco_ids=[9,10,11,0],top_aruco_ids=[3,4,5,6],left_aruco_ids=[1,2],right_aruco_ids=[7,8])
+dist_corners=eye.get_pool_corners(img, bottom_aruco_ids=[6,7],top_aruco_ids=[2,3],left_aruco_ids=[0,1],right_aruco_ids=[4,5])
+undist_corners=eye.get_pool_corners(undist_img, bottom_aruco_ids=[6,7],top_aruco_ids=[2,3],left_aruco_ids=[0,1],right_aruco_ids=[4,5])
 
 #compute prespective transform matrix
 # the prespective trans matrix should be the same for all the captured images
-_,dist_matrix=eye.perspective_transform(img,dist_corners)
-_,undist_matrix=eye.perspective_transform(undist_img,undist_corners)
+dist_matrix=eye.calculate_perspective_matrix(dist_corners)
+undist_matrix=eye.calculate_perspective_matrix(undist_corners)
 
 #define needed variables
 points=np.load('./data/calibration_points.npy')
@@ -36,7 +36,7 @@ dict_to_save = {}
 list_of_dict = []
 W = 70.25
 H = 38.5
-aruco_to_track=23
+aruco_to_track=22
 
 # get data for every image
 for full_img_name in os.listdir('./stepper_calibration/'):
@@ -116,5 +116,7 @@ incr_df['incr_id'] = df.apply(lambda x: img_num_to_incr_id(x['img_num']), axis=1
 incr_df['incr_steps1'] = incr_df.apply(lambda x: cm_to_steps1(x['incr_point_x'], x['incr_point_y'],W,H), axis=1)
 incr_df['incr_steps2'] = incr_df.apply(lambda x: cm_to_steps2(x['incr_point_x'], x['incr_point_y'],W,H), axis=1)
 incr_df=incr_df.dropna()
+incr_df['incr_steps1_int'] = (incr_df['incr_steps1']).astype(int)
+incr_df['incr_steps2_int'] = (incr_df['incr_steps2']).astype(int)
 incr_df.to_csv(path_or_buf=f'./data/calibration_pixel_to_step.csv', sep=' ',index=False)
 
