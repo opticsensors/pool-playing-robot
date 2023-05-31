@@ -80,6 +80,51 @@ class Brain(object):
         angle = np.arccos(cosine_angle)
         return np.degrees(angle)
     
+    def get_balls_to_be_pocket(self,ball_type):
+        
+        l_detected=[key for key in self.d_centroids]
+        if ball_type=='solid':
+            l_type=[1,2,3,4,5,6,7]
+        elif ball_type=='strip':
+            l_type=[9,10,11,12,13,14,15]
+
+        l_detected_type=list(set(l_type) & set(l_detected))
+        dct_detected_type = {key: self.d_centroids[key] for key in l_detected_type}
+        arr_detected_type= np.array([list(val) for val in dct_detected_type.values()])
+        arr_ids_detected_type=np.array(l_detected_type).reshape(-1,1)
+        return np.hstack((arr_ids_detected_type,arr_detected_type))
+
+    def get_cue_and_8ball(self):
+        if 0 in self.d_centroids:
+            arr_cue = np.array(self.d_centroids[0])
+        else:   
+            raise ValueError('cue ball not detected, pool shot cannot be executed')
+        if 8 in self.d_centroids:
+            arr_8ball = np.array(self.d_centroids[8])
+        else:   
+            raise ValueError('8 ball not detected, game over')
+
+        return arr_cue, arr_8ball
+    
+    def get_other_balls(self, T):
+
+        l_detected=[key for key in self.d_centroids]
+        l_detected.remove(0)
+        dct_detected = {key: self.d_centroids[key] for key in l_detected}
+        arr_detected = np.array([list(val) for val in dct_detected.values()])
+        arr_ids_detected = np.array(l_detected).reshape(-1,1)
+        all_detected_balls_except_cue=np.hstack((arr_ids_detected,arr_detected))
+
+        T_and_others = np.array([]).reshape(0,6)
+        for row in T:
+            target_id=row[0]
+            #other_balls = np.delete(all_detected_balls_except_cue, (target_id), axis=0)
+            other_balls = all_detected_balls_except_cue[all_detected_balls_except_cue[:,0]!=target_id]
+            row=np.repeat(row.reshape(1,-1),other_balls.shape[0],0)
+            row_and_others=np.hstack((row,other_balls))
+            T_and_others=np.vstack((T_and_others,row_and_others))
+        return T_and_others
+
     def get_point_combinations(self,C,T,P):
         if len(C.shape)==1:
             C=C.reshape(1,2)
@@ -144,7 +189,18 @@ class Brain(object):
                 #(1):>, (2):>
 
         return valid_pockets
-    
+
+    def find_valid_trajectories(self,origin,destiny,collision_balls):
+        
+        origin_to_destiny = destiny-origin
+        unitary_origin_to_destiny = origin_to_destiny/np.linalg.norm(origin_to_destiny, axis=1)
+        origin_to_collision_balls = collision_balls-origin
+        #collision ball distance to CP line
+        distance=abs(np.cross(origin_to_collision_balls,unitary_origin_to_destiny))
+        # sign of dot product of vectors allows to know if collision ball lies "behind" origin
+        dot_prod_sign=np.dot(origin_to_collision_balls,unitary_origin_to_destiny)
+        return (distance < 2*self.ball_radius) & (dot_prod_sign > 0)
+            
     def find_geometric_parameters(self,C,T,P):
         """
         Using r, C,T,P we compute the:
@@ -283,7 +339,7 @@ class Brain(object):
                             self.valid_points_mouth_bottom_middle,
                             ])
 
-    def pool_balls(self, img):
+    def draw_pool_balls(self, img):
         for ball_num in self.d_centroids:
             x,y=self.d_centroids[ball_num]
             img=cv2.putText(img, "#{}".format(ball_num), (int(x) - 10, int(y)), cv2.FONT_HERSHEY_SIMPLEX, 2, (0, 255, 0), 3)
@@ -292,19 +348,5 @@ class Brain(object):
 
         return img
     
-    def get_balls_by_type(self):
-        l_striped=[9,10,11,12,13,14,15]
-        l_solid=[1,2,3,4,5,6,7]
-        l_detected=[key for key in self.d_centroids]
-        l_detected_striped=list(set(l_striped) & set(l_detected))
-        l_detected_solid=list(set(l_solid) & set(l_detected))
 
-        dct_striped = {key: self.d_centroids[key] for key in l_detected_striped}
-        dct_solid = {key: self.d_centroids[key] for key in l_detected_solid}
-
-        arr_striped = np.array([list(val) for val in dct_striped.values()])
-        arr_solid = np.array([list(val) for val in dct_solid.values()])
-        arr_cue = np.array(self.d_centroids[0])
-
-        return arr_striped, arr_solid, arr_cue
 
