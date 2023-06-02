@@ -3,10 +3,10 @@ import pandas as pd
 import cv2
 from pool.brain import Brain
 
-d_centroids={2:(1204,1268),
-             8:(572,652),
+d_centroids={2:(1300,1268),
+             7:(572,652),
              0:(2264,1476),
-             7:(4132, 616),
+             8:(4132, 616),
              3: (516,2172)
              }
 
@@ -31,7 +31,7 @@ img=brain.draw_pool_balls(img)
 arr_balls_to_be_pocket = brain.get_balls_to_be_pocket(ball_type='solid')
 #get special balls: cue ball and 8 ball
 arr_cue, arr_8ball = brain.get_cue_and_8ball()
-# get balls other balls for every cue and target (== for every target) that can intefere with the shot
+# get other balls for every cue and target (== for every target) that can intefere with the shot
 other_balls = brain.get_other_balls(arr_balls_to_be_pocket)
 
 #rename for clarity, using familiar nomenclature
@@ -113,22 +113,13 @@ df_without_collisions=df_valid[~(df_valid['T_id'].isin(invalid_T) & df_valid['P_
 
 
 #filter by difficulty metric
+df_without_collisions['difficulty'] = 1
 
 
-#for point1, point2 in zip(df_valid[['X1x', 'X1y']].values, 
-#                          df_valid[['Tx', 'Ty']].values): 
-#    cv2.line(img, point1.astype(int), point2.astype(int), [26, 163, 251], 1)
-#
-#for point1, point2 in zip(df_valid[['X2x', 'X2y']].values, 
-#                          df_valid[['Tx', 'Ty']].values): 
-#    cv2.line(img, point1.astype(int), point2.astype(int), [26, 163, 251], 1)
+img=brain.draw_trajectories(img,df_without_collisions[['Cx', 'Cy']].values, 
+                          df_without_collisions[['Xx', 'Xy']].values)
 
-for point1, point2 in zip(df_without_collisions[['Cx', 'Cy']].values, 
-                          df_without_collisions[['Xx', 'Xy']].values): 
-    cv2.line(img, point1.astype(int), point2.astype(int), [251, 163, 26], 1) 
-
-for point1, point2 in zip(df_without_collisions[['Tx', 'Ty']].values, 
-                          df_without_collisions[['Px', 'Py']].values): 
-    cv2.line(img, point1.astype(int), point2.astype(int), [251, 163, 26], 1) 
+img=brain.draw_trajectories(img,df_without_collisions[['Tx', 'Ty']].values, 
+                          df_without_collisions[['Px', 'Py']].values) 
 
 cv2.imwrite('./results/pool_frame.png', img)

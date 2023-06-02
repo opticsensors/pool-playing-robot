@@ -354,5 +354,9 @@ class Brain(object):
 
         return img
     
-
+    def draw_trajectories(self, img, points1,points2):
+        
+        for point1, point2 in zip(points1, points2): 
+            cv2.line(img, point1.astype(int), point2.astype(int), [251, 163, 26], 1) 
+        return img
 
