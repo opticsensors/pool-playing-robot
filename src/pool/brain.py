@@ -160,46 +160,47 @@ class Brain(object):
         return X1, X2
     
     def find_valid_pockets(self,T,P,X1,X2):
-        M=((X1)+(X2))/2    
 
-        #now we need to compute the lines X1T and X2T
-        #line X1T (1)
-        slope1=(X1[:,1]-T[:,1])/(X1[:,0]-T[:,0])
-        intercept1=X1[:,1]-slope1*X1[:,0]
+        TX1=X1-T
+        TX2=X2-T
+        rotation=np.cross(TX1, TX2) 
+        clockwise=(rotation<0)
+        counter_clockwise=(rotation>0)
+        
+        a = np.cross(P[clockwise] - X1[clockwise], T[clockwise] - X1[clockwise]) > 0
+        b = np.cross(P[clockwise] - X2[clockwise], T[clockwise] - X2[clockwise]) < 0
+        cw_cond=(a & b)
 
-        #line X2T (2)
-        slope2=(X2[:,1]-T[:,1])/(X2[:,0]-T[:,0])
-        intercept2=X2[:,1]-slope2*X2[:,0]
 
-        # M falls in the opposite region of the region of interest
-        # 
-        if (M[:,1]>slope1*M[:,0]+intercept1).any():
-            if (M[:,1]>slope2*M[:,0]+intercept2).any():
-                valid_pockets=(P[:,1]<slope1*P[:,0]+intercept1) & (P[:,1]<slope2*P[:,0]+intercept2)
-                #(1):<, (2):<
-            else:
-                valid_pockets=(P[:,1]<slope1*P[:,0]+intercept1) & (P[:,1]>slope2*P[:,0]+intercept2)
-                #(1):<, (2):>
-        else:
-            if (M[:,1]>slope2*M[0]+intercept2).any():
-                valid_pockets=(P[:,1]>slope1*P[:,0]+intercept1) & (P[:,1]<slope2*P[:,0]+intercept2)
-                #(1):>, (2):<
-            else: 
-                valid_pockets=(P[:,1]>slope1*P[:,0]+intercept1) & (P[:,1]>slope2*P[:,0]+intercept2)
-                #(1):>, (2):>
+        X1_counterclock=X2
+        X2_counterclock=X1
+        a = np.cross(P[counter_clockwise] - X1_counterclock[counter_clockwise], T[counter_clockwise] - X1_counterclock[counter_clockwise]) < 0
+        b = np.cross(P[counter_clockwise] - X2_counterclock[counter_clockwise], T[counter_clockwise] - X2_counterclock[counter_clockwise]) > 0
+        ccw_cond=(a & b)
 
-        return valid_pockets
+        cond=np.full((T.shape[0], ), True)
+        cond[clockwise]=cw_cond
+        cond[counter_clockwise]=ccw_cond
+
+        return cond
 
     def find_valid_trajectories(self,origin,destiny,collision_balls):
         
-        origin_to_destiny = destiny-origin
-        unitary_origin_to_destiny = origin_to_destiny/np.linalg.norm(origin_to_destiny, axis=1)
-        origin_to_collision_balls = collision_balls-origin
+        #For clarity of what is going on we will change nomenclature:
+        O=origin
+        D=destiny
+        E=collision_balls
+        OD = D-O
+        UOD = OD/np.linalg.norm(OD, axis=1).reshape(-1,1)
+        OE = E-O
+        DE = E-D
         #collision ball distance to CP line
-        distance=abs(np.cross(origin_to_collision_balls,unitary_origin_to_destiny))
+        distance=abs(np.cross(OE,UOD))
         # sign of dot product of vectors allows to know if collision ball lies "behind" origin
-        dot_prod_sign=np.dot(origin_to_collision_balls,unitary_origin_to_destiny)
-        return (distance < 2*self.ball_radius) & (dot_prod_sign > 0)
+        dot_prod_sign_O=np.sum(OE*UOD,axis=1)
+        # sign of dot product of vectors allows to know if collision ball lies "behind" destiny
+        dot_prod_sign_D=np.sum(DE*(-UOD),axis=1)
+        return (distance < 2*self.ball_radius) & (dot_prod_sign_O > 0) & (dot_prod_sign_D > 0)
             
     def find_geometric_parameters(self,C,T,P):
         """
@@ -331,13 +332,18 @@ class Brain(object):
         self.valid_points_mouth_bottom_left=self.get_equidistant_points(self.mouth_bottom_left7, self.mouth_bottom_left8, precision)
         self.valid_points_mouth_top_middle=self.get_equidistant_points(self.mouth_top_middle9, self.mouth_top_middle10, precision)
         self.valid_points_mouth_bottom_middle=self.get_equidistant_points(self.mouth_bottom_middle11, self.mouth_bottom_middle12, precision)
-        self.pockets = np.vstack([self.valid_points_mouth_top_left,
-                            self.valid_points_mouth_top_right,
-                            self.valid_points_mouth_bottom_right,
-                            self.valid_points_mouth_bottom_left,
-                            self.valid_points_mouth_top_middle,
-                            self.valid_points_mouth_bottom_middle,
+        
+        # add ids of pockets:
+        pockets_id=np.array([1,3,4,6,2,5])
+        pockets_id=np.repeat(pockets_id,precision+1).reshape(-1,1)
+        pockets = np.vstack([self.valid_points_mouth_top_left,  #pocket 1      
+                            self.valid_points_mouth_top_right,       #pocket 3
+                            self.valid_points_mouth_bottom_right,    #pocket 4   
+                            self.valid_points_mouth_bottom_left,     #pocket 6  
+                            self.valid_points_mouth_top_middle,      #pocket 2 
+                            self.valid_points_mouth_bottom_middle,   #pocket 5    
                             ])
+        self.pockets=np.hstack([pockets_id,pockets])
 
     def draw_pool_balls(self, img):
         for ball_num in self.d_centroids:
