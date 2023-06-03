@@ -11,7 +11,7 @@ d_centroids={2:(1300,1268),
              }
 
 brain=Brain(d_centroids=d_centroids)
-img = cv2.imread(f'./results/warp_0.jpg')
+img = cv2.imread(f'./results/warp_corners.jpg')
 img = brain.setup_pool_frame(img, 
                     x_pocket_top_left=120,
                     y_pocket_top_left=96,
@@ -40,33 +40,30 @@ T = other_balls
 P = brain.pockets
 
 #build array of combinations:
-#combinations of C, T and P (T_ids is included because we are going to need ball info later)
-C_comb,T_comb,P_comb = brain.get_point_combinations(C,T,P)
-
-#get X1 and X2 (necessary point to check in what pockets ball can be pocketed)
-T_comb_target_coord=T_comb[:,1:3]
-X1_comb,X2_comb = brain.find_X1_and_X2(C_comb,T_comb_target_coord)
+comb=brain.get_row_combinations_of_two_arrays(T,P)
+comb=brain.get_row_combinations_of_two_arrays(C,comb)
 
 #create dataframe
-df=pd.DataFrame({'Cx':C_comb[:,0],
-                 'Cy':C_comb[:,1],
-                 'T_id':T_comb[:,0],
-                 'Tx':T_comb[:,1],
-                 'Ty':T_comb[:,2],
-                 'other_ball_id':T_comb[:,3],
-                 'other_ball_x':T_comb[:,4],
-                 'other_ball_y':T_comb[:,5],
-                 'P_id':P_comb[:,0],
-                 'Px':P_comb[:,1],
-                 'Py':P_comb[:,2],
-                 'X1x':X1_comb[:,0],
-                 'X1y':X1_comb[:,1],
-                 'X2x':X2_comb[:,0],
-                 'X2y':X2_comb[:,1],
-                 'Cx':C_comb[:,0],
-                 'Cy':C_comb[:,1],
-                 'Cx':C_comb[:,0],
-                 'Cy':C_comb[:,1],})
+df=pd.DataFrame({'Cx':comb[:,0],
+                 'Cy':comb[:,1],
+                 'T_id':comb[:,2],
+                 'Tx':comb[:,3],
+                 'Ty':comb[:,4],
+                 'other_ball_id':comb[:,5],
+                 'other_ball_x':comb[:,6],
+                 'other_ball_y':comb[:,7],
+                 'P_id':comb[:,8],
+                 'Px':comb[:,9],
+                 'Py':comb[:,10]})
+
+#get X1 and X2 (necessary point to check in what pockets ball can be pocketed)
+X1_comb,X2_comb = brain.find_X1_and_X2(df[['Cx', 'Cy']].values,
+                                       df[['Tx', 'Ty']].values)
+
+df['X1x']=X1_comb[:,0]
+df['X1y']=X1_comb[:,1]
+df['X2x']=X2_comb[:,0]
+df['X2y']=X2_comb[:,1]
 
 #use above calculations to decide if that combination (row) is valid or not
 valid_pockets = brain.find_valid_pockets(df[['Tx', 'Ty']].values,

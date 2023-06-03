@@ -6,7 +6,7 @@ import numpy as np
 eye=Eye()
 
 # We undistort the image
-img            = cv2.imread(f'./results/img_4.jpg')
+img            = cv2.imread(f'./data/corners_0.jpg')
 cameraMatrix   = np.load('./data/cameraMatrix.npy')
 dist           = np.load('./data/dist.npy')
 undist_img     = eye.undistort_image(
@@ -29,4 +29,4 @@ warp_undistorted   = eye.transform_image_given_a_matrix(
     prespective_matrix,
 )
 
-cv2.imwrite('./results/warp_4.jpg', warp_undistorted)
+cv2.imwrite('./results/warp_corners.jpg', warp_undistorted)

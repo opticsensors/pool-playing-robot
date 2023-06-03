@@ -54,12 +54,15 @@ class Brain(object):
 
     @staticmethod
     def get_equidistant_points(p1, p2, parts):
-        points_separated=np.linspace(p1[0], p2[0], parts+1),np.linspace(p1[1], p2[1], parts+1)
-        points=np.column_stack((points_separated[0],points_separated[1]))
+        if parts==0:
+            points=(p1+p2)/2
+        else:
+            points_separated=np.linspace(p1[0], p2[0], parts+1),np.linspace(p1[1], p2[1], parts+1)
+            points=np.column_stack((points_separated[0],points_separated[1]))
         return points
     
     @staticmethod
-    def angle_abc(a,b,c):
+    def angle_between_three_points(a,b,c):
         """
         Computes the angle between 3 points 
         (point b is the vertex)
@@ -80,6 +83,24 @@ class Brain(object):
         angle = np.arccos(cosine_angle)
         return np.degrees(angle)
     
+    @staticmethod
+    def angle_between_two_vectors(u,v):
+        dot = u[:,0]*v[:,0] + u[:,1]*v[:,1]
+        cosine_angle = dot / (np.linalg.norm(u, axis=1)* np.linalg.norm(v, axis=1))
+        angle = np.arccos(cosine_angle)
+        return np.degrees(angle)
+
+    @staticmethod
+    def line_intersect(a1, a2, b1, b2):
+        T = np.array([[0, -1], [1, 0]])
+        da = np.atleast_2d(a2 - a1)
+        db = np.atleast_2d(b2 - b1)
+        dp = np.atleast_2d(a1 - b1)
+        dap = np.dot(da, T)
+        denom = np.sum(dap * db, axis=1)
+        num = np.sum(dap * dp, axis=1)
+        return np.atleast_2d(num / denom).T * db + b1
+
     def get_balls_to_be_pocket(self,ball_type):
         
         l_detected=[key for key in self.d_centroids]
@@ -125,13 +146,19 @@ class Brain(object):
             T_and_others=np.vstack((T_and_others,row_and_others))
         return T_and_others
 
-    def get_point_combinations(self,C,T,P):
-        if len(C.shape)==1:
-            C=C.reshape(1,2)
-        repeated_P=np.tile(P,(len(T),1))
-        repeated_T=np.repeat(T,len(P),0)
-        repeated_C=np.repeat(C,repeated_P.shape[0],axis=0)
-        return repeated_C,repeated_T,repeated_P
+    def get_row_combinations_of_two_arrays(self, array1,array2):
+
+        if len(array1.shape)==1:
+            array1=array1.reshape(1,2)
+
+        if len(array2.shape)==1:
+            array2=array2.reshape(1,2)
+
+        a = np.repeat(array1, array2.shape[0], axis=0)
+        b = np.tile(array2, (array1.shape[0],1))
+        result = np.hstack([a,b])
+
+        return result
 
     def find_X1_and_X2(self,C,T):
 
@@ -232,12 +259,135 @@ class Brain(object):
         X=np.column_stack([x_x,y_x])
 
         #To compute a and alpha we need to use cos and sin rules
-        beta=np.pi-self.angle_abc(C,T,P)
+        beta=np.pi-self.angle_between_three_points(C,T,P)
 
         a=np.sqrt(d**2+(2*r)**2-2*d*(2*r)*np.cos(beta))
         alpha=np.arcsin(2*r*np.sin(beta)/a)
 
         return d,b,a,alpha, beta, X
+    
+    #####################################################################################
+    ########### Exclusive second order func
+    def get_cue_ball_reflections(self,C):
+        if len(C.shape)==1:
+            C=C.reshape(1,2)
+
+        Cx=C[0,0]
+        Cy=C[0,1]
+
+        top_y = self.frame_top_left[1]
+        right_x = self.frame_top_right[0]
+        bottom_y = self.frame_bottom_right[1]
+        left_x = self.frame_bottom_left[0]
+
+        # check if C inside rect frame
+        if Cx>right_x:
+            Cx=right_x
+        elif Cy<left_x:
+            Cy=left_x
+        if Cy>bottom_y:
+            Cy=bottom_y
+        elif Cy<top_y:
+            Cy=top_y
+
+        dist_C_top = Cy-top_y
+        dist_C_bottom = -Cy+bottom_y
+        dist_C_left = Cx-left_x
+        dist_C_right = -Cx+right_x
+
+        C_top = C + np.array([[0,-2*dist_C_top]])
+        C_bottom = C + np.array([[0,2*dist_C_bottom]])
+        C_left = C + np.array([[-2*dist_C_left,0]])
+        C_right = C + np.array([[2*dist_C_right,0]])
+
+        return np.vstack((C_top,C_bottom,C_left,C_right))
+
+    def find_bouncing_points(self,C, C_reflect, X):
+        
+        origin_rect=self.frame_top_left
+        end_rect=self.frame_bottom_right
+        C_reflect_X=C_reflect-X
+        direction=C_reflect_X/(np.linalg.norm(C_reflect_X, axis=1)).reshape(-1,1)
+        cos=direction[:,0]
+        sin=direction[:,1]
+
+        x=np.zeros_like(direction[:,0])
+        y=np.zeros_like(direction[:,1])
+        bouncing_points=np.zeros_like(direction)
+
+        x[cos>0]=end_rect[0]
+        x[cos<0]=origin_rect[0]
+        y[sin>0]=end_rect[1]
+        y[sin<0]=origin_rect[1]
+        bouncing_points[:,0][cos==0]= C[:,0][cos==0]
+        bouncing_points[:,1][cos==0]= y[cos==0]
+        bouncing_points[:,0][sin==0]= x[sin==0]
+        bouncing_points[:,1][sin==0]= C[:,1][sin==0]
+
+        tx=(x[cos!=0]-C[:,0][cos!=0])/cos[cos!=0]
+        ty=(y[sin!=0]-C[:,1][sin!=0])/sin[sin!=0]
+
+        bouncing_points[:,0][tx<=ty]=x[tx<=ty]
+        bouncing_points[:,1][tx<=ty]=C[:,1][tx<=ty]+tx[tx<=ty]*sin[tx<=ty]
+
+        bouncing_points[:,0][tx>ty]=C[:,0][tx>ty]+ty[tx>ty]*cos[tx>ty]
+        bouncing_points[:,1][tx>ty]=y[tx>ty]
+
+        return bouncing_points
+    
+    def find_bouncing_points_v2(self,C_reflect, X):
+        
+        points=np.hstack((C_reflect,X))
+        results=np.zeros((points.shape[0], 2))
+
+        #top_segment
+        top_point1=self.frame_top_left
+        top_point2=self.frame_top_right
+
+        #right_segment
+        right_point1=self.frame_top_right
+        right_point2=self.frame_bottom_right
+
+        #bottom_segment
+        bottom_point1=self.frame_bottom_right
+        bottom_point2=self.frame_bottom_left
+
+        #left_segment
+        left_point1=self.frame_bottom_left
+        left_point2=self.frame_top_left
+
+        #intersection can happen between four different segments (edges of pool frame)
+        xmin=top_point1[0]
+        xmax=top_point2[0]
+        ymin=top_point1[1]
+        ymax=left_point1[1]
+
+        x=C_reflect[:,0]
+        y=C_reflect[:,1]
+        cond_left_quadrant= (x<xmin) & (y>ymin) & (y<ymax)
+        cond_right_quadrant= (x>xmax) & (y>ymin) & (y<ymax)
+        cond_top_quadrant= (x>xmin) & (x<xmax) & (y<ymin)
+        cond_bottom_quadrant= (x>xmin) & (x<xmax) & (y>ymax)
+
+        results[cond_left_quadrant]=self.line_intersect(X[cond_left_quadrant],
+                                                        C_reflect[cond_left_quadrant],
+                                                        left_point1,left_point2)
+        results[cond_right_quadrant]=self.line_intersect(X[cond_right_quadrant],
+                                                         C_reflect[cond_right_quadrant],
+                                                         right_point1,right_point2)
+        results[cond_top_quadrant]=self.line_intersect(X[cond_top_quadrant],
+                                                       C_reflect[cond_top_quadrant],
+                                                        top_point1,top_point2)
+        results[cond_bottom_quadrant]=self.line_intersect(X[cond_bottom_quadrant],
+                                                          C_reflect[cond_bottom_quadrant],
+                                                        bottom_point1,bottom_point2)        
+        return results
+
+    def filter_bounce_shots_by_angle(self, T,X,B):
+        TX=X-T
+        XB=B-X
+        angle=self.angle_between_two_vectors(TX,XB)
+        return np.abs(angle)
 
     def setup_pool_frame(self, 
                    img, 
@@ -290,23 +440,27 @@ class Brain(object):
         self._draw_pocket(img, self.pocket_top_middle, param['radius_pocket_middle'])
         self._draw_pocket(img, self.pocket_bottom_middle, param['radius_pocket_middle'])
 
-        self.mouth_top_left1 = (param['horizontal_left_offset'], param['vertical_top_offset']+width_corner)
-        self.mouth_top_left2 = (param['horizontal_left_offset'] + width_corner, param['vertical_top_offset'])
+        self.frame_top_left = np.array((param['horizontal_left_offset'], param['vertical_top_offset']))
+        self.mouth_top_left1 = np.array((param['horizontal_left_offset'], param['vertical_top_offset']+width_corner))
+        self.mouth_top_left2 = np.array((param['horizontal_left_offset'] + width_corner, param['vertical_top_offset']))
 
-        self.mouth_top_right3 = (W-param['horizontal_right_offset']-width_corner, param['vertical_top_offset'])
-        self.mouth_top_right4 = (W-param['horizontal_right_offset'], param['vertical_top_offset']+width_corner)
+        self.frame_top_right = np.array((W-param['horizontal_right_offset'], param['vertical_top_offset']))
+        self.mouth_top_right3 = np.array((W-param['horizontal_right_offset']-width_corner, param['vertical_top_offset']))
+        self.mouth_top_right4 = np.array((W-param['horizontal_right_offset'], param['vertical_top_offset']+width_corner))
 
-        self.mouth_bottom_right5 = (W-param['horizontal_right_offset'], H-param['vertical_bottom_offset']-width_corner)
-        self.mouth_bottom_right6 = (W-param['horizontal_right_offset']-width_corner, H-param['vertical_bottom_offset'])
+        self.frame_bottom_right = np.array((W-param['horizontal_right_offset'], H-param['vertical_bottom_offset']))
+        self.mouth_bottom_right5 = np.array((W-param['horizontal_right_offset'], H-param['vertical_bottom_offset']-width_corner))
+        self.mouth_bottom_right6 = np.array((W-param['horizontal_right_offset']-width_corner, H-param['vertical_bottom_offset']))
 
-        self.mouth_bottom_left7 = (param['horizontal_left_offset']+width_corner, H-param['vertical_bottom_offset'])
-        self.mouth_bottom_left8 = (param['horizontal_left_offset'], H-param['vertical_bottom_offset']-width_corner)
+        self.frame_bottom_left = np.array((param['horizontal_left_offset'], H-param['vertical_bottom_offset']))
+        self.mouth_bottom_left7 = np.array((param['horizontal_left_offset']+width_corner, H-param['vertical_bottom_offset']))
+        self.mouth_bottom_left8 = np.array((param['horizontal_left_offset'], H-param['vertical_bottom_offset']-width_corner))
 
-        self.mouth_top_middle9 = (x_pocket_top_middle-width_middle, param['vertical_top_offset'])
-        self.mouth_top_middle10 = (x_pocket_top_middle+width_middle, param['vertical_top_offset'])
+        self.mouth_top_middle9 = np.array((x_pocket_top_middle-width_middle, param['vertical_top_offset']))
+        self.mouth_top_middle10 = np.array((x_pocket_top_middle+width_middle, param['vertical_top_offset']))
 
-        self.mouth_bottom_middle11 = (x_pocket_top_middle-width_middle, H-param['vertical_bottom_offset'])
-        self.mouth_bottom_middle12 = (x_pocket_top_middle+width_middle, H-param['vertical_bottom_offset'])
+        self.mouth_bottom_middle11 = np.array((x_pocket_top_middle-width_middle, H-param['vertical_bottom_offset']))
+        self.mouth_bottom_middle12 = np.array((x_pocket_top_middle+width_middle, H-param['vertical_bottom_offset']))
 
         cv2.line(img, self.mouth_top_left2, self.mouth_top_right3, (0, 255, 0), thickness=3)
         cv2.line(img, self.mouth_top_right4, self.mouth_bottom_right5, (0, 255, 0), thickness=3)
