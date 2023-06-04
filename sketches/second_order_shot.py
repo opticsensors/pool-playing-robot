@@ -83,14 +83,9 @@ valid_pockets = brain.find_valid_pockets(df[['Tx', 'Ty']].values,
 df_valid=df[valid_pockets].copy()
 
 #find_geometric_parameters
-d,b,a,alpha, beta, X_comb = brain.find_geometric_parameters(df_valid[['Cx', 'Cy']].values,
+X_comb = brain.find_X(df_valid[['Cx', 'Cy']].values,
                                                        df_valid[['Tx', 'Ty']].values,
                                                        df_valid[['Px', 'Py']].values)
-df_valid['d']=d
-df_valid['b']=b
-df_valid['a']=a                                                               
-df_valid['alpha']=alpha
-df_valid['beta']=beta
 df_valid['Xx']=X_comb[:,0]
 df_valid['Xy']=X_comb[:,1]
 
@@ -125,7 +120,6 @@ arr_configs=df_valid[['T_id', 'P_id','P_sub_id']].values
 collision_configs=(arr_configs[None,:]==arr_collisions[:,None]).all(-1).any(0)
 df_without_collisions=df_valid[~(collision_configs)]
 
-#filter by difficulty metric
 # in this case we want the vector BX to be +- ~50 degrees from the ideal Bx vector (that is the vector parallel to PTX)
 df_filtered=df_without_collisions.copy()
 df_filtered['XB_TX_abs_angle'] = brain.filter_bounce_shots_by_angle(df_without_collisions[['Tx', 'Ty']].values,

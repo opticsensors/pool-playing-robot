@@ -246,21 +246,7 @@ class Brain(object):
         dot_prod_sign_D=np.sum(DE*(-UOD),axis=1)
         return (distance < 2*self.ball_radius) & (dot_prod_sign_O > 0) & (dot_prod_sign_D > 0)
             
-    def find_geometric_parameters(self,C,T,P):
-        """
-        Using r, C,T,P we compute the:
-            d,b,a distances
-            beta, alpha angles
-            X point
-
-        Parameters
-        ----------    
-            C,T,P: tuples
-                x, y coordinates of rellevant points
-        Returns
-        -------
-            d,b,a,alpha,beta, X: miscellanous
-        """
+    def find_X(self,C,T,P):
 
         r=self.ball_radius
         # we calculate d and b using T and C points
@@ -275,13 +261,7 @@ class Brain(object):
         y_x=P[:,1]+(T[:,1]-P[:,1])*t
         X=np.column_stack([x_x,y_x])
 
-        #To compute a and alpha we need to use cos and sin rules
-        beta=np.pi-self.angle_between_three_points(C,T,P)
-
-        a=np.sqrt(d**2+(2*r)**2-2*d*(2*r)*np.cos(beta))
-        alpha=np.arcsin(2*r*np.sin(beta)/a)
-
-        return d,b,a,alpha, beta, X
+        return X
     
     #####################################################################################
     ########### Exclusive second order func

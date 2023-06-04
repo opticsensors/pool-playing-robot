@@ -80,21 +80,16 @@ valid_pockets = brain.find_valid_pockets(df[['Tx', 'Ty']].values,
 df_valid=df[valid_pockets].copy()
 
 #find_geometric_parameters
-d,b,a,alpha, beta, X_comb = brain.find_geometric_parameters(C=df_valid[['Bx', 'By']].values,
+X_comb = brain.find_X(C=df_valid[['Bx', 'By']].values,
                                                        T=df_valid[['Tx', 'Ty']].values,
                                                        P=df_valid[['Px', 'Py']].values)
-#df_valid['d']=d
-#df_valid['b']=b
-#df_valid['a']=a                                                               
-#df_valid['alpha']=alpha
-#df_valid['beta']=beta
 df_valid['Xx']=X_comb[:,0]
 df_valid['Xy']=X_comb[:,1]
 
 #df_valid.to_csv(path_or_buf='./data/ball_trajectories.csv', sep=',',index=False)
 
 #find_geometric_parameters
-d,b,a,alpha, beta, X_new_comb = brain.find_geometric_parameters(C=df_valid[['Cx', 'Cy']].values,
+X_new_comb = brain.find_X(C=df_valid[['Cx', 'Cy']].values,
                                                        T=df_valid[['Bx', 'By']].values,
                                                        P=df_valid[['Xx', 'Xy']].values)
 
