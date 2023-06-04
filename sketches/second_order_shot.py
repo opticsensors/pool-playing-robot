@@ -3,8 +3,8 @@ import pandas as pd
 import cv2
 from pool.brain import Brain
 
-d_centroids={#2:(1300,1268),
-             7:(572,652),
+d_centroids={2:(1200,1268),
+             #7:(572,652),
              0:(2264,1476),
              8:(4132, 616),
              3: (516,2172)
@@ -128,14 +128,15 @@ df_filtered['XB_TX_abs_angle'] = brain.filter_bounce_shots_by_angle(df_without_c
                                                                     df_without_collisions[['Bx', 'By']].values)
 df_filtered=df_filtered[df_filtered['XB_TX_abs_angle'] < 50]
 
+# check B is inside cushion limits!
+#
+#
+
 img=brain.draw_trajectories(img,df_filtered[['Bx', 'By']].values, 
                             df_filtered[['Cx', 'Cy']].values)
 
 img=brain.draw_trajectories(img,df_filtered[['Bx', 'By']].values, 
                             df_filtered[['Xx', 'Xy']].values)
-
-img=brain.draw_trajectories(img,df_filtered[['Cx', 'Cy']].values, 
-                          df_filtered[['Xx', 'Xy']].values)
 
 img=brain.draw_trajectories(img,df_filtered[['Tx', 'Ty']].values, 
                           df_filtered[['Px', 'Py']].values) 

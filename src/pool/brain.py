@@ -139,8 +139,26 @@ class Brain(object):
         T_and_others = np.array([]).reshape(0,6)
         for row in T:
             target_id=row[0]
-            #other_balls = np.delete(all_detected_balls_except_cue, (target_id), axis=0)
             other_balls = all_detected_balls_except_cue[all_detected_balls_except_cue[:,0]!=target_id]
+            row=np.repeat(row.reshape(1,-1),other_balls.shape[0],0)
+            row_and_others=np.hstack((row,other_balls))
+            T_and_others=np.vstack((T_and_others,row_and_others))
+        return T_and_others
+    
+    def get_new_other_balls(self,T):
+
+        l_detected=[key for key in self.d_centroids]
+        l_detected.remove(0)
+        dct_detected = {key: self.d_centroids[key] for key in l_detected}
+        arr_detected = np.array([list(val) for val in dct_detected.values()])
+        arr_ids_detected = np.array(l_detected).reshape(-1,1)
+        all_detected_balls_except_cue=np.hstack((arr_ids_detected,arr_detected))
+
+        T_and_others = np.array([]).reshape(0,9)
+        for row in T:
+            target_id1=row[0]
+            target_id2=row[3]
+            other_balls = all_detected_balls_except_cue[(all_detected_balls_except_cue[:,0]!=target_id1)&(all_detected_balls_except_cue[:,0]!=target_id2)]
             row=np.repeat(row.reshape(1,-1),other_balls.shape[0],0)
             row_and_others=np.hstack((row,other_balls))
             T_and_others=np.vstack((T_and_others,row_and_others))
