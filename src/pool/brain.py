@@ -101,6 +101,15 @@ class Brain(object):
         num = np.sum(dap * dp, axis=1)
         return np.atleast_2d(num / denom).T * db + b1
 
+    def get_all_detected_balls_except_cue(self):
+        l_detected=[key for key in self.d_centroids]
+        l_detected.remove(0)
+        dct_detected = {key: self.d_centroids[key] for key in l_detected}
+        arr_detected = np.array([list(val) for val in dct_detected.values()])
+        arr_ids_detected = np.array(l_detected).reshape(-1,1)
+        all_detected_balls_except_cue=np.hstack((arr_ids_detected,arr_detected))
+        return all_detected_balls_except_cue
+    
     def get_balls_to_be_pocket(self,ball_type):
         
         l_detected=[key for key in self.d_centroids]
@@ -129,40 +138,30 @@ class Brain(object):
     
     def get_other_balls(self, T):
 
-        l_detected=[key for key in self.d_centroids]
-        l_detected.remove(0)
-        dct_detected = {key: self.d_centroids[key] for key in l_detected}
-        arr_detected = np.array([list(val) for val in dct_detected.values()])
-        arr_ids_detected = np.array(l_detected).reshape(-1,1)
-        all_detected_balls_except_cue=np.hstack((arr_ids_detected,arr_detected))
-
-        T_and_others = np.array([]).reshape(0,6)
-        for row in T:
-            target_id=row[0]
-            other_balls = all_detected_balls_except_cue[all_detected_balls_except_cue[:,0]!=target_id]
-            row=np.repeat(row.reshape(1,-1),other_balls.shape[0],0)
-            row_and_others=np.hstack((row,other_balls))
-            T_and_others=np.vstack((T_and_others,row_and_others))
-        return T_and_others
+        all_detected_balls_except_cue=self.get_all_detected_balls_except_cue()
+        result=self.get_row_combinations_of_two_arrays(T,all_detected_balls_except_cue)
+        result=result[result[:,0]!=result[:,3]]
+        return result
     
-    def get_new_other_balls(self,T):
+    def get_other_balls_twice(self, T, ball_type):
+        if ball_type=='solid':
+            arr_type=np.array([1,2,3,4,5,6,7])
+        elif ball_type=='strip':
+            arr_type=np.array([9,10,11,12,13,14,15])
 
-        l_detected=[key for key in self.d_centroids]
-        l_detected.remove(0)
-        dct_detected = {key: self.d_centroids[key] for key in l_detected}
-        arr_detected = np.array([list(val) for val in dct_detected.values()])
-        arr_ids_detected = np.array(l_detected).reshape(-1,1)
-        all_detected_balls_except_cue=np.hstack((arr_ids_detected,arr_detected))
+        all_detected_balls_except_cue=self.get_all_detected_balls_except_cue()
+        arr_ids=all_detected_balls_except_cue[:,0]
 
-        T_and_others = np.array([]).reshape(0,9)
-        for row in T:
-            target_id1=row[0]
-            target_id2=row[3]
-            other_balls = all_detected_balls_except_cue[(all_detected_balls_except_cue[:,0]!=target_id1)&(all_detected_balls_except_cue[:,0]!=target_id2)]
-            row=np.repeat(row.reshape(1,-1),other_balls.shape[0],0)
-            row_and_others=np.hstack((row,other_balls))
-            T_and_others=np.vstack((T_and_others,row_and_others))
-        return T_and_others
+        #detected by specified type
+        arr_ids_detected_by_type = np.intersect1d(arr_ids,arr_type)
+        inds = [ np.where( arr_ids == val)[0] for val in arr_ids_detected_by_type ]
+        inds = [ i[0] for i in inds if i.size ] 
+        all_detected_balls_by_type = all_detected_balls_except_cue[inds]
+
+        result=self.get_row_combinations_of_two_arrays(T,all_detected_balls_by_type)
+        result=self.get_row_combinations_of_two_arrays(result,all_detected_balls_except_cue)
+        result=result[(result[:,0]!=result[:,3]) & (result[:,0]!=result[:,6]) & (result[:,3]!=result[:,6])]
+        return result
 
     def get_row_combinations_of_two_arrays(self, array1,array2):
 

@@ -7,7 +7,9 @@ d_centroids={2:(1200,1268),
              #7:(572,652),
              0:(2264,1476),
              8:(4132, 616),
-             3: (516,2172)
+             #3: (516,2172),
+             6: (1210,1800),
+             14: (4132,2172),
              }
 
 brain=Brain(d_centroids=d_centroids)
@@ -115,10 +117,11 @@ collision_configs_TP=brain.find_valid_trajectories(origin=df_valid[['Tx', 'Ty']]
 
 collision_configs=((collision_configs_CB) | (collision_configs_BX) | (collision_configs_TP))
 df_collisions=df_valid[collision_configs]
-invalid_T=np.unique(df_collisions['T_id'])
-invalid_P=np.unique(df_collisions['P_id'])
 
-df_without_collisions=df_valid[~(df_valid['T_id'].isin(invalid_T) & df_valid['P_id'].isin(invalid_P))]
+arr_collisions=df_collisions[['T_id', 'P_id']].values
+arr_configs=df_valid[['T_id', 'P_id']].values
+collision_configs=(arr_configs[None,:]==arr_collisions[:,None]).all(-1).any(0)
+df_without_collisions=df_valid[~(collision_configs)]
 
 #filter by difficulty metric
 # in this case we want the vector BX to be +- ~50 degrees from the ideal Bx vector (that is the vector parallel to PTX)
