@@ -55,8 +55,9 @@ df=pd.DataFrame({'Cx':comb[:,0],
                  'other_ball_x':comb[:,6],
                  'other_ball_y':comb[:,7],
                  'P_id':comb[:,8],
-                 'Px':comb[:,9],
-                 'Py':comb[:,10]})
+                 'P_sub_id':comb[:,9],
+                 'Px':comb[:,10],
+                 'Py':comb[:,11]})
 
 #get X1 and X2 (necessary point to check in what pockets ball can be pocketed)
 X1_comb,X2_comb = brain.find_X1_and_X2(df[['Cx', 'Cy']].values,
@@ -105,8 +106,8 @@ collision_configs_TP=brain.find_valid_trajectories(origin=df_valid[['Tx', 'Ty']]
 
 collision_configs=((collision_configs_CX) | (collision_configs_TP))
 df_collisions=df_valid[collision_configs]
-arr_collisions=df_collisions[['T_id', 'P_id']].values
-arr_configs=df_valid[['T_id', 'P_id']].values
+arr_collisions=df_collisions[['T_id', 'P_id', 'P_sub_id']].values
+arr_configs=df_valid[['T_id', 'P_id', 'P_sub_id']].values
 collision_configs=(arr_configs[None,:]==arr_collisions[:,None]).all(-1).any(0)
 
 df_without_collisions=df_valid[~(collision_configs)]

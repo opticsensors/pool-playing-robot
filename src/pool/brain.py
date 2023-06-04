@@ -316,8 +316,10 @@ class Brain(object):
         C_bottom = C + np.array([[0,2*dist_C_bottom]])
         C_left = C + np.array([[-2*dist_C_left,0]])
         C_right = C + np.array([[2*dist_C_right,0]])
-
-        return np.vstack((C_top,C_bottom,C_left,C_right))
+        C_reflect_id=np.array([1,2,3,4]).reshape(-1,1)
+        C_reflect_coord= np.vstack((C_top,C_right,C_bottom,C_left))
+        C_reflect = np.hstack((C_reflect_id,C_reflect_coord))
+        return C_reflect
 
     def find_bouncing_points(self,C, C_reflect, X):
         
@@ -505,8 +507,9 @@ class Brain(object):
         self.valid_points_mouth_bottom_middle=self.get_equidistant_points(self.mouth_bottom_middle11, self.mouth_bottom_middle12, precision)
         
         # add ids of pockets:
-        pockets_id=np.array([1,3,4,6,2,5])
-        pockets_id=np.repeat(pockets_id,precision+1).reshape(-1,1)
+        pockets_id=np.array([1,3,4,6,2,5]).reshape(-1,1)
+        pockets_sub_id=np.arange(1,precision+2).reshape(-1,1)
+        pocket_ids=self.get_row_combinations_of_two_arrays(pockets_id,pockets_sub_id)
         pockets = np.vstack([self.valid_points_mouth_top_left,  #pocket 1      
                             self.valid_points_mouth_top_right,       #pocket 3
                             self.valid_points_mouth_bottom_right,    #pocket 4   
@@ -514,7 +517,7 @@ class Brain(object):
                             self.valid_points_mouth_top_middle,      #pocket 2 
                             self.valid_points_mouth_bottom_middle,   #pocket 5    
                             ])
-        self.pockets=np.hstack([pockets_id,pockets])
+        self.pockets=np.hstack([pocket_ids,pockets])
 
     def draw_pool_balls(self, img):
         for ball_num in self.d_centroids:
