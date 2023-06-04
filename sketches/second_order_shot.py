@@ -98,17 +98,17 @@ df_valid['By']=B_comb[:,1]
 df_valid.to_csv(path_or_buf='./data/ball_trajectories.csv', sep=',',index=False)
 
 # collisions between C and other balls in CB trajectory
-collision_configs_CB=brain.find_valid_trajectories(origin=df_valid[['Cx', 'Cy']].values,
+collision_configs_CB=brain.find_collision_trajectories(origin=df_valid[['Cx', 'Cy']].values,
                                             destiny=df_valid[['Bx', 'By']].values,
                                             collision_balls=df_valid[['other_ball_x', 'other_ball_y']].values)
 
 # collisions between C and other balls in BX trajectory
-collision_configs_BX=brain.find_valid_trajectories(origin=df_valid[['Bx', 'By']].values,
+collision_configs_BX=brain.find_collision_trajectories(origin=df_valid[['Bx', 'By']].values,
                                             destiny=df_valid[['Xx', 'Xy']].values,
                                             collision_balls=df_valid[['other_ball_x', 'other_ball_y']].values)
 
 # collisions between T and other balls in TP trajectory
-collision_configs_TP=brain.find_valid_trajectories(origin=df_valid[['Tx', 'Ty']].values,
+collision_configs_TP=brain.find_collision_trajectories(origin=df_valid[['Tx', 'Ty']].values,
                                             destiny=df_valid[['Px', 'Py']].values,
                                             collision_balls=df_valid[['other_ball_x', 'other_ball_y']].values)
 
@@ -122,14 +122,14 @@ df_without_collisions=df_valid[~(collision_configs)]
 
 # in this case we want the vector BX to be +- ~50 degrees from the ideal Bx vector (that is the vector parallel to PTX)
 df_filtered=df_without_collisions.copy()
-df_filtered['XB_TX_abs_angle'] = brain.filter_bounce_shots_by_angle(df_without_collisions[['Tx', 'Ty']].values,
-                                                                    df_without_collisions[['Xx', 'Xy']].values,
-                                                                    df_without_collisions[['Bx', 'By']].values)
+df_filtered['XB_TX_abs_angle'] = brain.deviation_from_ideal_angle(df_filtered[['Tx', 'Ty']].values,
+                                                                    df_filtered[['Xx', 'Xy']].values,
+                                                                    df_filtered[['Bx', 'By']].values)
 df_filtered=df_filtered[df_filtered['XB_TX_abs_angle'] < 50]
 
 # check B is inside cushion limits!
-#
-#
+valid_bounces=brain.find_invalid_cushion_impacts(df_filtered[['C_reflect_id','Bx','By']].values)
+df_filtered=df_filtered[valid_bounces]
 
 img=brain.draw_trajectories(img,df_filtered[['Bx', 'By']].values, 
                             df_filtered[['Cx', 'Cy']].values)

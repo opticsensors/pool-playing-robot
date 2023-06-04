@@ -228,7 +228,7 @@ class Brain(object):
 
         return cond
 
-    def find_valid_trajectories(self,origin,destiny,collision_balls):
+    def find_collision_trajectories(self,origin,destiny,collision_balls):
         
         #For clarity of what is going on we will change nomenclature:
         O=origin
@@ -263,8 +263,6 @@ class Brain(object):
 
         return X
     
-    #####################################################################################
-    ########### Exclusive second order func
     def get_cue_ball_reflections(self,C):
         if len(C.shape)==1:
             C=C.reshape(1,2)
@@ -382,11 +380,38 @@ class Brain(object):
                                                         bottom_point1,bottom_point2)        
         return results
 
-    def filter_bounce_shots_by_angle(self, T,X,B):
+    def deviation_from_ideal_angle(self, T,X,C):
         TX=X-T
-        XB=B-X
-        angle=self.angle_between_two_vectors(TX,XB)
+        XC=C-X
+        angle=self.angle_between_two_vectors(TX,XC)
         return np.abs(angle)
+    
+    def find_invalid_cushion_impacts(self, B):
+        #cushion 1 (horizontal_left)
+        xmin1=self.xmin_horizontal_left_cushion
+        xmax1=self.xmax_horizontal_left_cushion
+
+        #cushion 2 (horizontal_right)
+        xmin2=self.xmin_horizontal_right_cushion
+        xmax2=self.xmax_horizontal_right_cushion
+
+        #cushion 3 (vertical)
+        ymin=self.ymin_vertical_cushion
+        ymax=self.ymax_vertical_cushion
+        
+        cond_horiz = (B[:,0]==1) | (B[:,0]==3)
+        cond_verti = (B[:,0]==2) | (B[:,0]==4)
+        cond_between_x1 = (B[:,1]>xmin1) & (B[:,1]<xmax1)
+        cond_between_x2 = (B[:,1]>xmin2) & (B[:,1]<xmax2)
+        cond_between_y = (B[:,2]>ymin) & (B[:,2]<ymax)
+        
+        cond1=cond_horiz & cond_between_x1
+        cond2=cond_horiz & cond_between_x2
+        cond3=cond_verti & cond_between_y
+
+        final_cond = cond1 | cond2 | cond3
+
+        return final_cond
 
     def setup_pool_frame(self, 
                    img, 
@@ -460,6 +485,13 @@ class Brain(object):
 
         self.mouth_bottom_middle11 = np.array((x_pocket_top_middle-width_middle, H-param['vertical_bottom_offset']))
         self.mouth_bottom_middle12 = np.array((x_pocket_top_middle+width_middle, H-param['vertical_bottom_offset']))
+
+        self.xmin_horizontal_left_cushion=445
+        self.xmax_horizontal_left_cushion=2154
+        self.xmin_horizontal_right_cushion=2729
+        self.xmax_horizontal_right_cushion=4338
+        self.ymin_vertical_cushion=476
+        self.ymax_vertical_cushion=2223
 
         cv2.line(img, self.mouth_top_left2, self.mouth_top_right3, (0, 255, 0), thickness=3)
         cv2.line(img, self.mouth_top_right4, self.mouth_bottom_right5, (0, 255, 0), thickness=3)

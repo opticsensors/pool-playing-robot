@@ -74,10 +74,6 @@ valid_pockets = brain.find_valid_pockets(df[['Tx', 'Ty']].values,
                                          df[['X1x', 'X1y']].values,
                                          df[['X2x', 'X2y']].values)
 
-#update variables
-#C_valid = C_comb[valid_pockets]
-#T_valid = T_comb[valid_pockets]
-#P_valid = P_comb[valid_pockets]
 df_valid=df[valid_pockets].copy()
 
 #find_geometric_parameters
@@ -90,12 +86,12 @@ df_valid['Xy']=X_comb[:,1]
 df_valid.to_csv(path_or_buf='./data/ball_trajectories.csv', sep=',',index=False)
 
 # collisions between C and other balls in CX trajectory
-collision_configs_CX=brain.find_valid_trajectories(origin=df_valid[['Cx', 'Cy']].values,
+collision_configs_CX=brain.find_collision_trajectories(origin=df_valid[['Cx', 'Cy']].values,
                                             destiny=df_valid[['Xx', 'Xy']].values,
                                             collision_balls=df_valid[['other_ball_x', 'other_ball_y']].values)
 
 # collisions between T and other balls in TP trajectory
-collision_configs_TP=brain.find_valid_trajectories(origin=df_valid[['Tx', 'Ty']].values,
+collision_configs_TP=brain.find_collision_trajectories(origin=df_valid[['Tx', 'Ty']].values,
                                             destiny=df_valid[['Px', 'Py']].values,
                                             collision_balls=df_valid[['other_ball_x', 'other_ball_y']].values)
 
@@ -108,13 +104,17 @@ collision_configs=(arr_configs[None,:]==arr_collisions[:,None]).all(-1).any(0)
 df_without_collisions=df_valid[~(collision_configs)]
 
 #filter by difficulty metric
-df_without_collisions['difficulty'] = 1
+df_filtered=df_without_collisions.copy()
+df_filtered['XC_TX_abs_angle'] = brain.deviation_from_ideal_angle(df_filtered[['Tx', 'Ty']].values,
+                                                                    df_filtered[['Xx', 'Xy']].values,
+                                                                    df_filtered[['Cx', 'Cy']].values)
+df_filtered=df_filtered[df_filtered['XC_TX_abs_angle'] < 60]
 
 
-img=brain.draw_trajectories(img,df_without_collisions[['Cx', 'Cy']].values, 
-                          df_without_collisions[['Xx', 'Xy']].values)
+img=brain.draw_trajectories(img,df_filtered[['Cx', 'Cy']].values, 
+                          df_filtered[['Xx', 'Xy']].values)
 
-img=brain.draw_trajectories(img,df_without_collisions[['Tx', 'Ty']].values, 
-                          df_without_collisions[['Px', 'Py']].values) 
+img=brain.draw_trajectories(img,df_filtered[['Tx', 'Ty']].values, 
+                          df_filtered[['Px', 'Py']].values) 
 
 cv2.imwrite('./results/pool_frame.png', img)
