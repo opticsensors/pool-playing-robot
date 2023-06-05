@@ -36,15 +36,43 @@ class Brain(object):
     def __init__(self,
                 d_centroids = {},
                 ball_radius = None,
-                turn = None
+                ball_type = None
         ):
         
-        self.d_centroids = d_centroids
-        self.turn = turn
+        self._d_centroids = d_centroids
+        self._ball_type = ball_type
         if ball_radius is None:
             self.ball_radius=Brain.BALL_RADIUS
         else:
             self.ball_radius=ball_radius
+
+        self.arr_balls_to_be_pocket = self.get_balls_to_be_pocket()
+        self.C, _ = self.get_cue_and_8ball()
+        self.T=self.get_other_balls()
+        self.TT=self.get_other_balls_twice()
+
+    @property
+    def d_centroids(self):
+        return self._d_centroids
+
+    @d_centroids.setter #every time ball config changes, we need to update the following attributes
+    def d_centroids(self, val):
+        self._d_centroids = val
+        self.arr_balls_to_be_pocket = self.get_balls_to_be_pocket(self.ball_type)
+        self.arr_cue, self.arr_8ball = self.get_cue_and_8ball()
+        self.other_balls=self.get_other_balls(self.arr_balls_to_be_pocket)
+        self.other_balls=self.get_other_balls_twice(self.arr_balls_to_be_pocket, self.ball_type)
+
+    @property
+    def ball_type(self):
+        return self._ball_type
+
+    @ball_type.setter #every time ball type changes, we need to update the following attributes
+    def ball_type(self, val):
+        self._ball_type = val
+        self.arr_balls_to_be_pocket = self.get_balls_to_be_pocket(self.ball_type)
+        self.other_balls=self.get_other_balls(self.arr_balls_to_be_pocket)
+        self.other_balls=self.get_other_balls_twice(self.arr_balls_to_be_pocket, self.ball_type)
 
     @staticmethod
     def _draw_pocket(img,point,radius):
@@ -514,6 +542,7 @@ class Brain(object):
                             self.valid_points_mouth_bottom_middle,   #pocket 5    
                             ])
         self.pockets=np.hstack([pocket_ids,pockets])
+        self.P=self.pockets
 
     def draw_pool_balls(self, img):
         for ball_num in self.d_centroids:
@@ -678,8 +707,6 @@ class Brain(object):
         df_valid['Bx']=B_comb[:,0]
         df_valid['By']=B_comb[:,1]
 
-        df_valid.to_csv(path_or_buf='./data/ball_trajectories.csv', sep=',',index=False)
-
         # collisions between C and other balls in CB trajectory
         collision_configs_CB=self.find_collision_trajectories(origin=df_valid[['Cx', 'Cy']].values,
                                                     destiny=df_valid[['Bx', 'By']].values,
@@ -772,8 +799,6 @@ class Brain(object):
                             P=df_valid[['Px', 'Py']].values)
         df_valid['Xx']=X_comb[:,0]
         df_valid['Xy']=X_comb[:,1]
-
-        #df_valid.to_csv(path_or_buf='./data/ball_trajectories.csv', sep=',',index=False)
 
         #find_geometric_parameters
         X_new_comb = self.find_X(T=df_valid[['Bx', 'By']].values,
@@ -926,8 +951,6 @@ class Brain(object):
                                                 df[['X1x', 'X1y']].values,
                                                 df[['X2x', 'X2y']].values)
         df_valid=df[valid_bounces].copy()
-
-        df_valid.to_csv(path_or_buf='./data/ball_trajectories.csv', sep=',',index=False)
 
         # collisions between C and other balls in CX trajectory
         collision_configs_CX=self.find_collision_trajectories(origin=df_valid[['Cx', 'Cy']].values,
