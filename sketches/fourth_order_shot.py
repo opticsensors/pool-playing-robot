@@ -74,20 +74,21 @@ B_comb = brain.find_bouncing_points_v2(df[['T_reflect_x', 'T_reflect_y']].values
 df['Bx']=B_comb[:,0]
 df['By']=B_comb[:,1]
 
-df[((df['P_id']==6) & (df['T_reflect_sub_id']==1)) |
-   (df['P_id']==6 & df['T_reflect_sub_id']==2) |
-   (df['P_id']==5 & df['T_reflect_sub_id']==1) |
-   (df['P_id']==5 & df['T_reflect_sub_id']==2) |
-   (df['P_id']==5 & df['T_reflect_sub_id']==4) |
-   (df['P_id']==4 & df['T_reflect_sub_id']==1) |
-   (df['P_id']==4 & df['T_reflect_sub_id']==4) |
-   (df['P_id']==3 & df['T_reflect_sub_id']==3) |
-   (df['P_id']==3 & df['T_reflect_sub_id']==4) |
-   (df['P_id']==2 & df['T_reflect_sub_id']==2) |
-   (df['P_id']==2 & df['T_reflect_sub_id']==3) |
-   (df['P_id']==2 & df['T_reflect_sub_id']==4) |
-   (df['P_id']==1 & df['T_reflect_sub_id']==3) |
-   (df['P_id']==1 & df['T_reflect_sub_id']==2) ]
+#delete invalid shots
+df=df[((df['P_id']==6) & (df['T_reflect_sub_id']==1)) |
+   ((df['P_id']==6) & (df['T_reflect_sub_id']==2)) |
+   ((df['P_id']==5) & (df['T_reflect_sub_id']==1)) |
+   ((df['P_id']==5) & (df['T_reflect_sub_id']==2)) |
+   ((df['P_id']==5) & (df['T_reflect_sub_id']==4)) |
+   ((df['P_id']==4) & (df['T_reflect_sub_id']==1)) |
+   ((df['P_id']==4) & (df['T_reflect_sub_id']==4)) |
+   ((df['P_id']==3) & (df['T_reflect_sub_id']==3)) |
+   ((df['P_id']==3) & (df['T_reflect_sub_id']==4)) |
+   ((df['P_id']==2) & (df['T_reflect_sub_id']==2)) |
+   ((df['P_id']==2) & (df['T_reflect_sub_id']==3)) |
+   ((df['P_id']==2) & (df['T_reflect_sub_id']==4)) |
+   ((df['P_id']==1) & (df['T_reflect_sub_id']==3)) |
+   ((df['P_id']==1) & (df['T_reflect_sub_id']==2)) ]
 
 
 B_comb = brain.find_bouncing_points_v2(df[['T_reflect_x', 'T_reflect_y']].values,
@@ -107,3 +108,49 @@ df['X1x']=X1_comb[:,0]
 df['X1y']=X1_comb[:,1]
 df['X2x']=X2_comb[:,0]
 df['X2y']=X2_comb[:,1]
+
+#use above calculations to decide if that combination (row) is valid or not
+# THIS IS VALID B POINTS INSTEAD OF POCKETS !!!!
+valid_bounces = brain.find_valid_pockets(df[['Tx', 'Ty']].values,
+                                         df[['Bx', 'By']].values,
+                                         df[['X1x', 'X1y']].values,
+                                         df[['X2x', 'X2y']].values)
+df_valid=df[valid_bounces].copy()
+
+df_valid.to_csv(path_or_buf='./data/ball_trajectories.csv', sep=',',index=False)
+
+# collisions between C and other balls in CX trajectory
+collision_configs_CX=brain.find_collision_trajectories(origin=df_valid[['Cx', 'Cy']].values,
+                                            destiny=df_valid[['Xx', 'Xy']].values,
+                                            collision_balls=df_valid[['other_ball_x', 'other_ball_y']].values)
+
+# collisions between C and other balls in TB trajectory
+collision_configs_TB=brain.find_collision_trajectories(origin=df_valid[['Tx', 'Ty']].values,
+                                            destiny=df_valid[['Bx', 'By']].values,
+                                            collision_balls=df_valid[['other_ball_x', 'other_ball_y']].values)
+
+# collisions between T and other balls in TP trajectory
+collision_configs_BP=brain.find_collision_trajectories(origin=df_valid[['Bx', 'By']].values,
+                                            destiny=df_valid[['Px', 'Py']].values,
+                                            collision_balls=df_valid[['other_ball_x', 'other_ball_y']].values)
+
+collision_configs=((collision_configs_CX) | (collision_configs_TB) | (collision_configs_BP))
+df_collisions=df_valid[collision_configs]
+
+arr_collisions=df_collisions[['T_id', 'P_id','P_sub_id']].values
+arr_configs=df_valid[['T_id', 'P_id','P_sub_id']].values
+collision_configs=(arr_configs[None,:]==arr_collisions[:,None]).all(-1).any(0)
+df_without_collisions=df_valid[~(collision_configs)]
+
+
+
+img=brain.draw_trajectories(img,df_without_collisions[['Cx', 'Cy']].values, 
+                            df_without_collisions[['Xx', 'Xy']].values)
+
+img=brain.draw_trajectories(img,df_without_collisions[['Tx', 'Ty']].values, 
+                            df_without_collisions[['Bx', 'By']].values)
+
+img=brain.draw_trajectories(img,df_without_collisions[['Bx', 'By']].values, 
+                          df_without_collisions[['Px', 'Py']].values) 
+
+cv2.imwrite('./results/pool_frame.png', img)
