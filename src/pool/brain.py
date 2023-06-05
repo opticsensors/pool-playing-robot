@@ -35,10 +35,12 @@ class Brain(object):
 
     def __init__(self,
                 d_centroids={},
-                ball_radius=None
+                ball_radius=None,
+                turn=None
         ):
         
         self.d_centroids=d_centroids
+        self.turn=turn
         if ball_radius is None:
             self.ball_radius=Brain.BALL_RADIUS
         else:
@@ -53,7 +55,7 @@ class Brain(object):
         return img
 
     @staticmethod
-    def get_equidistant_points(p1, p2, parts):
+    def _get_equidistant_points(p1, p2, parts):
         if parts==0:
             points=(p1+p2)/2
         else:
@@ -62,36 +64,14 @@ class Brain(object):
         return points
     
     @staticmethod
-    def angle_between_three_points(a,b,c):
-        """
-        Computes the angle between 3 points 
-        (point b is the vertex)
-
-        Parameters
-        ----------    
-            a,b,c: numpy array of shape (2,)
-                x, y coordinates of the point
-        Returns
-        -------
-            angle: numpy float64
-
-        """
-        ba = a - b
-        bc = c - b
-        dot = ba[:,0]*bc[:,0] + ba[:,1]*bc[:,1]
-        cosine_angle = dot / (np.linalg.norm(ba, axis=1)* np.linalg.norm(bc, axis=1))
-        angle = np.arccos(cosine_angle)
-        return np.degrees(angle)
-    
-    @staticmethod
-    def angle_between_two_vectors(u,v):
+    def _angle_between_two_vectors(u,v):
         dot = u[:,0]*v[:,0] + u[:,1]*v[:,1]
         cosine_angle = dot / (np.linalg.norm(u, axis=1)* np.linalg.norm(v, axis=1))
         angle = np.arccos(cosine_angle)
         return np.degrees(angle)
 
     @staticmethod
-    def line_intersect(a1, a2, b1, b2):
+    def _line_intersect(a1, a2, b1, b2):
         T = np.array([[0, -1], [1, 0]])
         da = np.atleast_2d(a2 - a1)
         db = np.atleast_2d(b2 - b1)
@@ -407,16 +387,16 @@ class Brain(object):
         cond_top_quadrant= (x>xmin) & (x<xmax) & (y<ymin)
         cond_bottom_quadrant= (x>xmin) & (x<xmax) & (y>ymax)
 
-        results[cond_left_quadrant]=self.line_intersect(X[cond_left_quadrant],
+        results[cond_left_quadrant]=self._line_intersect(X[cond_left_quadrant],
                                                         C_reflect[cond_left_quadrant],
                                                         left_point1,left_point2)
-        results[cond_right_quadrant]=self.line_intersect(X[cond_right_quadrant],
+        results[cond_right_quadrant]=self._line_intersect(X[cond_right_quadrant],
                                                          C_reflect[cond_right_quadrant],
                                                          right_point1,right_point2)
-        results[cond_top_quadrant]=self.line_intersect(X[cond_top_quadrant],
+        results[cond_top_quadrant]=self._line_intersect(X[cond_top_quadrant],
                                                        C_reflect[cond_top_quadrant],
                                                         top_point1,top_point2)
-        results[cond_bottom_quadrant]=self.line_intersect(X[cond_bottom_quadrant],
+        results[cond_bottom_quadrant]=self._line_intersect(X[cond_bottom_quadrant],
                                                           C_reflect[cond_bottom_quadrant],
                                                         bottom_point1,bottom_point2)        
         return results
@@ -424,7 +404,7 @@ class Brain(object):
     def deviation_from_ideal_angle(self, T,X,C):
         TX=X-T
         XC=C-X
-        angle=self.angle_between_two_vectors(TX,XC)
+        angle=self._angle_between_two_vectors(TX,XC)
         return np.abs(angle)
     
     def find_invalid_cushion_impacts(self, B):
@@ -552,12 +532,12 @@ class Brain(object):
 
     def setup_pockets(self, precision):
 
-        self.valid_points_mouth_top_left=self.get_equidistant_points(self.mouth_top_left1, self.mouth_top_left2, precision)
-        self.valid_points_mouth_top_right=self.get_equidistant_points(self.mouth_top_right3, self.mouth_top_right4, precision)
-        self.valid_points_mouth_bottom_right=self.get_equidistant_points(self.mouth_bottom_right5, self.mouth_bottom_right6, precision)
-        self.valid_points_mouth_bottom_left=self.get_equidistant_points(self.mouth_bottom_left7, self.mouth_bottom_left8, precision)
-        self.valid_points_mouth_top_middle=self.get_equidistant_points(self.mouth_top_middle9, self.mouth_top_middle10, precision)
-        self.valid_points_mouth_bottom_middle=self.get_equidistant_points(self.mouth_bottom_middle11, self.mouth_bottom_middle12, precision)
+        self.valid_points_mouth_top_left=self._get_equidistant_points(self.mouth_top_left1, self.mouth_top_left2, precision)
+        self.valid_points_mouth_top_right=self._get_equidistant_points(self.mouth_top_right3, self.mouth_top_right4, precision)
+        self.valid_points_mouth_bottom_right=self._get_equidistant_points(self.mouth_bottom_right5, self.mouth_bottom_right6, precision)
+        self.valid_points_mouth_bottom_left=self._get_equidistant_points(self.mouth_bottom_left7, self.mouth_bottom_left8, precision)
+        self.valid_points_mouth_top_middle=self._get_equidistant_points(self.mouth_top_middle9, self.mouth_top_middle10, precision)
+        self.valid_points_mouth_bottom_middle=self._get_equidistant_points(self.mouth_bottom_middle11, self.mouth_bottom_middle12, precision)
         
         # add ids of pockets:
         pockets_id=np.array([1,3,4,6,2,5]).reshape(-1,1)
