@@ -1,10 +1,9 @@
 import cv2
 import numpy as np
-from matplotlib import pyplot as plt
 
 class Brain(object):
     """
-    A class that finds the optimal shot 
+    A class that finds the optimal pool shot 
 
     Attributes
     ----------    
@@ -34,13 +33,13 @@ class Brain(object):
     }
 
     def __init__(self,
-                d_centroids={},
-                ball_radius=None,
-                turn=None
+                d_centroids = {},
+                ball_radius = None,
+                turn = None
         ):
         
-        self.d_centroids=d_centroids
-        self.turn=turn
+        self.d_centroids = d_centroids
+        self.turn = turn
         if ball_radius is None:
             self.ball_radius=Brain.BALL_RADIUS
         else:
@@ -65,7 +64,7 @@ class Brain(object):
     
     @staticmethod
     def _angle_between_two_vectors(u,v):
-        dot = u[:,0]*v[:,0] + u[:,1]*v[:,1]
+        dot = u[:,0]*v[:,0] + u[:,1]*v[:,1] # equivalent to np.sum(u*v, axis=1)
         cosine_angle = dot / (np.linalg.norm(u, axis=1)* np.linalg.norm(v, axis=1))
         angle = np.arccos(cosine_angle)
         return np.degrees(angle)
@@ -82,17 +81,17 @@ class Brain(object):
         return np.atleast_2d(num / denom).T * db + b1
 
     def get_all_detected_balls_except_cue(self):
-        l_detected=[key for key in self.d_centroids]
-        l_detected.remove(0)
-        dct_detected = {key: self.d_centroids[key] for key in l_detected}
-        arr_detected = np.array([list(val) for val in dct_detected.values()])
-        arr_ids_detected = np.array(l_detected).reshape(-1,1)
-        all_detected_balls_except_cue=np.hstack((arr_ids_detected,arr_detected))
+
+        dict_detected_balls_except_cue=self.d_centroids.copy()
+        dict_detected_balls_except_cue.pop(0, None)
+        all_detected_balls_except_cue=np.array([(k, v[0], v[1]) for k, v in dict_detected_balls_except_cue.items()])
+
         return all_detected_balls_except_cue
     
     def get_balls_to_be_pocket(self,ball_type):
         
         l_detected=[key for key in self.d_centroids]
+
         if ball_type=='solid':
             l_type=[1,2,3,4,5,6,7]
         elif ball_type=='strip':
@@ -100,9 +99,9 @@ class Brain(object):
 
         l_detected_type=list(set(l_type) & set(l_detected))
         dct_detected_type = {key: self.d_centroids[key] for key in l_detected_type}
-        arr_detected_type= np.array([list(val) for val in dct_detected_type.values()])
-        arr_ids_detected_type=np.array(l_detected_type).reshape(-1,1)
-        return np.hstack((arr_ids_detected_type,arr_detected_type))
+        arr_detected_type=np.array([(k, v[0], v[1]) for k, v in dct_detected_type.items()])
+
+        return arr_detected_type
 
     def get_cue_and_8ball(self):
         if 0 in self.d_centroids:
@@ -124,19 +123,16 @@ class Brain(object):
         return result
     
     def get_other_balls_twice(self, T, ball_type):
-        if ball_type=='solid':
-            arr_type=np.array([1,2,3,4,5,6,7])
-        elif ball_type=='strip':
-            arr_type=np.array([9,10,11,12,13,14,15])
 
         all_detected_balls_except_cue=self.get_all_detected_balls_except_cue()
-        arr_ids=all_detected_balls_except_cue[:,0]
+        #arr_ids=all_detected_balls_except_cue[:,0]
+        arr_balls_to_be_pocket=self.get_balls_to_be_pocket(ball_type)
 
         #detected by specified type
-        arr_ids_detected_by_type = np.intersect1d(arr_ids,arr_type)
-        inds = [ np.where( arr_ids == val)[0] for val in arr_ids_detected_by_type ]
-        inds = [ i[0] for i in inds if i.size ] 
-        all_detected_balls_by_type = all_detected_balls_except_cue[inds]
+        a=all_detected_balls_except_cue
+        b=arr_balls_to_be_pocket
+        cond=(a[None,:]==b[:,None]).all(-1).any(0)
+        all_detected_balls_by_type=all_detected_balls_except_cue[cond]
 
         result=self.get_row_combinations_of_two_arrays(T,all_detected_balls_by_type)
         result=self.get_row_combinations_of_two_arrays(result,all_detected_balls_except_cue)
@@ -319,39 +315,6 @@ class Brain(object):
         T_reflect_ids = self.get_row_combinations_of_two_arrays(T_reflect_sub_id,T_reflect_id)
         T_reflect = np.hstack((T_reflect_ids, T_reflect))
         return T_reflect
-
-    def find_bouncing_points(self,C, C_reflect, X):
-        
-        origin_rect=self.frame_top_left
-        end_rect=self.frame_bottom_right
-        C_reflect_X=C_reflect-X
-        direction=C_reflect_X/(np.linalg.norm(C_reflect_X, axis=1)).reshape(-1,1)
-        cos=direction[:,0]
-        sin=direction[:,1]
-
-        x=np.zeros_like(direction[:,0])
-        y=np.zeros_like(direction[:,1])
-        bouncing_points=np.zeros_like(direction)
-
-        x[cos>0]=end_rect[0]
-        x[cos<0]=origin_rect[0]
-        y[sin>0]=end_rect[1]
-        y[sin<0]=origin_rect[1]
-        bouncing_points[:,0][cos==0]= C[:,0][cos==0]
-        bouncing_points[:,1][cos==0]= y[cos==0]
-        bouncing_points[:,0][sin==0]= x[sin==0]
-        bouncing_points[:,1][sin==0]= C[:,1][sin==0]
-
-        tx=(x[cos!=0]-C[:,0][cos!=0])/cos[cos!=0]
-        ty=(y[sin!=0]-C[:,1][sin!=0])/sin[sin!=0]
-
-        bouncing_points[:,0][tx<=ty]=x[tx<=ty]
-        bouncing_points[:,1][tx<=ty]=C[:,1][tx<=ty]+tx[tx<=ty]*sin[tx<=ty]
-
-        bouncing_points[:,0][tx>ty]=C[:,0][tx>ty]+ty[tx>ty]*cos[tx>ty]
-        bouncing_points[:,1][tx>ty]=y[tx>ty]
-
-        return bouncing_points
     
     def find_bouncing_points_v2(self,C_reflect, X):
         
