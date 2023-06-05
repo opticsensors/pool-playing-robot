@@ -77,9 +77,8 @@ valid_pockets = brain.find_valid_pockets(df[['Tx', 'Ty']].values,
 df_valid=df[valid_pockets].copy()
 
 #find_geometric_parameters
-X_comb = brain.find_X(df_valid[['Cx', 'Cy']].values,
-                                                       df_valid[['Tx', 'Ty']].values,
-                                                       df_valid[['Px', 'Py']].values)
+X_comb = brain.find_X(df_valid[['Tx', 'Ty']].values,
+                        df_valid[['Px', 'Py']].values)
 df_valid['Xx']=X_comb[:,0]
 df_valid['Xy']=X_comb[:,1]
 

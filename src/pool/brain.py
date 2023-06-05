@@ -246,11 +246,10 @@ class Brain(object):
         dot_prod_sign_D=np.sum(DE*(-UOD),axis=1)
         return (distance < 2*self.ball_radius) & (dot_prod_sign_O > 0) & (dot_prod_sign_D > 0)
             
-    def find_X(self,C,T,P):
+    def find_X(self,T,P):
 
         r=self.ball_radius
         # we calculate d and b using T and C points
-        d=np.linalg.norm(T-C, axis=1)
         b=np.linalg.norm(T-P, axis=1)
 
         #virtual point X (see fig 4.1 adelaide university thesis)
@@ -278,8 +277,8 @@ class Brain(object):
         # check if C inside rect frame
         if Cx>right_x:
             Cx=right_x
-        elif Cy<left_x:
-            Cy=left_x
+        elif Cx<left_x:
+            Cx=left_x
         if Cy>bottom_y:
             Cy=bottom_y
         elif Cy<top_y:
@@ -298,6 +297,48 @@ class Brain(object):
         C_reflect_coord= np.vstack((C_top,C_right,C_bottom,C_left))
         C_reflect = np.hstack((C_reflect_id,C_reflect_coord))
         return C_reflect
+
+    def get_T_ball_reflections(self,T):
+        Tx=T[:,1].reshape(-1,1)
+        Ty=T[:,2].reshape(-1,1)
+        T_reflect_sub_id=np.array([1,2,3,4]).reshape(-1,1)
+        T_reflect_id = T[:,0].reshape(-1,1)
+
+        top_y = self.frame_top_left[1]
+        right_x = self.frame_top_right[0]
+        bottom_y = self.frame_bottom_right[1]
+        left_x = self.frame_bottom_left[0]
+
+        Tx[Tx>right_x]=right_x
+        Tx[Tx<left_x]=left_x
+        Ty[Ty>bottom_y]=bottom_y
+        Ty[Ty<top_y]=top_y
+
+        dist_T_top = Ty-top_y
+        dist_T_bottom = -Ty+bottom_y
+        dist_T_left = Tx-left_x
+        dist_T_right = -Tx+right_x
+
+        T_top_x = Tx 
+        T_top_y = Ty + -2*dist_T_top
+        T_top = np.hstack((T_top_x,T_top_y))
+
+        T_bottom_x = Tx 
+        T_bottom_y = Ty + 2*dist_T_bottom
+        T_bottom = np.hstack((T_bottom_x,T_bottom_y))
+
+        T_left_x = Tx - 2*dist_T_left
+        T_left_y = Ty 
+        T_left = np.hstack((T_left_x,T_left_y))
+
+        T_right_x = Tx + 2*dist_T_right
+        T_right_y = Ty 
+        T_right = np.hstack((T_right_x,T_right_y))
+
+        T_reflect = np.vstack((T_top,T_right,T_bottom,T_left))
+        T_reflect_ids = self.get_row_combinations_of_two_arrays(T_reflect_sub_id,T_reflect_id)
+        T_reflect = np.hstack((T_reflect_ids, T_reflect))
+        return T_reflect
 
     def find_bouncing_points(self,C, C_reflect, X):
         
