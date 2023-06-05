@@ -69,7 +69,7 @@ df['X2x']=X2_comb[:,0]
 df['X2y']=X2_comb[:,1]
 
 #use above calculations to decide if that combination (row) is valid or not
-valid_pockets = brain.find_valid_pockets(df[['Tx', 'Ty']].values,
+valid_pockets = brain.find_if_point_isreachable(df[['Tx', 'Ty']].values,
                                          df[['Px', 'Py']].values,
                                          df[['X1x', 'X1y']].values,
                                          df[['X2x', 'X2y']].values)

@@ -69,7 +69,7 @@ df=pd.DataFrame({'Cx':comb[:,0],
 # only configs where the reflected ball id is the same as the T ball
 df=df[df['T_reflect_id']==df['T_id']]
 
-B_comb = brain.find_bouncing_points_v2(df[['T_reflect_x', 'T_reflect_y']].values,
+B_comb = brain.find_bouncing_points(df[['T_reflect_x', 'T_reflect_y']].values,
                                     df[['Px', 'Py']].values,)
 df['Bx']=B_comb[:,0]
 df['By']=B_comb[:,1]
@@ -111,7 +111,7 @@ df['X2y']=X2_comb[:,1]
 
 #use above calculations to decide if that combination (row) is valid or not
 # THIS IS VALID B POINTS INSTEAD OF POCKETS !!!!
-valid_bounces = brain.find_valid_pockets(df[['Tx', 'Ty']].values,
+valid_bounces = brain.find_if_point_isreachable(df[['Tx', 'Ty']].values,
                                          df[['Bx', 'By']].values,
                                          df[['X1x', 'X1y']].values,
                                          df[['X2x', 'X2y']].values)

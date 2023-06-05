@@ -76,7 +76,7 @@ df['X2x']=X2_comb[:,0]
 df['X2y']=X2_comb[:,1]
 
 #use above calculations to decide if that combination (row) is valid or not
-valid_pockets = brain.find_valid_pockets(df[['Tx', 'Ty']].values,
+valid_pockets = brain.find_if_point_isreachable(df[['Tx', 'Ty']].values,
                                          df[['Px', 'Py']].values,
                                          df[['X1x', 'X1y']].values,
                                          df[['X2x', 'X2y']].values)
@@ -88,7 +88,7 @@ X_comb = brain.find_X(df_valid[['Tx', 'Ty']].values,
 df_valid['Xx']=X_comb[:,0]
 df_valid['Xy']=X_comb[:,1]
 
-B_comb = brain.find_bouncing_points_v2(df_valid[['C_reflect_x', 'C_reflect_y']].values,
+B_comb = brain.find_bouncing_points(df_valid[['C_reflect_x', 'C_reflect_y']].values,
                                     df_valid[['Xx', 'Xy']].values,)
 
 df_valid['Bx']=B_comb[:,0]
