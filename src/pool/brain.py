@@ -584,9 +584,9 @@ class Brain(object):
                             'T_id':comb[:,2],
                             'Tx':comb[:,3],
                             'Ty':comb[:,4],
-                            'B_id':comb[:,5], #TODO B is not a bouncing point, it is a T!
-                            'Bx':comb[:,6],   #TODO
-                            'By':comb[:,7],   #TODO
+                            'TT_id':comb[:,5], 
+                            'TTx':comb[:,6],   
+                            'TTy':comb[:,7],   
                             'other_ball_id':comb[:,8],
                             'other_ball_x':comb[:,9],
                             'other_ball_y':comb[:,10],
@@ -643,12 +643,12 @@ class Brain(object):
         elif shot_type=='CTTP':
             origin1=df[['Cx', 'Cy']].values
             destiny1=df[['X_new_x', 'X_new_y']].values
-            origin2=df[['Bx', 'By']].values #TODO -> convert to TTx, TTy
+            origin2=df[['TTx', 'TTy']].values 
             destiny2=df[['Xx', 'Xy']].values
             origin3=df[['Tx', 'Ty']].values
             destiny3=df[['Px', 'Py']].values
             traj=((origin1,destiny1), (origin2, destiny2), (origin3, destiny3))
-            rows_to_match=['T_id', 'B_id', 'P_id','P_sub_id'] #TODO -> convert B_id to TT_id
+            rows_to_match=['T_id', 'TT_id', 'P_id','P_sub_id'] 
 
         elif shot_type=='CTBP':
             origin1=df[['Cx', 'Cy']].values
@@ -686,7 +686,7 @@ class Brain(object):
 
         elif shot_type=='CTTP':
             img=self.draw_trajectories(img,df[['Cx', 'Cy']].values, df[['X_new_x', 'X_new_y']].values)
-            img=self.draw_trajectories(img,df[['Bx', 'By']].values, df[['Xx', 'Xy']].values)
+            img=self.draw_trajectories(img,df[['TTx', 'TTy']].values, df[['Xx', 'Xy']].values)
             img=self.draw_trajectories(img,df[['Tx', 'Ty']].values, df[['Px', 'Py']].values) 
         
         elif shot_type=='CTBP':
@@ -726,12 +726,12 @@ class Brain(object):
         df['By']=B_comb[:,1]
         collision_configs=self.wrapper_collision_trajectories(df,'CBTP')
         df=df[~(collision_configs)]
+        valid_bounces=self.find_valid_cushion_impacts(df[['C_reflect_id','Bx','By']].values)
+        df=df[valid_bounces]
         df['XB_TX_abs_angle'] = self.deviation_from_ideal_angle(df[['Tx', 'Ty']].values,
                                                                 df[['Xx', 'Xy']].values,
                                                                 df[['Bx', 'By']].values)
         df=df[df['XB_TX_abs_angle'] < 60]
-        valid_bounces=self.find_valid_cushion_impacts(df[['C_reflect_id','Bx','By']].values)
-        df=df[valid_bounces]
 
         return df
     
@@ -742,21 +742,21 @@ class Brain(object):
                             P=df[['Px', 'Py']].values)
         df['Xx']=X_comb[:,0]
         df['Xy']=X_comb[:,1]
-        X_new_comb = self.find_X(T=df[['Bx', 'By']].values,
+        X_new_comb = self.find_X(T=df[['TTx', 'TTy']].values,
                                 P=df[['Xx', 'Xy']].values)
         df['X_new_x']=X_new_comb[:,0]
         df['X_new_y']=X_new_comb[:,1]
 
         collision_configs=self.wrapper_collision_trajectories(df,'CTTP')
         df=df[~(collision_configs)]
-        df['XB_TX_abs_angle'] = self.deviation_from_ideal_angle(df[['Tx', 'Ty']].values,
+        df['XTT_TX_abs_angle'] = self.deviation_from_ideal_angle(df[['Tx', 'Ty']].values,
                                                                 df[['Xx', 'Xy']].values,
-                                                                df[['Bx', 'By']].values)
-        df=df[df['XB_TX_abs_angle'] < 50]
-        df['XC_BX_abs_angle'] = self.deviation_from_ideal_angle(df[['Bx', 'By']].values,
+                                                                df[['TTx', 'TTy']].values)
+        df=df[df['XTT_TX_abs_angle'] < 50]
+        df['XnewC_TTXnew_abs_angle'] = self.deviation_from_ideal_angle(df[['TTx', 'TTy']].values,
                                                                 df[['X_new_x', 'X_new_y']].values,
                                                                 df[['Cx', 'Cy']].values)
-        df=df[df['XC_BX_abs_angle'] < 60]
+        df=df[df['XnewC_TTXnew_abs_angle'] < 60]
 
         return df
 
