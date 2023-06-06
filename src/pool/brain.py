@@ -2,6 +2,150 @@ import cv2
 import numpy as np
 import pandas as pd
 
+
+class PoolFrame:
+    def __init__(self,
+                img, 
+                precision,
+                x_pocket_top_left,
+                y_pocket_top_left,
+                x_pocket_top_middle,
+                y_pocket_top_middle,
+                horizontal_left_offset,
+                vertical_top_offset,
+                width_corner,
+                width_middle,
+                **kwargs
+    ):
+        
+        H=img.shape[0]
+        W=img.shape[1]
+
+        param = {  # with defaults
+            'x_pocket_top_left': x_pocket_top_left,
+            'y_pocket_top_left': y_pocket_top_left,
+            'x_pocket_top_right': W-x_pocket_top_left,
+            'y_pocket_top_right': y_pocket_top_left,
+            'x_pocket_bottom_left': W-x_pocket_top_left,
+            'y_pocket_bottom_left': H-y_pocket_top_left,
+            'x_pocket_bottom_right': x_pocket_top_left,
+            'y_pocket_bottom_right': H-y_pocket_top_left,
+            'x_pocket_top_middle': x_pocket_top_middle,
+            'y_pocket_top_middle': y_pocket_top_middle,
+            'x_pocket_bottom_middle':x_pocket_top_middle,
+            'y_pocket_bottom_middle':H-y_pocket_top_middle,
+            'radius_pocket_corners' : 210,
+            'radius_pocket_middle' : 112, 
+            'horizontal_left_offset': horizontal_left_offset,
+            'horizontal_right_offset': horizontal_left_offset,
+            'vertical_top_offset': vertical_top_offset,
+            'vertical_bottom_offset': vertical_top_offset                                    
+            }
+        param.update(kwargs)
+
+        self.radius_pocket_corners=param['radius_pocket_corners']
+        self.radius_pocket_middle=param['radius_pocket_middle']
+
+        self.pocket_top_left = (param['x_pocket_top_left'], param['y_pocket_top_left'])
+        self.pocket_top_right = (param['x_pocket_top_right'], param['y_pocket_top_right'])
+        self.pocket_bottom_left = (param['x_pocket_bottom_left'], param['y_pocket_bottom_left'])
+        self.pocket_bottom_right = (param['x_pocket_bottom_right'], param['y_pocket_bottom_right'])
+        self.pocket_top_middle = (param['x_pocket_top_middle'], param['y_pocket_top_middle'])
+        self.pocket_bottom_middle = (param['x_pocket_bottom_middle'], param['y_pocket_bottom_middle'])
+
+        self.frame_top_left = np.array((param['horizontal_left_offset'], param['vertical_top_offset']))
+        self.mouth_top_left1 = np.array((param['horizontal_left_offset'], param['vertical_top_offset']+width_corner))
+        self.mouth_top_left2 = np.array((param['horizontal_left_offset'] + width_corner, param['vertical_top_offset']))
+
+        self.frame_top_right = np.array((W-param['horizontal_right_offset'], param['vertical_top_offset']))
+        self.mouth_top_right3 = np.array((W-param['horizontal_right_offset']-width_corner, param['vertical_top_offset']))
+        self.mouth_top_right4 = np.array((W-param['horizontal_right_offset'], param['vertical_top_offset']+width_corner))
+
+        self.frame_bottom_right = np.array((W-param['horizontal_right_offset'], H-param['vertical_bottom_offset']))
+        self.mouth_bottom_right5 = np.array((W-param['horizontal_right_offset'], H-param['vertical_bottom_offset']-width_corner))
+        self.mouth_bottom_right6 = np.array((W-param['horizontal_right_offset']-width_corner, H-param['vertical_bottom_offset']))
+
+        self.frame_bottom_left = np.array((param['horizontal_left_offset'], H-param['vertical_bottom_offset']))
+        self.mouth_bottom_left7 = np.array((param['horizontal_left_offset']+width_corner, H-param['vertical_bottom_offset']))
+        self.mouth_bottom_left8 = np.array((param['horizontal_left_offset'], H-param['vertical_bottom_offset']-width_corner))
+
+        self.mouth_top_middle9 = np.array((x_pocket_top_middle-width_middle, param['vertical_top_offset']))
+        self.mouth_top_middle10 = np.array((x_pocket_top_middle+width_middle, param['vertical_top_offset']))
+
+        self.mouth_bottom_middle11 = np.array((x_pocket_top_middle-width_middle, H-param['vertical_bottom_offset']))
+        self.mouth_bottom_middle12 = np.array((x_pocket_top_middle+width_middle, H-param['vertical_bottom_offset']))
+
+        self.xmin_horizontal_left_cushion=445
+        self.xmax_horizontal_left_cushion=2154
+        self.xmin_horizontal_right_cushion=2729
+        self.xmax_horizontal_right_cushion=4338
+        self.ymin_vertical_cushion=476
+        self.ymax_vertical_cushion=2223
+
+        self.setup_pockets(precision)
+    
+    @staticmethod
+    def _draw_pocket(img,point,radius):
+        cv2.circle(img, point, radius, (0, 255, 255), 8)
+        x,y=point
+        cv2.line(img, (x+radius, y), (x-radius, y), (0, 255, 255), thickness=8)
+        cv2.line(img, (x, y-radius), (x, y+radius), (0, 255, 255), thickness=8)
+        return img
+    
+    @staticmethod
+    def _get_equidistant_points(p1, p2, parts):
+        if parts==0:
+            points=(p1+p2)/2
+        else:
+            points_separated=np.linspace(p1[0], p2[0], parts+1),np.linspace(p1[1], p2[1], parts+1)
+            points=np.column_stack((points_separated[0],points_separated[1]))
+        return points
+    
+    def setup_pockets(self, precision):
+
+        self.valid_points_mouth_top_left=self._get_equidistant_points(self.mouth_top_left1, self.mouth_top_left2, precision)
+        self.valid_points_mouth_top_right=self._get_equidistant_points(self.mouth_top_right3, self.mouth_top_right4, precision)
+        self.valid_points_mouth_bottom_right=self._get_equidistant_points(self.mouth_bottom_right5, self.mouth_bottom_right6, precision)
+        self.valid_points_mouth_bottom_left=self._get_equidistant_points(self.mouth_bottom_left7, self.mouth_bottom_left8, precision)
+        self.valid_points_mouth_top_middle=self._get_equidistant_points(self.mouth_top_middle9, self.mouth_top_middle10, precision)
+        self.valid_points_mouth_bottom_middle=self._get_equidistant_points(self.mouth_bottom_middle11, self.mouth_bottom_middle12, precision)
+        
+        # add ids of pockets:
+        pockets_id=np.array([1,3,4,6,2,5]).reshape(-1,1)
+        pockets_sub_id=np.arange(1,precision+2).reshape(-1,1)
+        pocket_ids=Brain.get_row_combinations_of_two_arrays(pockets_id,pockets_sub_id)
+        pockets = np.vstack([self.valid_points_mouth_top_left,  #pocket 1      
+                            self.valid_points_mouth_top_right,       #pocket 3
+                            self.valid_points_mouth_bottom_right,    #pocket 4   
+                            self.valid_points_mouth_bottom_left,     #pocket 6  
+                            self.valid_points_mouth_top_middle,      #pocket 2 
+                            self.valid_points_mouth_bottom_middle,   #pocket 5    
+                            ])
+        self.P=np.hstack([pocket_ids,pockets])
+
+    def draw_frame(self, img):
+        self._draw_pocket(img, self.pocket_top_left, self.radius_pocket_corners)
+        self._draw_pocket(img, self.pocket_top_right, self.radius_pocket_corners)
+        self._draw_pocket(img, self.pocket_bottom_left, self.radius_pocket_corners)
+        self._draw_pocket(img, self.pocket_bottom_right,self.radius_pocket_corners)
+        self._draw_pocket(img, self.pocket_top_middle, self.radius_pocket_middle)
+        self._draw_pocket(img, self.pocket_bottom_middle, self.radius_pocket_middle)
+
+        cv2.line(img, self.mouth_top_left2, self.mouth_top_right3, (0, 255, 0), thickness=3)
+        cv2.line(img, self.mouth_top_right4, self.mouth_bottom_right5, (0, 255, 0), thickness=3)
+        cv2.line(img, self.mouth_bottom_right6, self.mouth_bottom_left7, (0, 255, 0), thickness=3)
+        cv2.line(img, self.mouth_bottom_left8, self.mouth_top_left1, (0, 255, 0), thickness=3)
+
+        cv2.line(img, self.mouth_top_left1, self.mouth_top_left2, (255, 255, 0), thickness=20)
+        cv2.line(img, self.mouth_top_right3, self.mouth_top_right4, (255, 255, 0), thickness=20)
+        cv2.line(img, self.mouth_bottom_right5, self.mouth_bottom_right6, (255, 255, 0), thickness=20)
+        cv2.line(img, self.mouth_bottom_left7, self.mouth_bottom_left8, (255, 255, 0), thickness=20)
+
+        cv2.line(img, self.mouth_top_middle9, self.mouth_top_middle10, (255, 255, 0), thickness=20)
+        cv2.line(img, self.mouth_bottom_middle11, self.mouth_bottom_middle12, (255, 255, 0), thickness=20)
+
+        return img
+
 class Brain(object):
     """
     A class that finds the optimal pool shot 
@@ -34,6 +178,7 @@ class Brain(object):
     }
 
     def __init__(self,
+                pool_frame_obj,
                 d_centroids = {},
                 ball_radius = None,
         ):
@@ -43,20 +188,13 @@ class Brain(object):
             self.ball_radius=Brain.BALL_RADIUS
         else:
             self.ball_radius=ball_radius
+        
+        # get attributes from pool_frame_obj
+        attrs_pool_frame_obj=vars(pool_frame_obj)
+        self.__dict__.update(attrs_pool_frame_obj)
 
-        self.setup_pool_frame() #TODO -> C/T_reflect use info from this setup !
-
-        self.solid = self.get_balls_to_be_pocket('solid')
-        self.strip = self.get_balls_to_be_pocket('strip')
-        self.C, self.ball8 = self.get_cue_and_8ball()
-        self.C_reflect = self.get_cue_ball_reflections(self.C)
-        self.T_solid=self.get_other_balls(self.solid)
-        self.T_strip=self.get_other_balls(self.strip)
-        self.TT_solid=self.get_other_balls_twice(self.solid,'solid')
-        self.TT_strip=self.get_other_balls_twice(self.strip,'strip')
-        self.T_reflect_solid=self.get_T_ball_reflections(self.T_solid)
-        self.T_reflect_strip=self.get_T_ball_reflections(self.T_strip)
-
+        #setup ball config attributes
+        self.setup_ball_configs()
 
     @property
     def d_centroids(self):
@@ -65,16 +203,7 @@ class Brain(object):
     @d_centroids.setter #every time ball config changes, we need to update the following attributes
     def d_centroids(self, val):
         self._d_centroids = val
-        self.solid = self.get_balls_to_be_pocket('solid')
-        self.strip = self.get_balls_to_be_pocket('strip')
-        self.C, self.ball8 = self.get_cue_and_8ball()
-        self.C_reflect = self.get_cue_ball_reflections(self.C)
-        self.T_solid=self.get_other_balls(self.solid)
-        self.T_strip=self.get_other_balls(self.strip)
-        self.TT_solid=self.get_other_balls_twice(self.solid,'solid')
-        self.TT_strip=self.get_other_balls_twice(self.strip,'strip')
-        self.T_reflect_solid=self.get_T_ball_reflections(self.T_solid)
-        self.T_reflect_strip=self.get_T_ball_reflections(self.T_strip)
+        self.setup_ball_configs()
 
     @staticmethod
     def _draw_pocket(img,point,radius):
@@ -110,6 +239,34 @@ class Brain(object):
         denom = np.sum(dap * db, axis=1)
         num = np.sum(dap * dp, axis=1)
         return np.atleast_2d(num / denom).T * db + b1
+    
+    @staticmethod
+    def get_row_combinations_of_two_arrays(array1,array2):
+
+        if len(array1.shape)==1:
+            array1=array1.reshape(1,2)
+
+        if len(array2.shape)==1:
+            array2=array2.reshape(1,2)
+
+        a = np.repeat(array1, array2.shape[0], axis=0)
+        b = np.tile(array2, (array1.shape[0],1))
+        result = np.hstack([a,b])
+
+        return result
+    
+    def setup_ball_configs(self):
+        self.solid = self.get_balls_to_be_pocket('solid')
+        self.strip = self.get_balls_to_be_pocket('strip')
+        self.C, self.ball8 = self.get_cue_and_8ball()
+        self.C_reflect = self.get_cue_ball_reflections(self.C)
+        self.T_solid=self.get_other_balls(self.solid)
+        self.T_strip=self.get_other_balls(self.strip)
+        self.TT_solid=self.get_other_balls_twice(self.solid,'solid')
+        self.TT_strip=self.get_other_balls_twice(self.strip,'strip')
+        self.T_reflect_solid=self.get_T_ball_reflections(self.T_solid)
+        self.T_reflect_strip=self.get_T_ball_reflections(self.T_strip)
+
 
     def get_all_detected_balls_except_cue(self):
 
@@ -167,20 +324,6 @@ class Brain(object):
         result=self.get_row_combinations_of_two_arrays(T,all_detected_balls_by_type)
         result=self.get_row_combinations_of_two_arrays(result,all_detected_balls_except_cue)
         result=result[(result[:,0]!=result[:,3]) & (result[:,0]!=result[:,6]) & (result[:,3]!=result[:,6])]
-        return result
-
-    def get_row_combinations_of_two_arrays(self, array1,array2):
-
-        if len(array1.shape)==1:
-            array1=array1.reshape(1,2)
-
-        if len(array2.shape)==1:
-            array2=array2.reshape(1,2)
-
-        a = np.repeat(array1, array2.shape[0], axis=0)
-        b = np.tile(array2, (array1.shape[0],1))
-        result = np.hstack([a,b])
-
         return result
 
     def find_X1_and_X2(self,C,T):
@@ -427,125 +570,6 @@ class Brain(object):
 
         return final_cond
 
-    def setup_pool_frame(self, 
-                   img, 
-                   x_pocket_top_left,
-                   y_pocket_top_left,
-                   x_pocket_top_middle,
-                   y_pocket_top_middle,
-                   horizontal_left_offset,
-                   vertical_top_offset,
-                   width_corner,
-                   width_middle,
-                   **kwargs):
-        
-        H=img.shape[0]
-        W=img.shape[1]
-        
-        param = {  # with defaults
-            'x_pocket_top_left': x_pocket_top_left,
-            'y_pocket_top_left': y_pocket_top_left,
-            'x_pocket_top_right': W-x_pocket_top_left,
-            'y_pocket_top_right': y_pocket_top_left,
-            'x_pocket_bottom_left': W-x_pocket_top_left,
-            'y_pocket_bottom_left': H-y_pocket_top_left,
-            'x_pocket_bottom_right': x_pocket_top_left,
-            'y_pocket_bottom_right': H-y_pocket_top_left,
-            'x_pocket_top_middle': x_pocket_top_middle,
-            'y_pocket_top_middle': y_pocket_top_middle,
-            'x_pocket_bottom_middle':x_pocket_top_middle,
-            'y_pocket_bottom_middle':H-y_pocket_top_middle,
-            'radius_pocket_corners' : 210,
-            'radius_pocket_middle' : 112, 
-            'horizontal_left_offset': horizontal_left_offset,
-            'horizontal_right_offset': horizontal_left_offset,
-            'vertical_top_offset': vertical_top_offset,
-            'vertical_bottom_offset': vertical_top_offset                                    
-            }
-        param.update(kwargs)
-        
-        self.pocket_top_left = (param['x_pocket_top_left'], param['y_pocket_top_left'])
-        self.pocket_top_right = (param['x_pocket_top_right'], param['y_pocket_top_right'])
-        self.pocket_bottom_left = (param['x_pocket_bottom_left'], param['y_pocket_bottom_left'])
-        self.pocket_bottom_right = (param['x_pocket_bottom_right'], param['y_pocket_bottom_right'])
-        self.pocket_top_middle = (param['x_pocket_top_middle'], param['y_pocket_top_middle'])
-        self.pocket_bottom_middle = (param['x_pocket_bottom_middle'], param['y_pocket_bottom_middle'])
-        
-        self._draw_pocket(img, self.pocket_top_left, param['radius_pocket_corners'])
-        self._draw_pocket(img, self.pocket_top_right, param['radius_pocket_corners'])
-        self._draw_pocket(img, self.pocket_bottom_left, param['radius_pocket_corners'])
-        self._draw_pocket(img, self.pocket_bottom_right, param['radius_pocket_corners'])
-        self._draw_pocket(img, self.pocket_top_middle, param['radius_pocket_middle'])
-        self._draw_pocket(img, self.pocket_bottom_middle, param['radius_pocket_middle'])
-
-        self.frame_top_left = np.array((param['horizontal_left_offset'], param['vertical_top_offset']))
-        self.mouth_top_left1 = np.array((param['horizontal_left_offset'], param['vertical_top_offset']+width_corner))
-        self.mouth_top_left2 = np.array((param['horizontal_left_offset'] + width_corner, param['vertical_top_offset']))
-
-        self.frame_top_right = np.array((W-param['horizontal_right_offset'], param['vertical_top_offset']))
-        self.mouth_top_right3 = np.array((W-param['horizontal_right_offset']-width_corner, param['vertical_top_offset']))
-        self.mouth_top_right4 = np.array((W-param['horizontal_right_offset'], param['vertical_top_offset']+width_corner))
-
-        self.frame_bottom_right = np.array((W-param['horizontal_right_offset'], H-param['vertical_bottom_offset']))
-        self.mouth_bottom_right5 = np.array((W-param['horizontal_right_offset'], H-param['vertical_bottom_offset']-width_corner))
-        self.mouth_bottom_right6 = np.array((W-param['horizontal_right_offset']-width_corner, H-param['vertical_bottom_offset']))
-
-        self.frame_bottom_left = np.array((param['horizontal_left_offset'], H-param['vertical_bottom_offset']))
-        self.mouth_bottom_left7 = np.array((param['horizontal_left_offset']+width_corner, H-param['vertical_bottom_offset']))
-        self.mouth_bottom_left8 = np.array((param['horizontal_left_offset'], H-param['vertical_bottom_offset']-width_corner))
-
-        self.mouth_top_middle9 = np.array((x_pocket_top_middle-width_middle, param['vertical_top_offset']))
-        self.mouth_top_middle10 = np.array((x_pocket_top_middle+width_middle, param['vertical_top_offset']))
-
-        self.mouth_bottom_middle11 = np.array((x_pocket_top_middle-width_middle, H-param['vertical_bottom_offset']))
-        self.mouth_bottom_middle12 = np.array((x_pocket_top_middle+width_middle, H-param['vertical_bottom_offset']))
-
-        self.xmin_horizontal_left_cushion=445
-        self.xmax_horizontal_left_cushion=2154
-        self.xmin_horizontal_right_cushion=2729
-        self.xmax_horizontal_right_cushion=4338
-        self.ymin_vertical_cushion=476
-        self.ymax_vertical_cushion=2223
-
-        cv2.line(img, self.mouth_top_left2, self.mouth_top_right3, (0, 255, 0), thickness=3)
-        cv2.line(img, self.mouth_top_right4, self.mouth_bottom_right5, (0, 255, 0), thickness=3)
-        cv2.line(img, self.mouth_bottom_right6, self.mouth_bottom_left7, (0, 255, 0), thickness=3)
-        cv2.line(img, self.mouth_bottom_left8, self.mouth_top_left1, (0, 255, 0), thickness=3)
-
-        cv2.line(img, self.mouth_top_left1, self.mouth_top_left2, (255, 255, 0), thickness=20)
-        cv2.line(img, self.mouth_top_right3, self.mouth_top_right4, (255, 255, 0), thickness=20)
-        cv2.line(img, self.mouth_bottom_right5, self.mouth_bottom_right6, (255, 255, 0), thickness=20)
-        cv2.line(img, self.mouth_bottom_left7, self.mouth_bottom_left8, (255, 255, 0), thickness=20)
-
-        cv2.line(img, self.mouth_top_middle9, self.mouth_top_middle10, (255, 255, 0), thickness=20)
-        cv2.line(img, self.mouth_bottom_middle11, self.mouth_bottom_middle12, (255, 255, 0), thickness=20)
-
-        return img
-    
-
-    def setup_pockets(self, precision):
-
-        self.valid_points_mouth_top_left=self._get_equidistant_points(self.mouth_top_left1, self.mouth_top_left2, precision)
-        self.valid_points_mouth_top_right=self._get_equidistant_points(self.mouth_top_right3, self.mouth_top_right4, precision)
-        self.valid_points_mouth_bottom_right=self._get_equidistant_points(self.mouth_bottom_right5, self.mouth_bottom_right6, precision)
-        self.valid_points_mouth_bottom_left=self._get_equidistant_points(self.mouth_bottom_left7, self.mouth_bottom_left8, precision)
-        self.valid_points_mouth_top_middle=self._get_equidistant_points(self.mouth_top_middle9, self.mouth_top_middle10, precision)
-        self.valid_points_mouth_bottom_middle=self._get_equidistant_points(self.mouth_bottom_middle11, self.mouth_bottom_middle12, precision)
-        
-        # add ids of pockets:
-        pockets_id=np.array([1,3,4,6,2,5]).reshape(-1,1)
-        pockets_sub_id=np.arange(1,precision+2).reshape(-1,1)
-        pocket_ids=self.get_row_combinations_of_two_arrays(pockets_id,pockets_sub_id)
-        pockets = np.vstack([self.valid_points_mouth_top_left,  #pocket 1      
-                            self.valid_points_mouth_top_right,       #pocket 3
-                            self.valid_points_mouth_bottom_right,    #pocket 4   
-                            self.valid_points_mouth_bottom_left,     #pocket 6  
-                            self.valid_points_mouth_top_middle,      #pocket 2 
-                            self.valid_points_mouth_bottom_middle,   #pocket 5    
-                            ])
-        self.pockets=np.hstack([pocket_ids,pockets])
-        self.P=self.pockets
-
     def draw_pool_balls(self, img):
         for ball_num in self.d_centroids:
             x,y=self.d_centroids[ball_num]
@@ -654,7 +678,7 @@ class Brain(object):
         valid_traj = self.find_if_point_isreachable(end,point_to_check,X1_comb,X2_comb)
         return valid_traj
     
-    def wrapper_collision_trajectories(self,shot_type,df):
+    def wrapper_collision_trajectories(self,df,shot_type):
         
         collision_balls=df[['other_ball_x', 'other_ball_y']].values
 
