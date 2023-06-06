@@ -462,54 +462,6 @@ class Brain(object):
         left_point2=self.frame_top_left
 
         #intersection can happen between four different segments (edges of pool frame)
-        xmin=top_point1[0]
-        xmax=top_point2[0]
-        ymin=top_point1[1]
-        ymax=left_point1[1]
-
-        x=C_reflect[:,0]
-        y=C_reflect[:,1]
-        cond_left_quadrant= (x<xmin) & (y>ymin) & (y<ymax)
-        cond_right_quadrant= (x>xmax) & (y>ymin) & (y<ymax)
-        cond_top_quadrant= (x>xmin) & (x<xmax) & (y<ymin)
-        cond_bottom_quadrant= (x>xmin) & (x<xmax) & (y>ymax)
-
-        results[cond_left_quadrant]=self._line_intersect(X[cond_left_quadrant],
-                                                        C_reflect[cond_left_quadrant],
-                                                        left_point1,left_point2)
-        results[cond_right_quadrant]=self._line_intersect(X[cond_right_quadrant],
-                                                         C_reflect[cond_right_quadrant],
-                                                         right_point1,right_point2)
-        results[cond_top_quadrant]=self._line_intersect(X[cond_top_quadrant],
-                                                       C_reflect[cond_top_quadrant],
-                                                        top_point1,top_point2)
-        results[cond_bottom_quadrant]=self._line_intersect(X[cond_bottom_quadrant],
-                                                          C_reflect[cond_bottom_quadrant],
-                                                        bottom_point1,bottom_point2)        
-        return results
-    
-    def find_bouncing_points_v2(self,C_reflect, X):
-        
-        points=np.hstack((C_reflect,X))
-        results=np.zeros((points.shape[0], 2))
-
-        #top_segment
-        top_point1=self.frame_top_left
-        top_point2=self.frame_top_right
-
-        #right_segment
-        right_point1=self.frame_top_right
-        right_point2=self.frame_bottom_right
-
-        #bottom_segment
-        bottom_point1=self.frame_bottom_right
-        bottom_point2=self.frame_bottom_left
-
-        #left_segment
-        left_point1=self.frame_bottom_left
-        left_point2=self.frame_top_left
-
-        #intersection can happen between four different segments (edges of pool frame)
 
         C_reflect_id=C_reflect[:,0]
         C_reflect_coord=C_reflect[:,1:]
@@ -698,7 +650,7 @@ class Brain(object):
             origin3=df[['Tx', 'Ty']].values
             destiny3=df[['Px', 'Py']].values
             traj=((origin1,destiny1), (origin2, destiny2), (origin3, destiny3))
-            rows_to_match=['T_id', 'P_id', 'P_sub_id']
+            rows_to_match=['T_id', 'C_reflect_id', 'P_id', 'P_sub_id']
         
         elif shot_type=='CTTP':
             origin1=df[['Cx', 'Cy']].values
@@ -718,7 +670,7 @@ class Brain(object):
             origin3=df[['Bx', 'By']].values
             destiny3=df[['Px', 'Py']].values
             traj=((origin1,destiny1), (origin2, destiny2), (origin3, destiny3))
-            rows_to_match=['T_id', 'P_id', 'P_sub_id']
+            rows_to_match=['T_id', 'T_reflect_sub_id', 'P_id', 'P_sub_id']
 
         list_collision_configs=[]
         for origin,destiny in traj:
@@ -787,11 +739,9 @@ class Brain(object):
                              df[['Px', 'Py']].values)
         df['Xx']=X_comb[:,0]
         df['Xy']=X_comb[:,1]
-        B_comb = self.find_bouncing_points(df[['C_reflect_x', 'C_reflect_y']].values,
+
+        B_comb = self.find_bouncing_points(df[['C_reflect_id','C_reflect_x', 'C_reflect_y']].values,
                                            df[['Xx', 'Xy']].values,)
-        B_comb2 = self.find_bouncing_points_v2(df[['C_reflect_id','C_reflect_x', 'C_reflect_y']].values,
-                                           df[['Xx', 'Xy']].values,)
-        print('cbtp',(B_comb==B_comb2).all())
         df['Bx']=B_comb[:,0]
         df['By']=B_comb[:,1]
         collision_configs=self.wrapper_collision_trajectories(df,'CBTP')
@@ -840,11 +790,9 @@ class Brain(object):
     def CTBP_shots(self,d_centroids,ball_type):
         C,T,TT,P,C_reflect,T_reflect=self.choose_param_based_on_ball_type(d_centroids,ball_type)
         df=self.wrapper_generate_combinations('CTBP',C,T,TT,P,C_reflect,T_reflect)
-        B_comb = self.find_bouncing_points(df[['T_reflect_x', 'T_reflect_y']].values,
-                                            df[['Px', 'Py']].values,)
-        B_comb2 = self.find_bouncing_points_v2(df[['T_reflect_sub_id','T_reflect_x', 'T_reflect_y']].values,
+
+        B_comb = self.find_bouncing_points(df[['T_reflect_sub_id','T_reflect_x', 'T_reflect_y']].values,
                                            df[['Px', 'Py']].values,)
-        print('ctbp',(B_comb==B_comb2).all())
         df['Bx']=B_comb[:,0]
         df['By']=B_comb[:,1]
         df=df[((df['P_id']==6) & (df['T_reflect_sub_id']==1)) |

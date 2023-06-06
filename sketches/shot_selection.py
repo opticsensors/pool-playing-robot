@@ -4,12 +4,12 @@ import cv2
 from pool.brain import Brain,PoolFrame
 
 d_centroids={#2:(1200,1268),
-             7:(572,652),
+             #7:(572,652),
              0:(2264,1476),
              8:(4132, 616),
              1:(2260,1750),
              3: (516,2172),
-             14: (4132,2172),
+             #14: (4132,2172),
              #6: (1210,1800)
              }
 img = cv2.imread(f'./results/warp_corners.jpg')
@@ -28,6 +28,7 @@ pool_frame=PoolFrame(img,
                     width_corner=80,
                     width_middle=70)
 img = pool_frame.draw_frame(img)
+#cv2.imwrite('./results/pool_frame.png', img)
 
 brain=Brain(pool_frame)
 
