@@ -221,7 +221,6 @@ class Brain(object):
         result = np.hstack([a,b])
 
         return result
-    
 
     def get_all_detected_balls_except_cue(self,d_centroids):
 
@@ -259,22 +258,14 @@ class Brain(object):
         return arr_cue, arr_8ball
     
     def get_other_balls(self,no_cue,to_pocket):
-
         result=self.get_row_combinations_of_two_arrays(to_pocket,no_cue)
-        result=result[result[:,0]!=result[:,3]]
         return result
     
     def get_other_balls_twice(self, no_cue, to_pocket):
-
-        #detected by specified type
-        #no_cue[:,0].reshape(-1,1) 
-        #to_pocket[:,0].reshape(-1,1)
-        cond=(no_cue[None,:]==to_pocket[:,None]).all(-1).any(0)
-        all_detected_balls_by_type=no_cue[cond]
-
-        result=self.get_row_combinations_of_two_arrays(to_pocket,all_detected_balls_by_type)
+        result=self.get_row_combinations_of_two_arrays(to_pocket,to_pocket)
+        result=result[result[:,0]!=result[:,3]]
         result=self.get_row_combinations_of_two_arrays(result,no_cue)
-        result=result[(result[:,0]!=result[:,3]) & (result[:,0]!=result[:,6]) & (result[:,3]!=result[:,6])]
+
         return result
     
     def get_cue_ball_reflections(self,C):
@@ -355,6 +346,7 @@ class Brain(object):
         T_reflect = np.hstack((T_reflect_ids, T_reflect))
         return T_reflect
 
+    #Deprecated
     def find_X1_and_X2(self,C,T):
 
         # distance from C to T    
@@ -381,6 +373,7 @@ class Brain(object):
 
         return X1, X2
     
+    #Deprecated
     def find_if_point_isreachable(self,T,P,X1,X2):
 
         TX1=X1-T
@@ -624,11 +617,6 @@ class Brain(object):
                             'Py':comb[:,15]})
             df=df[df['T_reflect_id']==df['T_id']]
         return df
-
-    def wrapper_valid_trajectories(self,origin,end,point_to_check):
-        X1_comb,X2_comb = self.find_X1_and_X2(origin,end)
-        valid_traj = self.find_if_point_isreachable(end,point_to_check,X1_comb,X2_comb)
-        return valid_traj
     
     def wrapper_collision_trajectories(self,df,shot_type):
         
@@ -711,10 +699,6 @@ class Brain(object):
     def CTP_shots(self,d_centroids,ball_type):
         C,T,TT,P,C_reflect,T_reflect=self.choose_param_based_on_ball_type(d_centroids,ball_type)
         df=self.wrapper_generate_combinations('CTP',C,T,TT,P,C_reflect,T_reflect)
-        valid_pockets=self.wrapper_valid_trajectories(origin=df[['Cx', 'Cy']].values,
-                                                      end=df[['Tx', 'Ty']].values,
-                                                      point_to_check=df[['Px', 'Py']].values)
-        df=df[valid_pockets]
         X_comb = self.find_X(df[['Tx', 'Ty']].values,df[['Px', 'Py']].values)
         df['Xx']=X_comb[:,0]
         df['Xy']=X_comb[:,1]
@@ -731,10 +715,6 @@ class Brain(object):
 
         C,T,TT,P,C_reflect,T_reflect=self.choose_param_based_on_ball_type(d_centroids, ball_type)
         df=self.wrapper_generate_combinations('CBTP',C,T,TT,P,C_reflect,T_reflect)
-        #valid_pockets=self.wrapper_valid_trajectories(origin=df[['Cx', 'Cy']].values,
-        #                                              end=df[['Tx', 'Ty']].values,
-        #                                              point_to_check=df[['Px', 'Py']].values)
-        #df=df[valid_pockets]
         X_comb = self.find_X(df[['Tx', 'Ty']].values,
                              df[['Px', 'Py']].values)
         df['Xx']=X_comb[:,0]
@@ -749,7 +729,7 @@ class Brain(object):
         df['XB_TX_abs_angle'] = self.deviation_from_ideal_angle(df[['Tx', 'Ty']].values,
                                                                 df[['Xx', 'Xy']].values,
                                                                 df[['Bx', 'By']].values)
-        df=df[df['XB_TX_abs_angle'] < 50]
+        df=df[df['XB_TX_abs_angle'] < 60]
         valid_bounces=self.find_valid_cushion_impacts(df[['C_reflect_id','Bx','By']].values)
         df=df[valid_bounces]
 
@@ -758,10 +738,6 @@ class Brain(object):
     def CTTP_shots(self,d_centroids,ball_type):
         C,T,TT,P,C_reflect,T_reflect=self.choose_param_based_on_ball_type(d_centroids,ball_type)
         df=self.wrapper_generate_combinations('CTTP',C,T,TT,P,C_reflect,T_reflect)
-        valid_pockets=self.wrapper_valid_trajectories(origin=df[['Bx', 'By']].values,
-                                                      end=df[['Tx', 'Ty']].values,
-                                                      point_to_check=df[['Px', 'Py']].values)
-        df=df[valid_pockets]
         X_comb = self.find_X(T=df[['Tx', 'Ty']].values,
                             P=df[['Px', 'Py']].values)
         df['Xx']=X_comb[:,0]
@@ -770,20 +746,17 @@ class Brain(object):
                                 P=df[['Xx', 'Xy']].values)
         df['X_new_x']=X_new_comb[:,0]
         df['X_new_y']=X_new_comb[:,1]
-        valid_pockets=self.wrapper_valid_trajectories(origin=df[['Cx', 'Cy']].values,
-                                                      end=df[['Bx', 'By']].values,
-                                                      point_to_check=df[['Xx', 'Xy']].values)
-        df=df[valid_pockets]
+
         collision_configs=self.wrapper_collision_trajectories(df,'CTTP')
         df=df[~(collision_configs)]
         df['XB_TX_abs_angle'] = self.deviation_from_ideal_angle(df[['Tx', 'Ty']].values,
                                                                 df[['Xx', 'Xy']].values,
                                                                 df[['Bx', 'By']].values)
-        df=df[df['XB_TX_abs_angle'] < 45]
+        df=df[df['XB_TX_abs_angle'] < 50]
         df['XC_BX_abs_angle'] = self.deviation_from_ideal_angle(df[['Bx', 'By']].values,
                                                                 df[['X_new_x', 'X_new_y']].values,
                                                                 df[['Cx', 'Cy']].values)
-        df=df[df['XC_BX_abs_angle'] < 45]
+        df=df[df['XC_BX_abs_angle'] < 60]
 
         return df
 
@@ -815,10 +788,6 @@ class Brain(object):
         df['Xx']=X_comb[:,0]
         df['Xy']=X_comb[:,1]
 
-        valid_pockets=self.wrapper_valid_trajectories(origin=df[['Cx', 'Cy']].values,
-                                                      end=df[['Tx', 'Ty']].values,
-                                                      point_to_check=df[['Bx', 'By']].values)
-        df=df[valid_pockets]
         collision_configs=self.wrapper_collision_trajectories(df,'CTBP')
         df=df[~(collision_configs)]
 

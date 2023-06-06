@@ -7,9 +7,10 @@ d_centroids={#2:(1200,1268),
              #7:(572,652),
              0:(2264,1476),
              8:(4132, 616),
-             1:(2260,1750),
-             3: (516,2172),
+             1:(2290,1850),
+             #3: (516,2172),
              #14: (4132,2172),
+             4: (2400,2200),
              #6: (1210,1800)
              }
 img = cv2.imread(f'./results/warp_corners.jpg')
@@ -39,6 +40,6 @@ df2=brain.CBTP_shots(d_centroids,'solid')
 df3=brain.CTTP_shots(d_centroids,'solid')
 df4=brain.CTBP_shots(d_centroids,'solid')
 
-img=brain.wrapper_draw_trajectories(df2,img,'CBTP')
+img=brain.wrapper_draw_trajectories(df4,img,'CTBP')
 
 cv2.imwrite('./results/pool_frame.png', img)
