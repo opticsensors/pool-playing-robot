@@ -28,20 +28,15 @@ pool_frame=PoolFrame(img,
                     width_middle=70)
 img = pool_frame.draw_frame(img)
 
-brain=Brain(pool_frame,
-            d_centroids)
+brain=Brain(pool_frame)
 
-img=brain.draw_pool_balls(img)
+img=brain.draw_pool_balls(d_centroids, img)
 
-df=brain.CBTP_shots('solid')
+df1=brain.CTP_shots(d_centroids,'solid')
+df2=brain.CBTP_shots(d_centroids,'solid')
+df3=brain.CTTP_shots(d_centroids,'solid')
+df4=brain.CTBP_shots(d_centroids,'solid')
 
-img=brain.draw_trajectories(img,df[['Bx', 'By']].values, 
-                            df[['Cx', 'Cy']].values)
-
-img=brain.draw_trajectories(img,df[['Bx', 'By']].values, 
-                            df[['Xx', 'Xy']].values)
-
-img=brain.draw_trajectories(img,df[['Tx', 'Ty']].values, 
-                          df[['Px', 'Py']].values) 
+img=brain.wrapper_draw_trajectories(df4,img,'CTBP')
 
 cv2.imwrite('./results/pool_frame.png', img)

@@ -158,32 +158,11 @@ class Brain(object):
 
     BALL_RADIUS=102 
 
-    NUM_TO_COLOR={
-        0:'white' ,
-        1:'yellow',
-        2:'blue',
-        3:'red',
-        4:'purple',
-        5:'orange',
-        6:'green',
-        7:'burgundy',
-        8:'black',
-        9:'yellow',
-        10:'blue',
-        11:'red',
-        12:'purple',
-        13:'orange',
-        14:'green',
-        15:'burgundy',
-    }
-
     def __init__(self,
                 pool_frame_obj,
-                d_centroids = {},
                 ball_radius = None,
         ):
         
-        self._d_centroids = d_centroids
         if ball_radius is None:
             self.ball_radius=Brain.BALL_RADIUS
         else:
@@ -192,18 +171,6 @@ class Brain(object):
         # get attributes from pool_frame_obj
         attrs_pool_frame_obj=vars(pool_frame_obj)
         self.__dict__.update(attrs_pool_frame_obj)
-
-        #setup ball config attributes
-        self.setup_ball_configs()
-
-    @property
-    def d_centroids(self):
-        return self._d_centroids
-
-    @d_centroids.setter #every time ball config changes, we need to update the following attributes
-    def d_centroids(self, val):
-        self._d_centroids = val
-        self.setup_ball_configs()
 
     @staticmethod
     def _draw_pocket(img,point,radius):
@@ -255,30 +222,18 @@ class Brain(object):
 
         return result
     
-    def setup_ball_configs(self):
-        self.solid = self.get_balls_to_be_pocket('solid')
-        self.strip = self.get_balls_to_be_pocket('strip')
-        self.C, self.ball8 = self.get_cue_and_8ball()
-        self.C_reflect = self.get_cue_ball_reflections(self.C)
-        self.T_solid=self.get_other_balls(self.solid)
-        self.T_strip=self.get_other_balls(self.strip)
-        self.TT_solid=self.get_other_balls_twice(self.solid,'solid')
-        self.TT_strip=self.get_other_balls_twice(self.strip,'strip')
-        self.T_reflect_solid=self.get_T_ball_reflections(self.T_solid)
-        self.T_reflect_strip=self.get_T_ball_reflections(self.T_strip)
 
+    def get_all_detected_balls_except_cue(self,d_centroids):
 
-    def get_all_detected_balls_except_cue(self):
-
-        dict_detected_balls_except_cue=self.d_centroids.copy()
+        dict_detected_balls_except_cue=d_centroids.copy()
         dict_detected_balls_except_cue.pop(0, None)
         all_detected_balls_except_cue=np.array([(k, v[0], v[1]) for k, v in dict_detected_balls_except_cue.items()])
 
         return all_detected_balls_except_cue
     
-    def get_balls_to_be_pocket(self,ball_type):
+    def get_balls_to_be_pocket(self,d_centroids,ball_type):
         
-        l_detected=[key for key in self.d_centroids]
+        l_detected=[key for key in d_centroids]
 
         if ball_type=='solid':
             l_type=[1,2,3,4,5,6,7]
@@ -286,45 +241,119 @@ class Brain(object):
             l_type=[9,10,11,12,13,14,15]
 
         l_detected_type=list(set(l_type) & set(l_detected))
-        dct_detected_type = {key: self.d_centroids[key] for key in l_detected_type}
+        dct_detected_type = {key: d_centroids[key] for key in l_detected_type}
         arr_detected_type=np.array([(k, v[0], v[1]) for k, v in dct_detected_type.items()])
 
         return arr_detected_type
 
-    def get_cue_and_8ball(self):
-        if 0 in self.d_centroids:
-            arr_cue = np.array(self.d_centroids[0])
+    def get_cue_and_8ball(self,d_centroids):
+        if 0 in d_centroids:
+            arr_cue = np.array(d_centroids[0])
         else:   
             raise ValueError('cue ball not detected, pool shot cannot be executed')
-        if 8 in self.d_centroids:
-            arr_8ball = np.array(self.d_centroids[8])
+        if 8 in d_centroids:
+            arr_8ball = np.array(d_centroids[8])
         else:   
             raise ValueError('8 ball not detected, game over')
 
         return arr_cue, arr_8ball
     
-    def get_other_balls(self, T):
+    def get_other_balls(self,no_cue,to_pocket):
 
-        all_detected_balls_except_cue=self.get_all_detected_balls_except_cue()
-        result=self.get_row_combinations_of_two_arrays(T,all_detected_balls_except_cue)
+        result=self.get_row_combinations_of_two_arrays(to_pocket,no_cue)
         result=result[result[:,0]!=result[:,3]]
         return result
     
-    def get_other_balls_twice(self, T, ball_type):
-
-        all_detected_balls_except_cue=self.get_all_detected_balls_except_cue()
-        arr_balls_to_be_pocket=self.get_balls_to_be_pocket(ball_type)
+    def get_other_balls_twice(self, no_cue, to_pocket):
 
         #detected by specified type
-        a=all_detected_balls_except_cue #[:,0].reshape(-1,1) 
-        b=arr_balls_to_be_pocket        #[:,0].reshape(-1,1)
-        cond=(a[None,:]==b[:,None]).all(-1).any(0)
-        all_detected_balls_by_type=all_detected_balls_except_cue[cond]
+        #no_cue[:,0].reshape(-1,1) 
+        #to_pocket[:,0].reshape(-1,1)
+        cond=(no_cue[None,:]==to_pocket[:,None]).all(-1).any(0)
+        all_detected_balls_by_type=no_cue[cond]
 
-        result=self.get_row_combinations_of_two_arrays(T,all_detected_balls_by_type)
-        result=self.get_row_combinations_of_two_arrays(result,all_detected_balls_except_cue)
+        result=self.get_row_combinations_of_two_arrays(to_pocket,all_detected_balls_by_type)
+        result=self.get_row_combinations_of_two_arrays(result,no_cue)
         result=result[(result[:,0]!=result[:,3]) & (result[:,0]!=result[:,6]) & (result[:,3]!=result[:,6])]
         return result
+    
+    def get_cue_ball_reflections(self,C):
+        if len(C.shape)==1:
+            C=C.reshape(1,2)
+
+        Cx=C[0,0]
+        Cy=C[0,1]
+
+        top_y = self.frame_top_left[1]
+        right_x = self.frame_top_right[0]
+        bottom_y = self.frame_bottom_right[1]
+        left_x = self.frame_bottom_left[0]
+
+        # check if C inside rect frame
+        if Cx>right_x:
+            Cx=right_x
+        elif Cx<left_x:
+            Cx=left_x
+        if Cy>bottom_y:
+            Cy=bottom_y
+        elif Cy<top_y:
+            Cy=top_y
+
+        dist_C_top = Cy-top_y
+        dist_C_bottom = -Cy+bottom_y
+        dist_C_left = Cx-left_x
+        dist_C_right = -Cx+right_x
+
+        C_top = C + np.array([[0,-2*dist_C_top]])
+        C_bottom = C + np.array([[0,2*dist_C_bottom]])
+        C_left = C + np.array([[-2*dist_C_left,0]])
+        C_right = C + np.array([[2*dist_C_right,0]])
+        C_reflect_id=np.array([1,2,3,4]).reshape(-1,1)
+        C_reflect_coord= np.vstack((C_top,C_right,C_bottom,C_left))
+        C_reflect = np.hstack((C_reflect_id,C_reflect_coord))
+        return C_reflect
+
+    def get_T_ball_reflections(self,T):
+        Tx=T[:,1].reshape(-1,1)
+        Ty=T[:,2].reshape(-1,1)
+        T_reflect_sub_id=np.array([1,2,3,4]).reshape(-1,1)
+        T_reflect_id = T[:,0].reshape(-1,1)
+
+        top_y = self.frame_top_left[1]
+        right_x = self.frame_top_right[0]
+        bottom_y = self.frame_bottom_right[1]
+        left_x = self.frame_bottom_left[0]
+
+        Tx[Tx>right_x]=right_x
+        Tx[Tx<left_x]=left_x
+        Ty[Ty>bottom_y]=bottom_y
+        Ty[Ty<top_y]=top_y
+
+        dist_T_top = Ty-top_y
+        dist_T_bottom = -Ty+bottom_y
+        dist_T_left = Tx-left_x
+        dist_T_right = -Tx+right_x
+
+        T_top_x = Tx 
+        T_top_y = Ty + -2*dist_T_top
+        T_top = np.hstack((T_top_x,T_top_y))
+
+        T_bottom_x = Tx 
+        T_bottom_y = Ty + 2*dist_T_bottom
+        T_bottom = np.hstack((T_bottom_x,T_bottom_y))
+
+        T_left_x = Tx - 2*dist_T_left
+        T_left_y = Ty 
+        T_left = np.hstack((T_left_x,T_left_y))
+
+        T_right_x = Tx + 2*dist_T_right
+        T_right_y = Ty 
+        T_right = np.hstack((T_right_x,T_right_y))
+
+        T_reflect = np.vstack((T_top,T_right,T_bottom,T_left))
+        T_reflect_ids = self.get_row_combinations_of_two_arrays(T_reflect_sub_id,T_reflect_id)
+        T_reflect = np.hstack((T_reflect_ids, T_reflect))
+        return T_reflect
 
     def find_X1_and_X2(self,C,T):
 
@@ -411,84 +440,6 @@ class Brain(object):
 
         return X
     
-    def get_cue_ball_reflections(self,C):
-        if len(C.shape)==1:
-            C=C.reshape(1,2)
-
-        Cx=C[0,0]
-        Cy=C[0,1]
-
-        top_y = self.frame_top_left[1]
-        right_x = self.frame_top_right[0]
-        bottom_y = self.frame_bottom_right[1]
-        left_x = self.frame_bottom_left[0]
-
-        # check if C inside rect frame
-        if Cx>right_x:
-            Cx=right_x
-        elif Cx<left_x:
-            Cx=left_x
-        if Cy>bottom_y:
-            Cy=bottom_y
-        elif Cy<top_y:
-            Cy=top_y
-
-        dist_C_top = Cy-top_y
-        dist_C_bottom = -Cy+bottom_y
-        dist_C_left = Cx-left_x
-        dist_C_right = -Cx+right_x
-
-        C_top = C + np.array([[0,-2*dist_C_top]])
-        C_bottom = C + np.array([[0,2*dist_C_bottom]])
-        C_left = C + np.array([[-2*dist_C_left,0]])
-        C_right = C + np.array([[2*dist_C_right,0]])
-        C_reflect_id=np.array([1,2,3,4]).reshape(-1,1)
-        C_reflect_coord= np.vstack((C_top,C_right,C_bottom,C_left))
-        C_reflect = np.hstack((C_reflect_id,C_reflect_coord))
-        return C_reflect
-
-    def get_T_ball_reflections(self,T):
-        Tx=T[:,1].reshape(-1,1)
-        Ty=T[:,2].reshape(-1,1)
-        T_reflect_sub_id=np.array([1,2,3,4]).reshape(-1,1)
-        T_reflect_id = T[:,0].reshape(-1,1)
-
-        top_y = self.frame_top_left[1]
-        right_x = self.frame_top_right[0]
-        bottom_y = self.frame_bottom_right[1]
-        left_x = self.frame_bottom_left[0]
-
-        Tx[Tx>right_x]=right_x
-        Tx[Tx<left_x]=left_x
-        Ty[Ty>bottom_y]=bottom_y
-        Ty[Ty<top_y]=top_y
-
-        dist_T_top = Ty-top_y
-        dist_T_bottom = -Ty+bottom_y
-        dist_T_left = Tx-left_x
-        dist_T_right = -Tx+right_x
-
-        T_top_x = Tx 
-        T_top_y = Ty + -2*dist_T_top
-        T_top = np.hstack((T_top_x,T_top_y))
-
-        T_bottom_x = Tx 
-        T_bottom_y = Ty + 2*dist_T_bottom
-        T_bottom = np.hstack((T_bottom_x,T_bottom_y))
-
-        T_left_x = Tx - 2*dist_T_left
-        T_left_y = Ty 
-        T_left = np.hstack((T_left_x,T_left_y))
-
-        T_right_x = Tx + 2*dist_T_right
-        T_right_y = Ty 
-        T_right = np.hstack((T_right_x,T_right_y))
-
-        T_reflect = np.vstack((T_top,T_right,T_bottom,T_left))
-        T_reflect_ids = self.get_row_combinations_of_two_arrays(T_reflect_sub_id,T_reflect_id)
-        T_reflect = np.hstack((T_reflect_ids, T_reflect))
-        return T_reflect
-    
     def find_bouncing_points(self,C_reflect, X):
         
         points=np.hstack((C_reflect,X))
@@ -543,7 +494,7 @@ class Brain(object):
         angle=self._angle_between_two_vectors(TX,XC)
         return np.abs(angle)
     
-    def find_invalid_cushion_impacts(self, B):
+    def find_valid_cushion_impacts(self, B):
         #cushion 1 (horizontal_left)
         xmin1=self.xmin_horizontal_left_cushion
         xmax1=self.xmax_horizontal_left_cushion
@@ -570,9 +521,9 @@ class Brain(object):
 
         return final_cond
 
-    def draw_pool_balls(self, img):
-        for ball_num in self.d_centroids:
-            x,y=self.d_centroids[ball_num]
+    def draw_pool_balls(self, d_centroids, img):
+        for ball_num in d_centroids:
+            x,y=d_centroids[ball_num]
             img=cv2.putText(img, "#{}".format(ball_num), (int(x) - 10, int(y)), cv2.FONT_HERSHEY_SIMPLEX, 2, (0, 255, 0), 3)
             img=cv2.circle(img, (int(x), int(y)), 8, (255, 0, 255), -1)
             img=cv2.circle(img, (int(x), int(y)), self.ball_radius, (255, 0, 255), 8)
@@ -587,12 +538,17 @@ class Brain(object):
 
     #################################################################################################################################################################
     
-    def choose_param_based_on_ball_type(self,ball_type):
-        if ball_type=='solid':
-            return self.C,self.T_solid,self.TT_solid,self.P,self.C_reflect,self.T_reflect_solid
-        elif ball_type=='strip':
-            return self.C,self.T_strip,self.TT_strip,self.P,self.C_reflect,self.T_reflect_strip
-    
+    def choose_param_based_on_ball_type(self,d_centroids, ball_type):
+        no_cue = self.get_all_detected_balls_except_cue(d_centroids)
+        to_pocket = self.get_balls_to_be_pocket(d_centroids,ball_type)
+        C, ball8 = self.get_cue_and_8ball(d_centroids)
+        C_reflect = self.get_cue_ball_reflections(C)
+        T=self.get_other_balls(no_cue,to_pocket)
+        TT=self.get_other_balls_twice(no_cue,to_pocket)
+        T_reflect=self.get_T_ball_reflections(T)
+        P=self.P
+        return C,T,TT,P,C_reflect,T_reflect
+
     def wrapper_generate_combinations(self,shot_type,C,T,TT,P,C_reflect,T_reflect):
         
         if shot_type=='CTP':
@@ -639,9 +595,9 @@ class Brain(object):
                             'T_id':comb[:,2],
                             'Tx':comb[:,3],
                             'Ty':comb[:,4],
-                            'B_id':comb[:,5],
-                            'Bx':comb[:,6],
-                            'By':comb[:,7],
+                            'B_id':comb[:,5], #TODO B is not a bouncing point, it is a T!
+                            'Bx':comb[:,6],   #TODO
+                            'By':comb[:,7],   #TODO
                             'other_ball_id':comb[:,8],
                             'other_ball_x':comb[:,9],
                             'other_ball_y':comb[:,10],
@@ -708,7 +664,7 @@ class Brain(object):
             origin3=df[['Tx', 'Ty']].values
             destiny3=df[['Px', 'Py']].values
             traj=((origin1,destiny1), (origin2, destiny2), (origin3, destiny3))
-            rows_to_match=['T_id', 'B_id', 'P_id','P_sub_id'] #TODO -> convert to B_id, TT_id
+            rows_to_match=['T_id', 'B_id', 'P_id','P_sub_id'] #TODO -> convert B_id to TT_id
 
         elif shot_type=='CTBP':
             origin1=df[['Cx', 'Cy']].values
@@ -732,9 +688,32 @@ class Brain(object):
         collision_configs=(arr_configs[None,:]==arr_collisions[:,None]).all(-1).any(0)
         
         return collision_configs
+    
+    def wrapper_draw_trajectories(self,df,img,shot_type):
 
-    def CTP_shots(self,ball_type):
-        C,T,TT,P,C_reflect,T_reflect=self.choose_param_based_on_ball_type(ball_type)
+        if shot_type=='CTP':
+            img=self.draw_trajectories(img,df[['Cx', 'Cy']].values,df[['Xx', 'Xy']].values)
+            img=self.draw_trajectories(img,df[['Tx', 'Ty']].values,df[['Px', 'Py']].values) 
+            
+        elif shot_type=='CBTP':
+            img=self.draw_trajectories(img,df[['Bx', 'By']].values, df[['Cx', 'Cy']].values)
+            img=self.draw_trajectories(img,df[['Bx', 'By']].values, df[['Xx', 'Xy']].values)
+            img=self.draw_trajectories(img,df[['Tx', 'Ty']].values, df[['Px', 'Py']].values) 
+
+        elif shot_type=='CTTP':
+            img=self.draw_trajectories(img,df[['Cx', 'Cy']].values, df[['X_new_x', 'X_new_y']].values)
+            img=self.draw_trajectories(img,df[['Bx', 'By']].values, df[['Xx', 'Xy']].values)
+            img=self.draw_trajectories(img,df[['Tx', 'Ty']].values, df[['Px', 'Py']].values) 
+        
+        elif shot_type=='CTBP':
+            img=self.draw_trajectories(img,df[['Cx', 'Cy']].values, df[['Xx', 'Xy']].values)
+            img=self.draw_trajectories(img,df[['Tx', 'Ty']].values, df[['Bx', 'By']].values)
+            img=self.draw_trajectories(img,df[['Bx', 'By']].values, df[['Px', 'Py']].values) 
+        return img
+
+
+    def CTP_shots(self,d_centroids,ball_type):
+        C,T,TT,P,C_reflect,T_reflect=self.choose_param_based_on_ball_type(d_centroids,ball_type)
         df=self.wrapper_generate_combinations('CTP',C,T,TT,P,C_reflect,T_reflect)
         valid_pockets=self.wrapper_valid_trajectories(origin=df[['Cx', 'Cy']].values,
                                                       end=df[['Tx', 'Ty']].values,
@@ -752,9 +731,9 @@ class Brain(object):
         return df
 
 
-    def CBTP_shots(self,ball_type):
+    def CBTP_shots(self,d_centroids,ball_type):
 
-        C,T,TT,P,C_reflect,T_reflect=self.choose_param_based_on_ball_type(ball_type)
+        C,T,TT,P,C_reflect,T_reflect=self.choose_param_based_on_ball_type(d_centroids, ball_type)
         df=self.wrapper_generate_combinations('CBTP',C,T,TT,P,C_reflect,T_reflect)
         valid_pockets=self.wrapper_valid_trajectories(origin=df[['Cx', 'Cy']].values,
                                                       end=df[['Tx', 'Ty']].values,
@@ -774,13 +753,13 @@ class Brain(object):
                                                                 df[['Xx', 'Xy']].values,
                                                                 df[['Bx', 'By']].values)
         df=df[df['XB_TX_abs_angle'] < 50]
-        valid_bounces=self.find_invalid_cushion_impacts(df[['C_reflect_id','Bx','By']].values)
+        valid_bounces=self.find_valid_cushion_impacts(df[['C_reflect_id','Bx','By']].values)
         df=df[valid_bounces]
 
         return df
     
-    def CTTP_shots(self,ball_type):
-        C,T,TT,P,C_reflect,T_reflect=self.choose_param_based_on_ball_type(ball_type)
+    def CTTP_shots(self,d_centroids,ball_type):
+        C,T,TT,P,C_reflect,T_reflect=self.choose_param_based_on_ball_type(d_centroids,ball_type)
         df=self.wrapper_generate_combinations('CTTP',C,T,TT,P,C_reflect,T_reflect)
         valid_pockets=self.wrapper_valid_trajectories(origin=df[['Bx', 'By']].values,
                                                       end=df[['Tx', 'Ty']].values,
@@ -811,8 +790,8 @@ class Brain(object):
 
         return df
 
-    def CTBP_shots(self,ball_type):
-        C,T,TT,P,C_reflect,T_reflect=self.choose_param_based_on_ball_type(ball_type)
+    def CTBP_shots(self,d_centroids,ball_type):
+        C,T,TT,P,C_reflect,T_reflect=self.choose_param_based_on_ball_type(d_centroids,ball_type)
         df=self.wrapper_generate_combinations('CTBP',C,T,TT,P,C_reflect,T_reflect)
         B_comb = self.find_bouncing_points(df[['T_reflect_x', 'T_reflect_y']].values,
                                             df[['Px', 'Py']].values,)
@@ -845,7 +824,7 @@ class Brain(object):
         collision_configs=self.wrapper_collision_trajectories(df,'CTBP')
         df=df[~(collision_configs)]
 
-        valid_bounces=self.find_invalid_cushion_impacts(df[['C_reflect_id','Bx','By']].values)
+        valid_bounces=self.find_valid_cushion_impacts(df[['T_reflect_sub_id','Bx','By']].values)
         df=df[valid_bounces]
 
         return df
