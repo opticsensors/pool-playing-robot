@@ -36,20 +36,27 @@ class Brain(object):
     def __init__(self,
                 d_centroids = {},
                 ball_radius = None,
-                ball_type = None
         ):
         
         self._d_centroids = d_centroids
-        self._ball_type = ball_type
         if ball_radius is None:
             self.ball_radius=Brain.BALL_RADIUS
         else:
             self.ball_radius=ball_radius
 
-        self.arr_balls_to_be_pocket = self.get_balls_to_be_pocket()
-        self.C, _ = self.get_cue_and_8ball()
-        self.T=self.get_other_balls()
-        self.TT=self.get_other_balls_twice()
+        self.setup_pool_frame() #TODO -> C/T_reflect use info from this setup !
+
+        self.solid = self.get_balls_to_be_pocket('solid')
+        self.strip = self.get_balls_to_be_pocket('strip')
+        self.C, self.ball8 = self.get_cue_and_8ball()
+        self.C_reflect = self.get_cue_ball_reflections(self.C)
+        self.T_solid=self.get_other_balls(self.solid)
+        self.T_strip=self.get_other_balls(self.strip)
+        self.TT_solid=self.get_other_balls_twice(self.solid,'solid')
+        self.TT_strip=self.get_other_balls_twice(self.strip,'strip')
+        self.T_reflect_solid=self.get_T_ball_reflections(self.T_solid)
+        self.T_reflect_strip=self.get_T_ball_reflections(self.T_strip)
+
 
     @property
     def d_centroids(self):
@@ -58,21 +65,16 @@ class Brain(object):
     @d_centroids.setter #every time ball config changes, we need to update the following attributes
     def d_centroids(self, val):
         self._d_centroids = val
-        self.arr_balls_to_be_pocket = self.get_balls_to_be_pocket(self.ball_type)
-        self.arr_cue, self.arr_8ball = self.get_cue_and_8ball()
-        self.other_balls=self.get_other_balls(self.arr_balls_to_be_pocket)
-        self.other_balls=self.get_other_balls_twice(self.arr_balls_to_be_pocket, self.ball_type)
-
-    @property
-    def ball_type(self):
-        return self._ball_type
-
-    @ball_type.setter #every time ball type changes, we need to update the following attributes
-    def ball_type(self, val):
-        self._ball_type = val
-        self.arr_balls_to_be_pocket = self.get_balls_to_be_pocket(self.ball_type)
-        self.other_balls=self.get_other_balls(self.arr_balls_to_be_pocket)
-        self.other_balls=self.get_other_balls_twice(self.arr_balls_to_be_pocket, self.ball_type)
+        self.solid = self.get_balls_to_be_pocket('solid')
+        self.strip = self.get_balls_to_be_pocket('strip')
+        self.C, self.ball8 = self.get_cue_and_8ball()
+        self.C_reflect = self.get_cue_ball_reflections(self.C)
+        self.T_solid=self.get_other_balls(self.solid)
+        self.T_strip=self.get_other_balls(self.strip)
+        self.TT_solid=self.get_other_balls_twice(self.solid,'solid')
+        self.TT_strip=self.get_other_balls_twice(self.strip,'strip')
+        self.T_reflect_solid=self.get_T_ball_reflections(self.T_solid)
+        self.T_reflect_strip=self.get_T_ball_reflections(self.T_strip)
 
     @staticmethod
     def _draw_pocket(img,point,radius):
@@ -559,357 +561,239 @@ class Brain(object):
             cv2.line(img, point1.astype(int), point2.astype(int), [251, 163, 26], 1) 
         return img
 
+    #################################################################################################################################################################
+    
+    def choose_param_based_on_ball_type(self,ball_type):
+        if ball_type=='solid':
+            return self.C,self.T_solid,self.TT_solid,self.P,self.C_reflect,self.T_reflect_solid
+        elif ball_type=='strip':
+            return self.C,self.T_strip,self.TT_strip,self.P,self.C_reflect,self.T_reflect_strip
+    
+    def wrapper_generate_combinations(self,shot_type,C,T,TT,P,C_reflect,T_reflect):
+        
+        if shot_type=='CTP':
+            comb=self.get_row_combinations_of_two_arrays(T,P)
+            comb=self.get_row_combinations_of_two_arrays(C,comb)
+            df=pd.DataFrame({'Cx':comb[:,0],
+                            'Cy':comb[:,1],
+                            'T_id':comb[:,2],
+                            'Tx':comb[:,3],
+                            'Ty':comb[:,4],
+                            'other_ball_id':comb[:,5],
+                            'other_ball_x':comb[:,6],
+                            'other_ball_y':comb[:,7],
+                            'P_id':comb[:,8],
+                            'P_sub_id':comb[:,9],
+                            'Px':comb[:,10],
+                            'Py':comb[:,11]})
+            
+        elif shot_type=='CBTP':
+            comb=self.get_row_combinations_of_two_arrays(T,P)
+            comb=self.get_row_combinations_of_two_arrays(C_reflect,comb)
+            comb=self.get_row_combinations_of_two_arrays(C,comb)
+            df=pd.DataFrame({'Cx':comb[:,0],
+                            'Cy':comb[:,1],
+                            'C_reflect_id': comb[:,2],
+                            'C_reflect_x':comb[:,3],
+                            'C_reflect_y':comb[:,4],
+                            'T_id':comb[:,5],
+                            'Tx':comb[:,6],
+                            'Ty':comb[:,7],
+                            'other_ball_id':comb[:,8],
+                            'other_ball_x':comb[:,9],
+                            'other_ball_y':comb[:,10],
+                            'P_id':comb[:,11],
+                            'P_sub_id':comb[:,12],
+                            'Px':comb[:,13],
+                            'Py':comb[:,14]})
+
+        elif shot_type=='CTTP':
+            comb=self.get_row_combinations_of_two_arrays(TT,P)
+            comb=self.get_row_combinations_of_two_arrays(C,comb)
+            df=pd.DataFrame({'Cx':comb[:,0],
+                            'Cy':comb[:,1],
+                            'T_id':comb[:,2],
+                            'Tx':comb[:,3],
+                            'Ty':comb[:,4],
+                            'B_id':comb[:,5],
+                            'Bx':comb[:,6],
+                            'By':comb[:,7],
+                            'other_ball_id':comb[:,8],
+                            'other_ball_x':comb[:,9],
+                            'other_ball_y':comb[:,10],
+                            'P_id':comb[:,11],
+                            'P_sub_id':comb[:,12],
+                            'Px':comb[:,13],
+                            'Py':comb[:,14]})
+
+        elif shot_type=='CTBP':
+            comb=self.get_row_combinations_of_two_arrays(T,P)
+            comb=self.get_row_combinations_of_two_arrays(T_reflect,comb)
+            comb=self.get_row_combinations_of_two_arrays(C,comb)
+            df=pd.DataFrame({'Cx':comb[:,0],
+                            'Cy':comb[:,1],
+                            'T_reflect_id': comb[:,3],
+                            'T_reflect_sub_id': comb[:,2],
+                            'T_reflect_x':comb[:,4],
+                            'T_reflect_y':comb[:,5],
+                            'T_id':comb[:,6],
+                            'Tx':comb[:,7],
+                            'Ty':comb[:,8],
+                            'other_ball_id':comb[:,9],
+                            'other_ball_x':comb[:,10],
+                            'other_ball_y':comb[:,11],
+                            'P_id':comb[:,12],
+                            'P_sub_id':comb[:,13],
+                            'Px':comb[:,14],
+                            'Py':comb[:,15]})
+            df=df[df['T_reflect_id']==df['T_id']]
+        return df
+
+    def wrapper_valid_trajectories(self,origin,end,point_to_check):
+        X1_comb,X2_comb = self.find_X1_and_X2(origin,end)
+        valid_traj = self.find_if_point_isreachable(end,point_to_check,X1_comb,X2_comb)
+        return valid_traj
+    
+    def wrapper_collision_trajectories(self,shot_type,df):
+        
+        collision_balls=df[['other_ball_x', 'other_ball_y']].values
+
+        if shot_type=='CTP':
+            origin1=df[['Cx', 'Cy']].values
+            destiny1=df[['Xx', 'Xy']].values
+            origin2=df[['Tx', 'Ty']].values
+            destiny2=df[['Px', 'Py']].values
+            traj=((origin1,destiny1), (origin2, destiny2))
+            rows_to_match=['T_id', 'P_id', 'P_sub_id']
+        
+        elif shot_type=='CBTP':
+            origin1=df[['Cx', 'Cy']].values
+            destiny1=df[['Bx', 'By']].values
+            origin2=df[['Bx', 'By']].values
+            destiny2=df[['Xx', 'Xy']].values
+            origin3=df[['Tx', 'Ty']].values
+            destiny3=df[['Px', 'Py']].values
+            traj=((origin1,destiny1), (origin2, destiny2), (origin3, destiny3))
+            rows_to_match=['T_id', 'P_id', 'P_sub_id']
+        
+        elif shot_type=='CTTP':
+            origin1=df[['Cx', 'Cy']].values
+            destiny1=df[['X_new_x', 'X_new_y']].values
+            origin2=df[['Bx', 'By']].values #TODO -> convert to TTx, TTy
+            destiny2=df[['Xx', 'Xy']].values
+            origin3=df[['Tx', 'Ty']].values
+            destiny3=df[['Px', 'Py']].values
+            traj=((origin1,destiny1), (origin2, destiny2), (origin3, destiny3))
+            rows_to_match=['T_id', 'B_id', 'P_id','P_sub_id'] #TODO -> convert to B_id, TT_id
+
+        elif shot_type=='CTBP':
+            origin1=df[['Cx', 'Cy']].values
+            destiny1=df[['Xx', 'Xy']].values
+            origin2=df[['Tx', 'Ty']].values 
+            destiny2=df[['Bx', 'By']].values
+            origin3=df[['Bx', 'By']].values
+            destiny3=df[['Px', 'Py']].values
+            traj=((origin1,destiny1), (origin2, destiny2), (origin3, destiny3))
+            rows_to_match=['T_id', 'P_id', 'P_sub_id']
+
+        list_collision_configs=[]
+        for origin,destiny in traj:
+            collision_origin_destiny=self.find_collision_trajectories(origin,destiny,collision_balls)
+            list_collision_configs.append(collision_origin_destiny)        
+
+        collision_configs=np.bitwise_or.reduce(list_collision_configs)
+        df_collisions=df[collision_configs]
+        arr_collisions=df_collisions[rows_to_match].values
+        arr_configs=df[rows_to_match].values
+        collision_configs=(arr_configs[None,:]==arr_collisions[:,None]).all(-1).any(0)
+        
+        return collision_configs
 
     def CTP_shots(self,ball_type):
-        # get balls that we want to pocket (coordinates and number id)
-        arr_balls_to_be_pocket = self.get_balls_to_be_pocket(ball_type)
-        #get special balls: cue ball and 8 ball
-        arr_cue, arr_8ball = self.get_cue_and_8ball()
-        # get other balls for every cue and target (== for every target) that can intefere with the shot
-        other_balls = self.get_other_balls(arr_balls_to_be_pocket)
-
-        #rename for clarity, using familiar nomenclature
-        C = arr_cue
-        T = other_balls
-        P = self.pockets
-
-        #build array of combinations:
-        comb=self.get_row_combinations_of_two_arrays(T,P)
-        comb=self.get_row_combinations_of_two_arrays(C,comb)
-
-        #create dataframe
-        df=pd.DataFrame({'Cx':comb[:,0],
-                        'Cy':comb[:,1],
-                        'T_id':comb[:,2],
-                        'Tx':comb[:,3],
-                        'Ty':comb[:,4],
-                        'other_ball_id':comb[:,5],
-                        'other_ball_x':comb[:,6],
-                        'other_ball_y':comb[:,7],
-                        'P_id':comb[:,8],
-                        'P_sub_id':comb[:,9],
-                        'Px':comb[:,10],
-                        'Py':comb[:,11]})
-
-        #get X1 and X2 (necessary point to check in what pockets ball can be pocketed)
-        X1_comb,X2_comb = self.find_X1_and_X2(df[['Cx', 'Cy']].values,
-                                            df[['Tx', 'Ty']].values)
-
-        df['X1x']=X1_comb[:,0]
-        df['X1y']=X1_comb[:,1]
-        df['X2x']=X2_comb[:,0]
-        df['X2y']=X2_comb[:,1]
-
-        #use above calculations to decide if that combination (row) is valid or not
-        valid_pockets = self.find_if_point_isreachable(df[['Tx', 'Ty']].values,
-                                                df[['Px', 'Py']].values,
-                                                df[['X1x', 'X1y']].values,
-                                                df[['X2x', 'X2y']].values)
-
-        df_valid=df[valid_pockets].copy()
-
-        #find_geometric_parameters
-        X_comb = self.find_X(df_valid[['Tx', 'Ty']].values,
-                                df_valid[['Px', 'Py']].values)
-        df_valid['Xx']=X_comb[:,0]
-        df_valid['Xy']=X_comb[:,1]
-
-        # collisions between C and other balls in CX trajectory
-        collision_configs_CX=self.find_collision_trajectories(origin=df_valid[['Cx', 'Cy']].values,
-                                                    destiny=df_valid[['Xx', 'Xy']].values,
-                                                    collision_balls=df_valid[['other_ball_x', 'other_ball_y']].values)
-
-        # collisions between T and other balls in TP trajectory
-        collision_configs_TP=self.find_collision_trajectories(origin=df_valid[['Tx', 'Ty']].values,
-                                                    destiny=df_valid[['Px', 'Py']].values,
-                                                    collision_balls=df_valid[['other_ball_x', 'other_ball_y']].values)
-
-        collision_configs=((collision_configs_CX) | (collision_configs_TP))
-        df_collisions=df_valid[collision_configs]
-        arr_collisions=df_collisions[['T_id', 'P_id', 'P_sub_id']].values
-        arr_configs=df_valid[['T_id', 'P_id', 'P_sub_id']].values
-        collision_configs=(arr_configs[None,:]==arr_collisions[:,None]).all(-1).any(0)
-
-        df_without_collisions=df_valid[~(collision_configs)]
-
-        #filter by difficulty metric
-        df_filtered=df_without_collisions.copy()
-        df_filtered['XC_TX_abs_angle'] = self.deviation_from_ideal_angle(df_filtered[['Tx', 'Ty']].values,
-                                                                            df_filtered[['Xx', 'Xy']].values,
-                                                                            df_filtered[['Cx', 'Cy']].values)
-        df_filtered=df_filtered[df_filtered['XC_TX_abs_angle'] < 60]
-
-        return df_filtered
+        C,T,TT,P,C_reflect,T_reflect=self.choose_param_based_on_ball_type(ball_type)
+        df=self.wrapper_generate_combinations('CTP',C,T,TT,P,C_reflect,T_reflect)
+        valid_pockets=self.wrapper_valid_trajectories(origin=df[['Cx', 'Cy']].values,
+                                                      end=df[['Tx', 'Ty']].values,
+                                                      point_to_check=df[['Px', 'Py']].values)
+        df=df[valid_pockets]
+        X_comb = self.find_X(df[['Tx', 'Ty']].values,df[['Px', 'Py']].values)
+        df['Xx']=X_comb[:,0]
+        df['Xy']=X_comb[:,1]
+        collision_configs=self.wrapper_collision_trajectories(df,'CTP')
+        df=df[~(collision_configs)]
+        df['XC_TX_abs_angle'] = self.deviation_from_ideal_angle(df[['Tx', 'Ty']].values,
+                                                                df[['Xx', 'Xy']].values,
+                                                                df[['Cx', 'Cy']].values)
+        df=df[df['XC_TX_abs_angle'] < 60]
+        return df
 
 
     def CBTP_shots(self,ball_type):
 
-        # get balls that we want to pocket (coordinates and number id)
-        arr_balls_to_be_pocket = self.get_balls_to_be_pocket(ball_type)
-        #get special balls: cue ball and 8 ball
-        arr_cue, arr_8ball = self.get_cue_and_8ball()
-        # get other balls for every cue and target (== for every target) that can intefere with the shot
-        other_balls = self.get_other_balls(arr_balls_to_be_pocket)
+        C,T,TT,P,C_reflect,T_reflect=self.choose_param_based_on_ball_type(ball_type)
+        df=self.wrapper_generate_combinations('CBTP',C,T,TT,P,C_reflect,T_reflect)
+        valid_pockets=self.wrapper_valid_trajectories(origin=df[['Cx', 'Cy']].values,
+                                                      end=df[['Tx', 'Ty']].values,
+                                                      point_to_check=df[['Px', 'Py']].values)
+        df=df[valid_pockets]
+        X_comb = self.find_X(df[['Tx', 'Ty']].values,
+                             df[['Px', 'Py']].values)
+        df['Xx']=X_comb[:,0]
+        df['Xy']=X_comb[:,1]
+        B_comb = self.find_bouncing_points(df[['C_reflect_x', 'C_reflect_y']].values,
+                                           df[['Xx', 'Xy']].values,)
+        df['Bx']=B_comb[:,0]
+        df['By']=B_comb[:,1]
+        collision_configs=self.wrapper_collision_trajectories(df,'CBTP')
+        df=df[~(collision_configs)]
+        df['XB_TX_abs_angle'] = self.deviation_from_ideal_angle(df[['Tx', 'Ty']].values,
+                                                                df[['Xx', 'Xy']].values,
+                                                                df[['Bx', 'By']].values)
+        df=df[df['XB_TX_abs_angle'] < 50]
+        valid_bounces=self.find_invalid_cushion_impacts(df[['C_reflect_id','Bx','By']].values)
+        df=df[valid_bounces]
 
-        #rename for clarity, using familiar nomenclature
-        C = arr_cue
-        T = other_balls
-        P = self.pockets
-        C_reflect=self.get_cue_ball_reflections(C)
-
-        #build array of combinations:
-        comb=self.get_row_combinations_of_two_arrays(T,P)
-        comb=self.get_row_combinations_of_two_arrays(C_reflect,comb)
-        comb=self.get_row_combinations_of_two_arrays(C,comb)
-
-        #create dataframe
-        df=pd.DataFrame({'Cx':comb[:,0],
-                        'Cy':comb[:,1],
-                        'C_reflect_id': comb[:,2],
-                        'C_reflect_x':comb[:,3],
-                        'C_reflect_y':comb[:,4],
-                        'T_id':comb[:,5],
-                        'Tx':comb[:,6],
-                        'Ty':comb[:,7],
-                        'other_ball_id':comb[:,8],
-                        'other_ball_x':comb[:,9],
-                        'other_ball_y':comb[:,10],
-                        'P_id':comb[:,11],
-                        'P_sub_id':comb[:,12],
-                        'Px':comb[:,13],
-                        'Py':comb[:,14]})
-
-        #get X1 and X2 (necessary point to check in what pockets ball can be pocketed)
-        X1_comb,X2_comb = self.find_X1_and_X2(df[['Cx', 'Cy']].values,
-                                            df[['Tx', 'Ty']].values)
-
-        df['X1x']=X1_comb[:,0]
-        df['X1y']=X1_comb[:,1]
-        df['X2x']=X2_comb[:,0]
-        df['X2y']=X2_comb[:,1]
-
-        #use above calculations to decide if that combination (row) is valid or not
-        valid_pockets = self.find_if_point_isreachable(df[['Tx', 'Ty']].values,
-                                                df[['Px', 'Py']].values,
-                                                df[['X1x', 'X1y']].values,
-                                                df[['X2x', 'X2y']].values)
-        df_valid=df[valid_pockets].copy()
-
-        #find_geometric_parameters
-        X_comb = self.find_X(df_valid[['Tx', 'Ty']].values,
-                                df_valid[['Px', 'Py']].values)
-        df_valid['Xx']=X_comb[:,0]
-        df_valid['Xy']=X_comb[:,1]
-
-        B_comb = self.find_bouncing_points(df_valid[['C_reflect_x', 'C_reflect_y']].values,
-                                            df_valid[['Xx', 'Xy']].values,)
-
-        df_valid['Bx']=B_comb[:,0]
-        df_valid['By']=B_comb[:,1]
-
-        # collisions between C and other balls in CB trajectory
-        collision_configs_CB=self.find_collision_trajectories(origin=df_valid[['Cx', 'Cy']].values,
-                                                    destiny=df_valid[['Bx', 'By']].values,
-                                                    collision_balls=df_valid[['other_ball_x', 'other_ball_y']].values)
-
-        # collisions between C and other balls in BX trajectory
-        collision_configs_BX=self.find_collision_trajectories(origin=df_valid[['Bx', 'By']].values,
-                                                    destiny=df_valid[['Xx', 'Xy']].values,
-                                                    collision_balls=df_valid[['other_ball_x', 'other_ball_y']].values)
-
-        # collisions between T and other balls in TP trajectory
-        collision_configs_TP=self.find_collision_trajectories(origin=df_valid[['Tx', 'Ty']].values,
-                                                    destiny=df_valid[['Px', 'Py']].values,
-                                                    collision_balls=df_valid[['other_ball_x', 'other_ball_y']].values)
-
-        collision_configs=((collision_configs_CB) | (collision_configs_BX) | (collision_configs_TP))
-        df_collisions=df_valid[collision_configs]
-
-        arr_collisions=df_collisions[['T_id', 'P_id','P_sub_id']].values
-        arr_configs=df_valid[['T_id', 'P_id','P_sub_id']].values
-        collision_configs=(arr_configs[None,:]==arr_collisions[:,None]).all(-1).any(0)
-        df_without_collisions=df_valid[~(collision_configs)]
-
-        # in this case we want the vector BX to be +- ~50 degrees from the ideal Bx vector (that is the vector parallel to PTX)
-        df_filtered=df_without_collisions.copy()
-        df_filtered['XB_TX_abs_angle'] = self.deviation_from_ideal_angle(df_filtered[['Tx', 'Ty']].values,
-                                                                            df_filtered[['Xx', 'Xy']].values,
-                                                                            df_filtered[['Bx', 'By']].values)
-        df_filtered=df_filtered[df_filtered['XB_TX_abs_angle'] < 50]
-
-        # check B is inside cushion limits!
-        valid_bounces=self.find_invalid_cushion_impacts(df_filtered[['C_reflect_id','Bx','By']].values)
-        df_filtered=df_filtered[valid_bounces]
-
-        return df_filtered
+        return df
     
     def CTTP_shots(self,ball_type):
-        # get balls that we want to pocket (coordinates and number id)
-        arr_balls_to_be_pocket = self.get_balls_to_be_pocket(ball_type)
-        #get special balls: cue ball and 8 ball
-        arr_cue, arr_8ball = self.get_cue_and_8ball()
-        # get other balls for every cue and target (== for every target) that can intefere with the shot
-        other_balls=self.get_other_balls_twice(arr_balls_to_be_pocket, ball_type)
+        C,T,TT,P,C_reflect,T_reflect=self.choose_param_based_on_ball_type(ball_type)
+        df=self.wrapper_generate_combinations('CTTP',C,T,TT,P,C_reflect,T_reflect)
+        valid_pockets=self.wrapper_valid_trajectories(origin=df[['Bx', 'By']].values,
+                                                      end=df[['Tx', 'Ty']].values,
+                                                      point_to_check=df[['Px', 'Py']].values)
+        df=df[valid_pockets]
+        X_comb = self.find_X(T=df[['Tx', 'Ty']].values,
+                            P=df[['Px', 'Py']].values)
+        df['Xx']=X_comb[:,0]
+        df['Xy']=X_comb[:,1]
+        X_new_comb = self.find_X(T=df[['Bx', 'By']].values,
+                                P=df[['Xx', 'Xy']].values)
+        df['X_new_x']=X_new_comb[:,0]
+        df['X_new_y']=X_new_comb[:,1]
+        valid_pockets=self.wrapper_valid_trajectories(origin=df[['Cx', 'Cy']].values,
+                                                      end=df[['Bx', 'By']].values,
+                                                      point_to_check=df[['Xx', 'Xy']].values)
+        df=df[valid_pockets]
+        collision_configs=self.wrapper_collision_trajectories(df,'CTTP')
+        df=df[~(collision_configs)]
+        df['XB_TX_abs_angle'] = self.deviation_from_ideal_angle(df[['Tx', 'Ty']].values,
+                                                                df[['Xx', 'Xy']].values,
+                                                                df[['Bx', 'By']].values)
+        df=df[df['XB_TX_abs_angle'] < 45]
+        df['XC_BX_abs_angle'] = self.deviation_from_ideal_angle(df[['Bx', 'By']].values,
+                                                                df[['X_new_x', 'X_new_y']].values,
+                                                                df[['Cx', 'Cy']].values)
+        df=df[df['XC_BX_abs_angle'] < 45]
 
-        #rename for clarity, using familiar nomenclature
-        C = arr_cue
-        T = other_balls
-        P = self.pockets
-
-        #build array of combinations:
-        comb=self.get_row_combinations_of_two_arrays(T,P)
-        comb=self.get_row_combinations_of_two_arrays(C,comb)
-
-        #create dataframe
-        df=pd.DataFrame({'Cx':comb[:,0],
-                        'Cy':comb[:,1],
-                        'T_id':comb[:,2],
-                        'Tx':comb[:,3],
-                        'Ty':comb[:,4],
-                        'B_id':comb[:,5],
-                        'Bx':comb[:,6],
-                        'By':comb[:,7],
-                        'other_ball_id':comb[:,8],
-                        'other_ball_x':comb[:,9],
-                        'other_ball_y':comb[:,10],
-                        'P_id':comb[:,11],
-                        'P_sub_id':comb[:,12],
-                        'Px':comb[:,13],
-                        'Py':comb[:,14]})
-
-        #get X1 and X2 (necessary point to check in what pockets ball can be pocketed)
-        X1_comb,X2_comb = self.find_X1_and_X2(df[['Bx', 'By']].values,
-                                            df[['Tx', 'Ty']].values)
-
-        df['X1x']=X1_comb[:,0]
-        df['X1y']=X1_comb[:,1]
-        df['X2x']=X2_comb[:,0]
-        df['X2y']=X2_comb[:,1]
-
-        #use above calculations to decide if that combination (row) is valid or not
-        valid_pockets = self.find_if_point_isreachable(df[['Tx', 'Ty']].values,
-                                                df[['Px', 'Py']].values,
-                                                df[['X1x', 'X1y']].values,
-                                                df[['X2x', 'X2y']].values)
-
-        df_valid=df[valid_pockets].copy()
-
-        #find_geometric_parameters
-        X_comb = self.find_X(T=df_valid[['Tx', 'Ty']].values,
-                            P=df_valid[['Px', 'Py']].values)
-        df_valid['Xx']=X_comb[:,0]
-        df_valid['Xy']=X_comb[:,1]
-
-        #find_geometric_parameters
-        X_new_comb = self.find_X(T=df_valid[['Bx', 'By']].values,
-                                P=df_valid[['Xx', 'Xy']].values)
-
-        df_valid['X_new_x']=X_new_comb[:,0]
-        df_valid['X_new_y']=X_new_comb[:,1]
-
-        #get X1 and X2 (necessary point to check in what pockets ball can be pocketed)
-        X1_comb,X2_comb = self.find_X1_and_X2(df_valid[['Cx', 'Cy']].values,
-                                            df_valid[['Bx', 'By']].values)
-
-        df_valid['X3x']=X1_comb[:,0]
-        df_valid['X3y']=X1_comb[:,1]
-        df_valid['X4x']=X2_comb[:,0]
-        df_valid['X4y']=X2_comb[:,1]
-
-        #use above calculations to decide if that combination (row) is valid or not
-        valid_pockets = self.find_if_point_isreachable(df_valid[['Bx', 'By']].values,
-                                                df_valid[['Xx', 'Xy']].values,
-                                                df_valid[['X3x', 'X3y']].values,
-                                                df_valid[['X4x', 'X4y']].values)
-
-        df_valid=df_valid[valid_pockets].copy()
-
-
-
-        # collisions between C and other balls in CX trajectory
-        collision_configs_CXnew=self.find_collision_trajectories(origin=df_valid[['Cx', 'Cy']].values,
-                                                    destiny=df_valid[['X_new_x', 'X_new_y']].values,
-                                                    collision_balls=df_valid[['other_ball_x', 'other_ball_y']].values)
-
-        # collisions between T and other balls in TP trajectory
-        collision_configs_BX=self.find_collision_trajectories(origin=df_valid[['Bx', 'By']].values,
-                                                    destiny=df_valid[['Xx', 'Xy']].values,
-                                                    collision_balls=df_valid[['other_ball_x', 'other_ball_y']].values)
-
-        # collisions between T and other balls in TP trajectory
-        collision_configs_TP=self.find_collision_trajectories(origin=df_valid[['Tx', 'Ty']].values,
-                                                    destiny=df_valid[['Px', 'Py']].values,
-                                                    collision_balls=df_valid[['other_ball_x', 'other_ball_y']].values)
-
-
-        collision_configs=((collision_configs_CXnew) | (collision_configs_BX)| (collision_configs_TP))
-        df_collisions=df_valid[collision_configs]
-        arr_collisions=df_collisions[['T_id', 'B_id', 'P_id','P_sub_id']].values
-        arr_configs=df_valid[['T_id', 'B_id', 'P_id','P_sub_id']].values
-        collision_configs=(arr_configs[None,:]==arr_collisions[:,None]).all(-1).any(0)
-
-        df_without_collisions=df_valid[~(collision_configs)]
-
-
-        #filter by difficulty metric
-        df_filtered=df_without_collisions.copy()
-        df_filtered['XB_TX_abs_angle'] = self.deviation_from_ideal_angle(df_filtered[['Tx', 'Ty']].values,
-                                                                            df_filtered[['Xx', 'Xy']].values,
-                                                                            df_filtered[['Bx', 'By']].values)
-        df_filtered=df_filtered[df_filtered['XB_TX_abs_angle'] < 45]
-
-        df_filtered['XC_BX_abs_angle'] = self.deviation_from_ideal_angle(df_filtered[['Bx', 'By']].values,
-                                                                            df_filtered[['X_new_x', 'X_new_y']].values,
-                                                                            df_filtered[['Cx', 'Cy']].values)
-        df_filtered=df_filtered[df_filtered['XC_BX_abs_angle'] < 45]
-
-        return df_filtered
+        return df
 
     def CTBP_shots(self,ball_type):
-        # get balls that we want to pocket (coordinates and number id)
-        arr_balls_to_be_pocket = self.get_balls_to_be_pocket(ball_type)
-        #get special balls: cue ball and 8 ball
-        arr_cue, arr_8ball = self.get_cue_and_8ball()
-        # get other balls for every cue and target (== for every target) that can intefere with the shot
-        other_balls = self.get_other_balls(arr_balls_to_be_pocket)
-
-        #rename for clarity, using familiar nomenclature
-        C = arr_cue
-        T = other_balls
-        P = self.pockets
-        T_reflect=self.get_T_ball_reflections(T)
-
-        #build array of combinations:
-        comb=self.get_row_combinations_of_two_arrays(T,P)
-        comb=self.get_row_combinations_of_two_arrays(T_reflect,comb)
-        comb=self.get_row_combinations_of_two_arrays(C,comb)
-
-        #create dataframe
-        df=pd.DataFrame({'Cx':comb[:,0],
-                        'Cy':comb[:,1],
-                        'T_reflect_id': comb[:,3],
-                        'T_reflect_sub_id': comb[:,2],
-                        'T_reflect_x':comb[:,4],
-                        'T_reflect_y':comb[:,5],
-                        'T_id':comb[:,6],
-                        'Tx':comb[:,7],
-                        'Ty':comb[:,8],
-                        'other_ball_id':comb[:,9],
-                        'other_ball_x':comb[:,10],
-                        'other_ball_y':comb[:,11],
-                        'P_id':comb[:,12],
-                        'P_sub_id':comb[:,13],
-                        'Px':comb[:,14],
-                        'Py':comb[:,15]})
-        # only configs where the reflected ball id is the same as the T ball
-        df=df[df['T_reflect_id']==df['T_id']]
-
+        C,T,TT,P,C_reflect,T_reflect=self.choose_param_based_on_ball_type(ball_type)
+        df=self.wrapper_generate_combinations('CTBP',C,T,TT,P,C_reflect,T_reflect)
         B_comb = self.find_bouncing_points(df[['T_reflect_x', 'T_reflect_y']].values,
                                             df[['Px', 'Py']].values,)
         df['Bx']=B_comb[:,0]
         df['By']=B_comb[:,1]
-
-        #delete invalid shots
         df=df[((df['P_id']==6) & (df['T_reflect_sub_id']==1)) |
         ((df['P_id']==6) & (df['T_reflect_sub_id']==2)) |
         ((df['P_id']==5) & (df['T_reflect_sub_id']==1)) |
@@ -925,57 +809,19 @@ class Brain(object):
         ((df['P_id']==1) & (df['T_reflect_sub_id']==3)) |
         ((df['P_id']==1) & (df['T_reflect_sub_id']==2)) ]
 
-
-        B_comb = self.find_bouncing_points_v2(df[['T_reflect_x', 'T_reflect_y']].values,
-                                            df[['Px', 'Py']].values,)
-        #find_geometric_parameters
         X_comb = self.find_X(  df[['Tx', 'Ty']].values,
                                 df[['Bx', 'By']].values)
         df['Xx']=X_comb[:,0]
         df['Xy']=X_comb[:,1]
 
+        valid_pockets=self.wrapper_valid_trajectories(origin=df[['Cx', 'Cy']].values,
+                                                      end=df[['Tx', 'Ty']].values,
+                                                      point_to_check=df[['Bx', 'By']].values)
+        df=df[valid_pockets]
+        collision_configs=self.wrapper_collision_trajectories(df,'CTBP')
+        df=df[~(collision_configs)]
 
-        #get X1 and X2 (necessary point to check in what pockets ball can be pocketed)
-        X1_comb,X2_comb = self.find_X1_and_X2(df[['Cx', 'Cy']].values,
-                                            df[['Tx', 'Ty']].values)
+        valid_bounces=self.find_invalid_cushion_impacts(df[['C_reflect_id','Bx','By']].values)
+        df=df[valid_bounces]
 
-        df['X1x']=X1_comb[:,0]
-        df['X1y']=X1_comb[:,1]
-        df['X2x']=X2_comb[:,0]
-        df['X2y']=X2_comb[:,1]
-
-        #use above calculations to decide if that combination (row) is valid or not
-        # THIS IS VALID B POINTS INSTEAD OF POCKETS !!!!
-        valid_bounces = self.find_if_point_isreachable(df[['Tx', 'Ty']].values,
-                                                df[['Bx', 'By']].values,
-                                                df[['X1x', 'X1y']].values,
-                                                df[['X2x', 'X2y']].values)
-        df_valid=df[valid_bounces].copy()
-
-        # collisions between C and other balls in CX trajectory
-        collision_configs_CX=self.find_collision_trajectories(origin=df_valid[['Cx', 'Cy']].values,
-                                                    destiny=df_valid[['Xx', 'Xy']].values,
-                                                    collision_balls=df_valid[['other_ball_x', 'other_ball_y']].values)
-
-        # collisions between C and other balls in TB trajectory
-        collision_configs_TB=self.find_collision_trajectories(origin=df_valid[['Tx', 'Ty']].values,
-                                                    destiny=df_valid[['Bx', 'By']].values,
-                                                    collision_balls=df_valid[['other_ball_x', 'other_ball_y']].values)
-
-        # collisions between T and other balls in TP trajectory
-        collision_configs_BP=self.find_collision_trajectories(origin=df_valid[['Bx', 'By']].values,
-                                                    destiny=df_valid[['Px', 'Py']].values,
-                                                    collision_balls=df_valid[['other_ball_x', 'other_ball_y']].values)
-
-        collision_configs=((collision_configs_CX) | (collision_configs_TB) | (collision_configs_BP))
-        df_collisions=df_valid[collision_configs]
-
-        arr_collisions=df_collisions[['T_id', 'P_id','P_sub_id']].values
-        arr_configs=df_valid[['T_id', 'P_id','P_sub_id']].values
-        collision_configs=(arr_configs[None,:]==arr_collisions[:,None]).all(-1).any(0)
-        df_without_collisions=df_valid[~(collision_configs)]
-
-        valid_bounces=self.find_invalid_cushion_impacts(df_without_collisions[['C_reflect_id','Bx','By']].values)
-        df_without_collisions=df_without_collisions[valid_bounces]
-
-        return df_without_collisions
+        return df

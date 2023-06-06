@@ -90,9 +90,6 @@ df=df[((df['P_id']==6) & (df['T_reflect_sub_id']==1)) |
    ((df['P_id']==1) & (df['T_reflect_sub_id']==3)) |
    ((df['P_id']==1) & (df['T_reflect_sub_id']==2)) ]
 
-
-B_comb = brain.find_bouncing_points_v2(df[['T_reflect_x', 'T_reflect_y']].values,
-                                    df[['Px', 'Py']].values,)
 #find_geometric_parameters
 X_comb = brain.find_X(  df[['Tx', 'Ty']].values,
                         df[['Bx', 'By']].values)
