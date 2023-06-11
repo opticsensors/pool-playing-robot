@@ -31,6 +31,8 @@ dependencies = [
     "keyboard",
     "scikit-learn",
     "rich",
+    "gymnasium",
+    "pybullet",
 ]
 
 [project.urls]
