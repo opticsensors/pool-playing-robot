@@ -1,165 +1,15 @@
 import cv2
 import numpy as np
 import pandas as pd
+import pool.utils as utils
 
 
-class PoolFrame:
-    def __init__(self,
-                img, 
-                precision,
-                x_pocket_top_left,
-                y_pocket_top_left,
-                x_pocket_top_middle,
-                y_pocket_top_middle,
-                horizontal_left_offset,
-                vertical_top_offset,
-                width_corner,
-                width_middle,
-                **kwargs
-    ):
-        
-        H=img.shape[0]
-        W=img.shape[1]
-
-        param = {  # with defaults
-            'x_pocket_top_left': x_pocket_top_left,
-            'y_pocket_top_left': y_pocket_top_left,
-            'x_pocket_top_right': W-x_pocket_top_left,
-            'y_pocket_top_right': y_pocket_top_left,
-            'x_pocket_bottom_left': W-x_pocket_top_left,
-            'y_pocket_bottom_left': H-y_pocket_top_left,
-            'x_pocket_bottom_right': x_pocket_top_left,
-            'y_pocket_bottom_right': H-y_pocket_top_left,
-            'x_pocket_top_middle': x_pocket_top_middle,
-            'y_pocket_top_middle': y_pocket_top_middle,
-            'x_pocket_bottom_middle':x_pocket_top_middle,
-            'y_pocket_bottom_middle':H-y_pocket_top_middle,
-            'radius_pocket_corners' : 210,
-            'radius_pocket_middle' : 112, 
-            'horizontal_left_offset': horizontal_left_offset,
-            'horizontal_right_offset': horizontal_left_offset,
-            'vertical_top_offset': vertical_top_offset,
-            'vertical_bottom_offset': vertical_top_offset                                    
-            }
-        param.update(kwargs)
-
-        self.radius_pocket_corners=param['radius_pocket_corners']
-        self.radius_pocket_middle=param['radius_pocket_middle']
-
-        self.pocket_top_left = (param['x_pocket_top_left'], param['y_pocket_top_left'])
-        self.pocket_top_right = (param['x_pocket_top_right'], param['y_pocket_top_right'])
-        self.pocket_bottom_left = (param['x_pocket_bottom_left'], param['y_pocket_bottom_left'])
-        self.pocket_bottom_right = (param['x_pocket_bottom_right'], param['y_pocket_bottom_right'])
-        self.pocket_top_middle = (param['x_pocket_top_middle'], param['y_pocket_top_middle'])
-        self.pocket_bottom_middle = (param['x_pocket_bottom_middle'], param['y_pocket_bottom_middle'])
-
-        self.frame_top_left = np.array((param['horizontal_left_offset'], param['vertical_top_offset']))
-        self.mouth_top_left1 = np.array((param['horizontal_left_offset'], param['vertical_top_offset']+width_corner))
-        self.mouth_top_left2 = np.array((param['horizontal_left_offset'] + width_corner, param['vertical_top_offset']))
-
-        self.frame_top_right = np.array((W-param['horizontal_right_offset'], param['vertical_top_offset']))
-        self.mouth_top_right3 = np.array((W-param['horizontal_right_offset']-width_corner, param['vertical_top_offset']))
-        self.mouth_top_right4 = np.array((W-param['horizontal_right_offset'], param['vertical_top_offset']+width_corner))
-
-        self.frame_bottom_right = np.array((W-param['horizontal_right_offset'], H-param['vertical_bottom_offset']))
-        self.mouth_bottom_right5 = np.array((W-param['horizontal_right_offset'], H-param['vertical_bottom_offset']-width_corner))
-        self.mouth_bottom_right6 = np.array((W-param['horizontal_right_offset']-width_corner, H-param['vertical_bottom_offset']))
-
-        self.frame_bottom_left = np.array((param['horizontal_left_offset'], H-param['vertical_bottom_offset']))
-        self.mouth_bottom_left7 = np.array((param['horizontal_left_offset']+width_corner, H-param['vertical_bottom_offset']))
-        self.mouth_bottom_left8 = np.array((param['horizontal_left_offset'], H-param['vertical_bottom_offset']-width_corner))
-
-        self.mouth_top_middle9 = np.array((x_pocket_top_middle-width_middle, param['vertical_top_offset']))
-        self.mouth_top_middle10 = np.array((x_pocket_top_middle+width_middle, param['vertical_top_offset']))
-
-        self.mouth_bottom_middle11 = np.array((x_pocket_top_middle-width_middle, H-param['vertical_bottom_offset']))
-        self.mouth_bottom_middle12 = np.array((x_pocket_top_middle+width_middle, H-param['vertical_bottom_offset']))
-
-        self.xmin_horizontal_left_cushion=445
-        self.xmax_horizontal_left_cushion=2154
-        self.xmin_horizontal_right_cushion=2729
-        self.xmax_horizontal_right_cushion=4338
-        self.ymin_vertical_cushion=476
-        self.ymax_vertical_cushion=2223
-
-        self.setup_pockets(precision)
+class Brain:
     
-    @staticmethod
-    def _draw_pocket(img,point,radius):
-        cv2.circle(img, point, radius, (0, 255, 255), 8)
-        x,y=point
-        cv2.line(img, (x+radius, y), (x-radius, y), (0, 255, 255), thickness=8)
-        cv2.line(img, (x, y-radius), (x, y+radius), (0, 255, 255), thickness=8)
-        return img
-    
-    @staticmethod
-    def _get_equidistant_points(p1, p2, parts):
-        if parts==0:
-            points=(p1+p2)/2
-        else:
-            points_separated=np.linspace(p1[0], p2[0], parts+1),np.linspace(p1[1], p2[1], parts+1)
-            points=np.column_stack((points_separated[0],points_separated[1]))
-        return points
-    
-    def setup_pockets(self, precision):
-
-        self.valid_points_mouth_top_left=self._get_equidistant_points(self.mouth_top_left1, self.mouth_top_left2, precision)
-        self.valid_points_mouth_top_right=self._get_equidistant_points(self.mouth_top_right3, self.mouth_top_right4, precision)
-        self.valid_points_mouth_bottom_right=self._get_equidistant_points(self.mouth_bottom_right5, self.mouth_bottom_right6, precision)
-        self.valid_points_mouth_bottom_left=self._get_equidistant_points(self.mouth_bottom_left7, self.mouth_bottom_left8, precision)
-        self.valid_points_mouth_top_middle=self._get_equidistant_points(self.mouth_top_middle9, self.mouth_top_middle10, precision)
-        self.valid_points_mouth_bottom_middle=self._get_equidistant_points(self.mouth_bottom_middle11, self.mouth_bottom_middle12, precision)
-        
-        # add ids of pockets:
-        pockets_id=np.array([1,3,4,6,2,5]).reshape(-1,1)
-        pockets_sub_id=np.arange(1,precision+2).reshape(-1,1)
-        pocket_ids=Brain.get_row_combinations_of_two_arrays(pockets_id,pockets_sub_id)
-        pockets = np.vstack([self.valid_points_mouth_top_left,  #pocket 1      
-                            self.valid_points_mouth_top_right,       #pocket 3
-                            self.valid_points_mouth_bottom_right,    #pocket 4   
-                            self.valid_points_mouth_bottom_left,     #pocket 6  
-                            self.valid_points_mouth_top_middle,      #pocket 2 
-                            self.valid_points_mouth_bottom_middle,   #pocket 5    
-                            ])
-        self.P=np.hstack([pocket_ids,pockets])
-
-    def draw_frame(self, img):
-        self._draw_pocket(img, self.pocket_top_left, self.radius_pocket_corners)
-        self._draw_pocket(img, self.pocket_top_right, self.radius_pocket_corners)
-        self._draw_pocket(img, self.pocket_bottom_left, self.radius_pocket_corners)
-        self._draw_pocket(img, self.pocket_bottom_right,self.radius_pocket_corners)
-        self._draw_pocket(img, self.pocket_top_middle, self.radius_pocket_middle)
-        self._draw_pocket(img, self.pocket_bottom_middle, self.radius_pocket_middle)
-
-        cv2.line(img, self.mouth_top_left2, self.mouth_top_right3, (0, 255, 0), thickness=3)
-        cv2.line(img, self.mouth_top_right4, self.mouth_bottom_right5, (0, 255, 0), thickness=3)
-        cv2.line(img, self.mouth_bottom_right6, self.mouth_bottom_left7, (0, 255, 0), thickness=3)
-        cv2.line(img, self.mouth_bottom_left8, self.mouth_top_left1, (0, 255, 0), thickness=3)
-
-        cv2.line(img, self.mouth_top_left1, self.mouth_top_left2, (255, 255, 0), thickness=20)
-        cv2.line(img, self.mouth_top_right3, self.mouth_top_right4, (255, 255, 0), thickness=20)
-        cv2.line(img, self.mouth_bottom_right5, self.mouth_bottom_right6, (255, 255, 0), thickness=20)
-        cv2.line(img, self.mouth_bottom_left7, self.mouth_bottom_left8, (255, 255, 0), thickness=20)
-
-        cv2.line(img, self.mouth_top_middle9, self.mouth_top_middle10, (255, 255, 0), thickness=20)
-        cv2.line(img, self.mouth_bottom_middle11, self.mouth_bottom_middle12, (255, 255, 0), thickness=20)
-
-        return img
-
-class Brain(object):
-    """
-    A class that finds the optimal pool shot 
-
-    Attributes
-    ----------    
-    ...
-
-    """
-
     BALL_RADIUS=102 
 
     def __init__(self,
-                pool_frame_obj,
+                pool_frame,
                 ball_radius = None,
         ):
         
@@ -168,60 +18,8 @@ class Brain(object):
         else:
             self.ball_radius=ball_radius
         
-        # get attributes from pool_frame_obj
-        attrs_pool_frame_obj=vars(pool_frame_obj)
-        self.__dict__.update(attrs_pool_frame_obj)
-
-    @staticmethod
-    def _draw_pocket(img,point,radius):
-        cv2.circle(img, point, radius, (0, 255, 255), 8)
-        x,y=point
-        cv2.line(img, (x+radius, y), (x-radius, y), (0, 255, 255), thickness=8)
-        cv2.line(img, (x, y-radius), (x, y+radius), (0, 255, 255), thickness=8)
-        return img
-
-    @staticmethod
-    def _get_equidistant_points(p1, p2, parts):
-        if parts==0:
-            points=(p1+p2)/2
-        else:
-            points_separated=np.linspace(p1[0], p2[0], parts+1),np.linspace(p1[1], p2[1], parts+1)
-            points=np.column_stack((points_separated[0],points_separated[1]))
-        return points
+        self.pool_frame=pool_frame
     
-    @staticmethod
-    def _angle_between_two_vectors(u,v):
-        dot = u[:,0]*v[:,0] + u[:,1]*v[:,1] # equivalent to np.sum(u*v, axis=1)
-        cosine_angle = dot / (np.linalg.norm(u, axis=1)* np.linalg.norm(v, axis=1))
-        angle = np.arccos(cosine_angle)
-        return np.degrees(angle)
-
-    @staticmethod
-    def _line_intersect(a1, a2, b1, b2):
-        T = np.array([[0, -1], [1, 0]])
-        da = np.atleast_2d(a2 - a1)
-        db = np.atleast_2d(b2 - b1)
-        dp = np.atleast_2d(a1 - b1)
-        dap = np.dot(da, T)
-        denom = np.sum(dap * db, axis=1)
-        num = np.sum(dap * dp, axis=1)
-        return np.atleast_2d(num / denom).T * db + b1
-    
-    @staticmethod
-    def get_row_combinations_of_two_arrays(array1,array2):
-
-        if len(array1.shape)==1:
-            array1=array1.reshape(1,2)
-
-        if len(array2.shape)==1:
-            array2=array2.reshape(1,2)
-
-        a = np.repeat(array1, array2.shape[0], axis=0)
-        b = np.tile(array2, (array1.shape[0],1))
-        result = np.hstack([a,b])
-
-        return result
-
     def get_all_detected_balls_except_cue(self,d_centroids):
 
         dict_detected_balls_except_cue=d_centroids.copy()
@@ -258,13 +56,13 @@ class Brain(object):
         return arr_cue, arr_8ball
     
     def get_other_balls(self,no_cue,to_pocket):
-        result=self.get_row_combinations_of_two_arrays(to_pocket,no_cue)
+        result=utils.get_row_combinations_of_two_arrays(to_pocket,no_cue)
         return result
     
     def get_other_balls_twice(self, no_cue, to_pocket):
-        result=self.get_row_combinations_of_two_arrays(to_pocket,to_pocket)
+        result=utils.get_row_combinations_of_two_arrays(to_pocket,to_pocket)
         result=result[result[:,0]!=result[:,3]]
-        result=self.get_row_combinations_of_two_arrays(result,no_cue)
+        result=utils.get_row_combinations_of_two_arrays(result,no_cue)
 
         return result
     
@@ -275,25 +73,20 @@ class Brain(object):
         Cx=C[0,0]
         Cy=C[0,1]
 
-        top_y = self.frame_top_left[1]
-        right_x = self.frame_top_right[0]
-        bottom_y = self.frame_bottom_right[1]
-        left_x = self.frame_bottom_left[0]
-
         # check if C inside rect frame
-        if Cx>right_x:
-            Cx=right_x
-        elif Cx<left_x:
-            Cx=left_x
-        if Cy>bottom_y:
-            Cy=bottom_y
-        elif Cy<top_y:
-            Cy=top_y
+        if Cx>self.pool_frame.right_x:
+            Cx=self.pool_frame.right_x
+        elif Cx<self.pool_frame.left_x:
+            Cx=self.pool_frame.left_x
+        if Cy>self.pool_frame.bottom_y:
+            Cy=self.pool_frame.bottom_y
+        elif Cy<self.pool_frame.top_y:
+            Cy=self.pool_frame.top_y
 
-        dist_C_top = Cy-top_y
-        dist_C_bottom = -Cy+bottom_y
-        dist_C_left = Cx-left_x
-        dist_C_right = -Cx+right_x
+        dist_C_top = Cy-self.pool_frame.top_y
+        dist_C_bottom = -Cy+self.pool_frame.bottom_y
+        dist_C_left = Cx-self.pool_frame.left_x
+        dist_C_right = -Cx+self.pool_frame.right_x
 
         C_top = C + np.array([[0,-2*dist_C_top]])
         C_bottom = C + np.array([[0,2*dist_C_bottom]])
@@ -310,20 +103,15 @@ class Brain(object):
         T_reflect_sub_id=np.array([1,2,3,4]).reshape(-1,1)
         T_reflect_id = T[:,0].reshape(-1,1)
 
-        top_y = self.frame_top_left[1]
-        right_x = self.frame_top_right[0]
-        bottom_y = self.frame_bottom_right[1]
-        left_x = self.frame_bottom_left[0]
+        Tx[Tx>self.pool_frame.right_x]=self.pool_frame.right_x
+        Tx[Tx<self.pool_frame.left_x]=self.pool_frame.left_x
+        Ty[Ty>self.pool_frame.bottom_y]=self.pool_frame.bottom_y
+        Ty[Ty<self.pool_frame.top_y]=self.pool_frame.top_y
 
-        Tx[Tx>right_x]=right_x
-        Tx[Tx<left_x]=left_x
-        Ty[Ty>bottom_y]=bottom_y
-        Ty[Ty<top_y]=top_y
-
-        dist_T_top = Ty-top_y
-        dist_T_bottom = -Ty+bottom_y
-        dist_T_left = Tx-left_x
-        dist_T_right = -Tx+right_x
+        dist_T_top = Ty-self.pool_frame.top_y
+        dist_T_bottom = -Ty+self.pool_frame.bottom_y
+        dist_T_left = Tx-self.pool_frame.left_x
+        dist_T_right = -Tx+self.pool_frame.right_x
 
         T_top_x = Tx 
         T_top_y = Ty + -2*dist_T_top
@@ -342,7 +130,7 @@ class Brain(object):
         T_right = np.hstack((T_right_x,T_right_y))
 
         T_reflect = np.vstack((T_top,T_right,T_bottom,T_left))
-        T_reflect_ids = self.get_row_combinations_of_two_arrays(T_reflect_sub_id,T_reflect_id)
+        T_reflect_ids = utils.get_row_combinations_of_two_arrays(T_reflect_sub_id,T_reflect_id)
         T_reflect = np.hstack((T_reflect_ids, T_reflect))
         return T_reflect
 
@@ -364,6 +152,19 @@ class Brain(object):
         dot_prod_sign_D=np.sum(DE*(-UOD),axis=1)
         return (distance < 2*self.ball_radius) & (dot_prod_sign_O > 0) & (dot_prod_sign_D > 0)
             
+    def find_all_collision_trajectories_in_df(self, df, traj, rows_to_match, collision_balls):
+        list_collision_configs=[]
+        for origin,destiny in traj:
+            collision_origin_destiny=self.find_collision_trajectories(origin,destiny,collision_balls)
+            list_collision_configs.append(collision_origin_destiny)        
+
+        collision_configs=np.bitwise_or.reduce(list_collision_configs)
+        df_collisions=df[collision_configs]
+        arr_collisions=df_collisions[rows_to_match].values
+        arr_configs=df[rows_to_match].values
+        collision_configs=(arr_configs[None,:]==arr_collisions[:,None]).all(-1).any(0)
+        return collision_configs
+
     def find_X(self,T,P):
 
         r=self.ball_radius
@@ -386,20 +187,20 @@ class Brain(object):
         results=np.zeros((points.shape[0], 2))
 
         #top_segment
-        top_point1=self.frame_top_left
-        top_point2=self.frame_top_right
+        top_point1=self.pool_frame.top_left
+        top_point2=self.pool_frame.top_right
 
         #right_segment
-        right_point1=self.frame_top_right
-        right_point2=self.frame_bottom_right
+        right_point1=self.pool_frame.top_right
+        right_point2=self.pool_frame.bottom_right
 
         #bottom_segment
-        bottom_point1=self.frame_bottom_right
-        bottom_point2=self.frame_bottom_left
+        bottom_point1=self.pool_frame.bottom_right
+        bottom_point2=self.pool_frame.bottom_left
 
         #left_segment
-        left_point1=self.frame_bottom_left
-        left_point2=self.frame_top_left
+        left_point1=self.bottom_left
+        left_point2=self.top_left
 
         #intersection can happen between four different segments (edges of pool frame)
 
@@ -410,16 +211,16 @@ class Brain(object):
         cond_top_quadrant= (C_reflect_id==1)
         cond_bottom_quadrant= (C_reflect_id==3)
 
-        results[cond_left_quadrant]=self._line_intersect(X[cond_left_quadrant],
+        results[cond_left_quadrant]=utils.line_intersect(X[cond_left_quadrant],
                                                         C_reflect_coord[cond_left_quadrant],
                                                         left_point1,left_point2)
-        results[cond_right_quadrant]=self._line_intersect(X[cond_right_quadrant],
+        results[cond_right_quadrant]=utils.line_intersect(X[cond_right_quadrant],
                                                          C_reflect_coord[cond_right_quadrant],
                                                          right_point1,right_point2)
-        results[cond_top_quadrant]=self._line_intersect(X[cond_top_quadrant],
+        results[cond_top_quadrant]=utils.line_intersect(X[cond_top_quadrant],
                                                        C_reflect_coord[cond_top_quadrant],
                                                         top_point1,top_point2)
-        results[cond_bottom_quadrant]=self._line_intersect(X[cond_bottom_quadrant],
+        results[cond_bottom_quadrant]=utils.line_intersect(X[cond_bottom_quadrant],
                                                         C_reflect_coord[cond_bottom_quadrant],
                                                         bottom_point1,bottom_point2)        
         return results
@@ -427,21 +228,21 @@ class Brain(object):
     def deviation_from_ideal_angle(self, T,X,C):
         TX=X-T
         XC=C-X
-        angle=self._angle_between_two_vectors(TX,XC)
+        angle=utils.angle_between_two_vectors(TX,XC)
         return np.abs(angle)
     
     def find_valid_cushion_impacts(self, B):
         #cushion 1 (horizontal_left)
-        xmin1=self.xmin_horizontal_left_cushion
-        xmax1=self.xmax_horizontal_left_cushion
+        xmin1=self.pool_frame.xmin_horizontal_left_cushion
+        xmax1=self.pool_frame.xmax_horizontal_left_cushion
 
         #cushion 2 (horizontal_right)
-        xmin2=self.xmin_horizontal_right_cushion
-        xmax2=self.xmax_horizontal_right_cushion
+        xmin2=self.pool_frame.xmin_horizontal_right_cushion
+        xmax2=self.pool_frame.xmax_horizontal_right_cushion
 
         #cushion 3 (vertical)
-        ymin=self.ymin_vertical_cushion
-        ymax=self.ymax_vertical_cushion
+        ymin=self.pool_frame.ymin_vertical_cushion
+        ymax=self.pool_frame.ymax_vertical_cushion
         
         cond_horiz = (B[:,0]==1) | (B[:,0]==3)
         cond_verti = (B[:,0]==2) | (B[:,0]==4)
@@ -456,6 +257,18 @@ class Brain(object):
         final_cond = cond1 | cond2 | cond3
 
         return final_cond
+    
+    def ball_config_param(self,d_centroids, ball_type):
+        no_cue = self.get_all_detected_balls_except_cue(d_centroids)
+        to_pocket = self.get_balls_to_be_pocket(d_centroids,ball_type)
+        C, ball8 = self.get_cue_and_8ball(d_centroids)
+        C_reflect = self.get_cue_ball_reflections(C)
+        T=self.get_other_balls(no_cue,to_pocket)
+        TT=self.get_other_balls_twice(no_cue,to_pocket)
+        T_reflect=self.get_T_ball_reflections(to_pocket)
+        P=self.pool_frame.pockets.pockets
+        param={'C':C, 'C_reflect':C_reflect, 'T':T, 'TT':TT, 'T_reflect':T_reflect, 'P':P}
+        return param
 
     def draw_pool_balls(self, d_centroids, img):
         for ball_num in d_centroids:
@@ -472,184 +285,55 @@ class Brain(object):
             cv2.line(img, point1.astype(int), point2.astype(int), [251, 163, 26], 1) 
         return img
 
-    #################################################################################################################################################################
-    
-    def choose_param_based_on_ball_type(self,d_centroids, ball_type):
-        no_cue = self.get_all_detected_balls_except_cue(d_centroids)
-        to_pocket = self.get_balls_to_be_pocket(d_centroids,ball_type)
-        C, ball8 = self.get_cue_and_8ball(d_centroids)
-        C_reflect = self.get_cue_ball_reflections(C)
-        T=self.get_other_balls(no_cue,to_pocket)
-        TT=self.get_other_balls_twice(no_cue,to_pocket)
-        T_reflect=self.get_T_ball_reflections(to_pocket)
-        P=self.P
-        return C,T,TT,P,C_reflect,T_reflect
 
-    def wrapper_generate_combinations(self,shot_type,C,T,TT,P,C_reflect,T_reflect):
-        
-        if shot_type=='CTP':
-            comb=self.get_row_combinations_of_two_arrays(T,P)
-            comb=self.get_row_combinations_of_two_arrays(C,comb)
-            df=pd.DataFrame({'Cx':comb[:,0],
-                            'Cy':comb[:,1],
-                            'T_id':comb[:,2],
-                            'Tx':comb[:,3],
-                            'Ty':comb[:,4],
-                            'other_ball_id':comb[:,5],
-                            'other_ball_x':comb[:,6],
-                            'other_ball_y':comb[:,7],
-                            'P_id':comb[:,8],
-                            'P_sub_id':comb[:,9],
-                            'Px':comb[:,10],
-                            'Py':comb[:,11]})
-            
-        elif shot_type=='CBTP':
-            comb=self.get_row_combinations_of_two_arrays(T,P)
-            comb=self.get_row_combinations_of_two_arrays(C_reflect,comb)
-            comb=self.get_row_combinations_of_two_arrays(C,comb)
-            df=pd.DataFrame({'Cx':comb[:,0],
-                            'Cy':comb[:,1],
-                            'C_reflect_id': comb[:,2],
-                            'C_reflect_x':comb[:,3],
-                            'C_reflect_y':comb[:,4],
-                            'T_id':comb[:,5],
-                            'Tx':comb[:,6],
-                            'Ty':comb[:,7],
-                            'other_ball_id':comb[:,8],
-                            'other_ball_x':comb[:,9],
-                            'other_ball_y':comb[:,10],
-                            'P_id':comb[:,11],
-                            'P_sub_id':comb[:,12],
-                            'Px':comb[:,13],
-                            'Py':comb[:,14]})
+class CTP(Brain):
 
-        elif shot_type=='CTTP':
-            comb=self.get_row_combinations_of_two_arrays(TT,P)
-            comb=self.get_row_combinations_of_two_arrays(C,comb)
-            df=pd.DataFrame({'Cx':comb[:,0],
-                            'Cy':comb[:,1],
-                            'T_id':comb[:,2],
-                            'Tx':comb[:,3],
-                            'Ty':comb[:,4],
-                            'TT_id':comb[:,5], 
-                            'TTx':comb[:,6],   
-                            'TTy':comb[:,7],   
-                            'other_ball_id':comb[:,8],
-                            'other_ball_x':comb[:,9],
-                            'other_ball_y':comb[:,10],
-                            'P_id':comb[:,11],
-                            'P_sub_id':comb[:,12],
-                            'Px':comb[:,13],
-                            'Py':comb[:,14]})
+    def __init__(self,
+                 pool_frame,
+                 ball_radius = None):
+        super().__init__(pool_frame, ball_radius)
 
-        elif shot_type=='CTBP':
-            comb=self.get_row_combinations_of_two_arrays(T,P)
-            comb=self.get_row_combinations_of_two_arrays(T_reflect,comb)
-            comb=self.get_row_combinations_of_two_arrays(C,comb)
-            df=pd.DataFrame({'Cx':comb[:,0],
-                            'Cy':comb[:,1],
-                            'T_reflect_id': comb[:,3],
-                            'T_reflect_sub_id': comb[:,2],
-                            'T_reflect_x':comb[:,4],
-                            'T_reflect_y':comb[:,5],
-                            'T_id':comb[:,6],
-                            'Tx':comb[:,7],
-                            'Ty':comb[:,8],
-                            'other_ball_id':comb[:,9],
-                            'other_ball_x':comb[:,10],
-                            'other_ball_y':comb[:,11],
-                            'P_id':comb[:,12],
-                            'P_sub_id':comb[:,13],
-                            'Px':comb[:,14],
-                            'Py':comb[:,15]})
-            df=df[df['T_reflect_id']==df['T_id']]
+    def generate_combinations(self,param):
+        comb=utils.get_row_combinations_of_two_arrays(param['T'], param['P'])
+        comb=utils.get_row_combinations_of_two_arrays(param['C'], comb)
+        df=pd.DataFrame({'Cx':comb[:,0],
+                        'Cy':comb[:,1],
+                        'T_id':comb[:,2],
+                        'Tx':comb[:,3],
+                        'Ty':comb[:,4],
+                        'other_ball_id':comb[:,5],
+                        'other_ball_x':comb[:,6],
+                        'other_ball_y':comb[:,7],
+                        'P_id':comb[:,8],
+                        'P_sub_id':comb[:,9],
+                        'Px':comb[:,10],
+                        'Py':comb[:,11]})
         return df
     
-    def wrapper_collision_trajectories(self,df,shot_type):
-        
+    def collision_trajectories(self,df):
         collision_balls=df[['other_ball_x', 'other_ball_y']].values
-
-        if shot_type=='CTP':
-            origin1=df[['Cx', 'Cy']].values
-            destiny1=df[['Xx', 'Xy']].values
-            origin2=df[['Tx', 'Ty']].values
-            destiny2=df[['Px', 'Py']].values
-            traj=((origin1,destiny1), (origin2, destiny2))
-            rows_to_match=['T_id', 'P_id', 'P_sub_id']
-        
-        elif shot_type=='CBTP':
-            origin1=df[['Cx', 'Cy']].values
-            destiny1=df[['Bx', 'By']].values
-            origin2=df[['Bx', 'By']].values
-            destiny2=df[['Xx', 'Xy']].values
-            origin3=df[['Tx', 'Ty']].values
-            destiny3=df[['Px', 'Py']].values
-            traj=((origin1,destiny1), (origin2, destiny2), (origin3, destiny3))
-            rows_to_match=['T_id', 'C_reflect_id', 'P_id', 'P_sub_id']
-        
-        elif shot_type=='CTTP':
-            origin1=df[['Cx', 'Cy']].values
-            destiny1=df[['X_new_x', 'X_new_y']].values
-            origin2=df[['TTx', 'TTy']].values 
-            destiny2=df[['Xx', 'Xy']].values
-            origin3=df[['Tx', 'Ty']].values
-            destiny3=df[['Px', 'Py']].values
-            traj=((origin1,destiny1), (origin2, destiny2), (origin3, destiny3))
-            rows_to_match=['T_id', 'TT_id', 'P_id','P_sub_id'] 
-
-        elif shot_type=='CTBP':
-            origin1=df[['Cx', 'Cy']].values
-            destiny1=df[['Xx', 'Xy']].values
-            origin2=df[['Tx', 'Ty']].values 
-            destiny2=df[['Bx', 'By']].values
-            origin3=df[['Bx', 'By']].values
-            destiny3=df[['Px', 'Py']].values
-            traj=((origin1,destiny1), (origin2, destiny2), (origin3, destiny3))
-            rows_to_match=['T_id', 'T_reflect_sub_id', 'P_id', 'P_sub_id']
-
-        list_collision_configs=[]
-        for origin,destiny in traj:
-            collision_origin_destiny=self.find_collision_trajectories(origin,destiny,collision_balls)
-            list_collision_configs.append(collision_origin_destiny)        
-
-        collision_configs=np.bitwise_or.reduce(list_collision_configs)
-        df_collisions=df[collision_configs]
-        arr_collisions=df_collisions[rows_to_match].values
-        arr_configs=df[rows_to_match].values
-        collision_configs=(arr_configs[None,:]==arr_collisions[:,None]).all(-1).any(0)
-        
+        origin1=df[['Cx', 'Cy']].values
+        destiny1=df[['Xx', 'Xy']].values
+        origin2=df[['Tx', 'Ty']].values
+        destiny2=df[['Px', 'Py']].values
+        traj=((origin1,destiny1), (origin2, destiny2))
+        rows_to_match=['T_id', 'P_id', 'P_sub_id']
+        collision_configs=self.find_all_collision_trajectories_in_df(df,traj,rows_to_match, collision_balls)
         return collision_configs
     
-    def wrapper_draw_trajectories(self,df,img,shot_type):
-
-        if shot_type=='CTP':
-            img=self.draw_trajectories(img,df[['Cx', 'Cy']].values,df[['Xx', 'Xy']].values)
-            img=self.draw_trajectories(img,df[['Tx', 'Ty']].values,df[['Px', 'Py']].values) 
+    def draw_all_trajectories(self,df,img):
+        img=self.draw_trajectories(img,df[['Cx', 'Cy']].values,df[['Xx', 'Xy']].values)
+        img=self.draw_trajectories(img,df[['Tx', 'Ty']].values,df[['Px', 'Py']].values) 
             
-        elif shot_type=='CBTP':
-            img=self.draw_trajectories(img,df[['Bx', 'By']].values, df[['Cx', 'Cy']].values)
-            img=self.draw_trajectories(img,df[['Bx', 'By']].values, df[['Xx', 'Xy']].values)
-            img=self.draw_trajectories(img,df[['Tx', 'Ty']].values, df[['Px', 'Py']].values) 
-
-        elif shot_type=='CTTP':
-            img=self.draw_trajectories(img,df[['Cx', 'Cy']].values, df[['X_new_x', 'X_new_y']].values)
-            img=self.draw_trajectories(img,df[['TTx', 'TTy']].values, df[['Xx', 'Xy']].values)
-            img=self.draw_trajectories(img,df[['Tx', 'Ty']].values, df[['Px', 'Py']].values) 
-        
-        elif shot_type=='CTBP':
-            img=self.draw_trajectories(img,df[['Cx', 'Cy']].values, df[['Xx', 'Xy']].values)
-            img=self.draw_trajectories(img,df[['Tx', 'Ty']].values, df[['Bx', 'By']].values)
-            img=self.draw_trajectories(img,df[['Bx', 'By']].values, df[['Px', 'Py']].values) 
         return img
 
-
-    def CTP_shots(self,d_centroids,ball_type):
-        C,T,TT,P,C_reflect,T_reflect=self.choose_param_based_on_ball_type(d_centroids,ball_type)
-        df=self.wrapper_generate_combinations('CTP',C,T,TT,P,C_reflect,T_reflect)
+    def selected_shots(self,d_centroids,ball_type):
+        param=self.ball_config_param(d_centroids,ball_type)
+        df=self.generate_combinations(param)
         X_comb = self.find_X(df[['Tx', 'Ty']].values,df[['Px', 'Py']].values)
         df['Xx']=X_comb[:,0]
         df['Xy']=X_comb[:,1]
-        collision_configs=self.wrapper_collision_trajectories(df,'CTP')
+        collision_configs=self.collision_trajectories(df)
         df=df[~(collision_configs)]
         df['XC_TX_abs_angle'] = self.deviation_from_ideal_angle(df[['Tx', 'Ty']].values,
                                                                 df[['Xx', 'Xy']].values,
@@ -657,11 +341,56 @@ class Brain(object):
         df=df[df['XC_TX_abs_angle'] < 60]
         return df
 
+class CBTP(Brain):
 
-    def CBTP_shots(self,d_centroids,ball_type):
+    def __init__(self,
+                 pool_frame,
+                 ball_radius = None):
+        super().__init__(pool_frame, ball_radius)
 
-        C,T,TT,P,C_reflect,T_reflect=self.choose_param_based_on_ball_type(d_centroids, ball_type)
-        df=self.wrapper_generate_combinations('CBTP',C,T,TT,P,C_reflect,T_reflect)
+    def generate_combinations(self,param):
+        comb=utils.get_row_combinations_of_two_arrays(param['T'], param['P'])
+        comb=utils.get_row_combinations_of_two_arrays(param['C_reflect'],comb)
+        comb=utils.get_row_combinations_of_two_arrays(param['C'],comb)
+        df=pd.DataFrame({'Cx':comb[:,0],
+                        'Cy':comb[:,1],
+                        'C_reflect_id': comb[:,2],
+                        'C_reflect_x':comb[:,3],
+                        'C_reflect_y':comb[:,4],
+                        'T_id':comb[:,5],
+                        'Tx':comb[:,6],
+                        'Ty':comb[:,7],
+                        'other_ball_id':comb[:,8],
+                        'other_ball_x':comb[:,9],
+                        'other_ball_y':comb[:,10],
+                        'P_id':comb[:,11],
+                        'P_sub_id':comb[:,12],
+                        'Px':comb[:,13],
+                        'Py':comb[:,14]})
+        return df
+    
+    def collision_trajectories(self,df):
+        collision_balls=df[['other_ball_x', 'other_ball_y']].values
+        origin1=df[['Cx', 'Cy']].values
+        destiny1=df[['Bx', 'By']].values
+        origin2=df[['Bx', 'By']].values
+        destiny2=df[['Xx', 'Xy']].values
+        origin3=df[['Tx', 'Ty']].values
+        destiny3=df[['Px', 'Py']].values
+        traj=((origin1,destiny1), (origin2, destiny2), (origin3, destiny3))
+        rows_to_match=['T_id', 'C_reflect_id', 'P_id', 'P_sub_id']
+        collision_configs=self.find_all_collision_trajectories_in_df(df,traj,rows_to_match, collision_balls)
+        return collision_configs
+    
+    def draw_all_trajectories(self,df,img):
+        img=self.draw_trajectories(img,df[['Bx', 'By']].values, df[['Cx', 'Cy']].values)
+        img=self.draw_trajectories(img,df[['Bx', 'By']].values, df[['Xx', 'Xy']].values)
+        img=self.draw_trajectories(img,df[['Tx', 'Ty']].values, df[['Px', 'Py']].values) 
+        return img
+
+    def selected_shots(self,d_centroids,ball_type):
+        param=self.ball_config_param(d_centroids,ball_type)
+        df=self.generate_combinations(param)
         X_comb = self.find_X(df[['Tx', 'Ty']].values,
                              df[['Px', 'Py']].values)
         df['Xx']=X_comb[:,0]
@@ -671,7 +400,7 @@ class Brain(object):
                                            df[['Xx', 'Xy']].values,)
         df['Bx']=B_comb[:,0]
         df['By']=B_comb[:,1]
-        collision_configs=self.wrapper_collision_trajectories(df,'CBTP')
+        collision_configs=self.collision_trajectories(df)
         df=df[~(collision_configs)]
         valid_bounces=self.find_valid_cushion_impacts(df[['C_reflect_id','Bx','By']].values)
         df=df[valid_bounces]
@@ -679,12 +408,57 @@ class Brain(object):
                                                                 df[['Xx', 'Xy']].values,
                                                                 df[['Bx', 'By']].values)
         df=df[df['XB_TX_abs_angle'] < 60]
-
         return df
     
-    def CTTP_shots(self,d_centroids,ball_type):
-        C,T,TT,P,C_reflect,T_reflect=self.choose_param_based_on_ball_type(d_centroids,ball_type)
-        df=self.wrapper_generate_combinations('CTTP',C,T,TT,P,C_reflect,T_reflect)
+class CTTP(Brain):
+
+    def __init__(self,
+                 pool_frame,
+                 ball_radius = None):
+        super().__init__(pool_frame, ball_radius)
+
+    def generate_combinations(self,param):
+        comb=utils.get_row_combinations_of_two_arrays(param['TT'],param['P'])
+        comb=utils.get_row_combinations_of_two_arrays(param['C'],comb)
+        df=pd.DataFrame({'Cx':comb[:,0],
+                        'Cy':comb[:,1],
+                        'T_id':comb[:,2],
+                        'Tx':comb[:,3],
+                        'Ty':comb[:,4],
+                        'TT_id':comb[:,5], 
+                        'TTx':comb[:,6],   
+                        'TTy':comb[:,7],   
+                        'other_ball_id':comb[:,8],
+                        'other_ball_x':comb[:,9],
+                        'other_ball_y':comb[:,10],
+                        'P_id':comb[:,11],
+                        'P_sub_id':comb[:,12],
+                        'Px':comb[:,13],
+                        'Py':comb[:,14]})
+        return df
+    
+    def collision_trajectories(self,df):
+        collision_balls=df[['other_ball_x', 'other_ball_y']].values
+        origin1=df[['Cx', 'Cy']].values
+        destiny1=df[['X_new_x', 'X_new_y']].values
+        origin2=df[['TTx', 'TTy']].values 
+        destiny2=df[['Xx', 'Xy']].values
+        origin3=df[['Tx', 'Ty']].values
+        destiny3=df[['Px', 'Py']].values
+        traj=((origin1,destiny1), (origin2, destiny2), (origin3, destiny3))
+        rows_to_match=['T_id', 'TT_id', 'P_id','P_sub_id'] 
+        collision_configs=self.find_all_collision_trajectories_in_df(df,traj,rows_to_match, collision_balls)
+        return collision_configs
+    
+    def draw_all_trajectories(self,df,img):
+        img=self.draw_trajectories(img,df[['Cx', 'Cy']].values, df[['X_new_x', 'X_new_y']].values)
+        img=self.draw_trajectories(img,df[['TTx', 'TTy']].values, df[['Xx', 'Xy']].values)
+        img=self.draw_trajectories(img,df[['Tx', 'Ty']].values, df[['Px', 'Py']].values) 
+        return img
+
+    def selected_shots(self,d_centroids,ball_type):
+        param=self.ball_config_param(d_centroids,ball_type)
+        df=self.generate_combinations(param)
         X_comb = self.find_X(T=df[['Tx', 'Ty']].values,
                             P=df[['Px', 'Py']].values)
         df['Xx']=X_comb[:,0]
@@ -694,7 +468,7 @@ class Brain(object):
         df['X_new_x']=X_new_comb[:,0]
         df['X_new_y']=X_new_comb[:,1]
 
-        collision_configs=self.wrapper_collision_trajectories(df,'CTTP')
+        collision_configs=self.collision_trajectories(df)
         df=df[~(collision_configs)]
         df['XTT_TX_abs_angle'] = self.deviation_from_ideal_angle(df[['Tx', 'Ty']].values,
                                                                 df[['Xx', 'Xy']].values,
@@ -706,10 +480,59 @@ class Brain(object):
         df=df[df['XnewC_TTXnew_abs_angle'] < 60]
 
         return df
+    
+class CTBP(Brain):
 
-    def CTBP_shots(self,d_centroids,ball_type):
-        C,T,TT,P,C_reflect,T_reflect=self.choose_param_based_on_ball_type(d_centroids,ball_type)
-        df=self.wrapper_generate_combinations('CTBP',C,T,TT,P,C_reflect,T_reflect)
+    def __init__(self,
+                 pool_frame,
+                 ball_radius = None):
+        super().__init__(pool_frame, ball_radius)
+
+    def generate_combinations(self,param):
+        comb=utils.get_row_combinations_of_two_arrays(param['T'],param['P'])
+        comb=utils.get_row_combinations_of_two_arrays(param['T_reflect'],comb)
+        comb=utils.get_row_combinations_of_two_arrays(param['C'],comb)
+        df=pd.DataFrame({'Cx':comb[:,0],
+                        'Cy':comb[:,1],
+                        'T_reflect_id': comb[:,3],
+                        'T_reflect_sub_id': comb[:,2],
+                        'T_reflect_x':comb[:,4],
+                        'T_reflect_y':comb[:,5],
+                        'T_id':comb[:,6],
+                        'Tx':comb[:,7],
+                        'Ty':comb[:,8],
+                        'other_ball_id':comb[:,9],
+                        'other_ball_x':comb[:,10],
+                        'other_ball_y':comb[:,11],
+                        'P_id':comb[:,12],
+                        'P_sub_id':comb[:,13],
+                        'Px':comb[:,14],
+                        'Py':comb[:,15]})
+        df=df[df['T_reflect_id']==df['T_id']]
+        return df
+    
+    def collision_trajectories(self,df):
+        collision_balls=df[['other_ball_x', 'other_ball_y']].values
+        origin1=df[['Cx', 'Cy']].values
+        destiny1=df[['Xx', 'Xy']].values
+        origin2=df[['Tx', 'Ty']].values 
+        destiny2=df[['Bx', 'By']].values
+        origin3=df[['Bx', 'By']].values
+        destiny3=df[['Px', 'Py']].values
+        traj=((origin1,destiny1), (origin2, destiny2), (origin3, destiny3))
+        rows_to_match=['T_id', 'T_reflect_sub_id', 'P_id', 'P_sub_id']
+        collision_configs=self.find_all_collision_trajectories_in_df(df,traj,rows_to_match, collision_balls)
+        return collision_configs
+    
+    def draw_all_trajectories(self,df,img):
+        img=self.draw_trajectories(img,df[['Cx', 'Cy']].values, df[['Xx', 'Xy']].values)
+        img=self.draw_trajectories(img,df[['Tx', 'Ty']].values, df[['Bx', 'By']].values)
+        img=self.draw_trajectories(img,df[['Bx', 'By']].values, df[['Px', 'Py']].values) 
+        return img
+
+    def selected_shots(self,d_centroids,ball_type): 
+        param=self.ball_config_param(d_centroids,ball_type)
+        df=self.generate_combinations(param)
 
         B_comb = self.find_bouncing_points(df[['T_reflect_sub_id','T_reflect_x', 'T_reflect_y']].values,
                                            df[['Px', 'Py']].values,)
@@ -735,7 +558,7 @@ class Brain(object):
         df['Xx']=X_comb[:,0]
         df['Xy']=X_comb[:,1]
 
-        collision_configs=self.wrapper_collision_trajectories(df,'CTBP')
+        collision_configs=self.collision_trajectories(df)
         df=df[~(collision_configs)]
 
         valid_bounces=self.find_valid_cushion_impacts(df[['T_reflect_sub_id','Bx','By']].values)

@@ -54,28 +54,6 @@ class Rectangle:
                                    [offset_left_x , -offset_bottom_y],])
         self.rectangle = self.rectangle+offsets_matrix
  
-class Segment:
-    def __init__(self, point1, point2):
-
-        point1 = np.asarray(point1) 
-        point2 = np.asarray(point2)
-        self.segment = np.hstack((point1, point2))
-
-    @property
-    def point1(self):
-        return self.segment[:2]
-    @property
-    def point2(self):
-        return self.segment[2:]
-    @property
-    def middle_point(self):
-        return (self.point1+self.point2)/2
-
-    def set_segment_with_two_points(self, point1, point2):
-        point1 = np.asarray(point1) 
-        point2 = np.asarray(point2)
-        self.segment = np.hstack((point1, point2))
-
 class Pockets:
     def __init__(self,
                  corner_rectangle, 
@@ -97,8 +75,8 @@ class Pockets:
                           self.corner_rectangle.top_right,
                           self.corner_rectangle.bottom_left,
                           self.corner_rectangle.bottom_right,
-                          self.middle_segment.point1,
-                          self.middle_segment.point2]
+                          self.middle_segment[0],
+                          self.middle_segment[1]]
 
         pockets = np.vstack(l_points_to_draw)
         self.pockets_to_draw = np.hstack([pockets_id,pockets])
@@ -144,7 +122,7 @@ class Pockets:
         return np.hstack((middle_top_points,middle_bottom_points))
 
     def setup_mouths(self, width_corner, width_middle):
-        middle_x = self.middle_segment.middle_point[0]
+        middle_x = (self.middle_segment[0][0]+self.middle_segment[1][0])/2
         top_y = self.computation_rectangle.top_y
         bottom_y = self.computation_rectangle.bottom_y
         middle_top_point = np.array([middle_x, top_y])
@@ -178,6 +156,21 @@ class PoolFrame:
                  cushions):
         self.pockets=pockets
         self.cushions=cushions
+        self.rectangle=pockets.computation_rectangle
+
+        self.top_y = self.rectangle.top_y
+        self.right_x = self.rectangle.right_x
+        self.bottom_y = self.rectangle.bottom_y
+        self.left_x = self.rectangle.left_x
+        self.top_left = self.rectangle.top_left
+        self.top_right = self.rectangle.top_right
+        self.bottom_right = self.rectangle.bottom_right
+        self.bottom_left = self.rectangle.bottom_left
+        x_range1, x_range2, y_range = self.cushions.cushion_ranges
+        self.xrange_horizontal_left_cushion = x_range1
+        self.xrange_horizontal_right_cushion = x_range2
+        self.xrange_vertical_cushion = y_range
+
 
     @staticmethod
     def draw_pocket(img,point,radius):
@@ -195,8 +188,8 @@ class PoolFrame:
         return img
     
     def draw_frame(self, img):
-        cv2.rectangle(img, self.pockets.computation_rectangle.top_left, 
-                      self.pockets.computation_rectangle.bottom_right, 
+        cv2.rectangle(img, self.top_left, 
+                      self.bottom_right, 
                       (0,255,0), 
                       3)
         for row in self.pockets.pockets_to_draw:

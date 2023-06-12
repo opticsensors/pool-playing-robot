@@ -1,14 +1,15 @@
 import cv2
 import numpy as np
-from pool.pool_frame import PoolFrame,Rectangle,Pockets,Segment, Cushions
+from pool.pool_frame import PoolFrame,Rectangle,Pockets, Cushions
 from pool.random_balls import RandomBalls
+from pool.brain import CTP, CBTP, CTTP, CTBP
 
 img = cv2.imread(f'./results/warp_corners.jpg')
 H=img.shape[0]
 W=img.shape[1]
 
 xvalue=2430
-pockets_middle_segment=Segment((xvalue,164),(xvalue,2574))
+pockets_middle_segment=((xvalue,164),(xvalue,2574))
 
 img_rectangle=Rectangle(top_left=(0,0),
                         bottom_right=(W,H))
@@ -31,4 +32,12 @@ cv2.imwrite('./results/pool_frame.png', img)
 random_balls=RandomBalls(ball_radius=102,
                          computation_rectangle=computation_rectangle)
 d_centroids=random_balls.generate_random_balls()
+
+ctp=CTP(pool_frame, 102)
+df_ctp=ctp.selected_shots(d_centroids, 'solid')
+img=ctp.draw_pool_balls(d_centroids,img)
+img=ctp.draw_all_trajectories(df_ctp, img)
+
+cv2.imwrite('./results/selected_shots.png', img)
+
 

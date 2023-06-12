@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
 import cv2
-from pool.brain import Brain,PoolFrame
+from pool.brain_obsolete import Brain,PoolFrame
 
 d_centroids={#2:(1200,1268),
              #7:(572,652),
