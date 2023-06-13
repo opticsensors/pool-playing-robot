@@ -1,6 +1,7 @@
 import pygame
 import pymunk
 import pymunk.pygame_util
+import math
 
 pygame.init()
 
@@ -18,7 +19,7 @@ draw_options = pymunk.pygame_util.DrawOptions(screen)
 
 #clock
 clock = pygame.time.Clock()
-FPS = 120
+FPS = 60
 
 #colours
 BG=(50,50,50)
@@ -38,8 +39,21 @@ def create_ball(radius, pos):
   space.add(body, shape, pivot)
   return shape
 
-new_ball = create_ball(25, (300,300))
-cue_ball = create_ball(25, (600,300))
+new_ball1 = create_ball(25, (200,103))
+new_ball2 = create_ball(25, (400,400))
+new_ball3 = create_ball(25, (500,600))
+cue_ball = create_ball(25, (250,103))
+balls=[new_ball1,new_ball2,new_ball3,cue_ball]
+
+#create six pockets on table
+pockets = [
+  (55, 63),
+  (592, 48),
+  (1134, 64),
+  (55, 616),
+  (592, 629),
+  (1134, 616)
+]
 
 #create pool table cushions
 cushions = [
@@ -67,17 +81,41 @@ for c in cushions:
 run = True
 while run:
 
-    clock.tick(FPS)
+    #clock.tick(FPS)
     space.step(1 / FPS)
 
     #fill background
     screen.fill(BG)
 
+    #check if any balls have been potted
+    for i, ball in enumerate(balls):
+      for pocket in pockets:
+        ball_x_dist = abs(ball.body.position[0] - pocket[0])
+        ball_y_dist = abs(ball.body.position[1] - pocket[1])
+        ball_dist = math.sqrt((ball_x_dist ** 2) + (ball_y_dist ** 2))
+        if ball_dist <= 50 / 2:
+          #check if the potted ball was the cue ball
+          #if i == len(balls) - 1:
+          #  cue_ball_potted = True
+          #  ball.body.position = (-100, -100)
+          #  ball.body.velocity = (0.0, 0.0)
+          #else:          
+          print('yess')
+          space.remove(ball.body)
+          balls.remove(ball)
+          print(space.bodies)
+
+    #check if all the balls have stopped moving
+    taking_shot = True
+    for ball in balls:
+      if int(ball.body.velocity[0]) != 0 or int(ball.body.velocity[1]) != 0:
+        taking_shot = False
+
     #event handler
     for event in pygame.event.get():
         
-        if event.type == pygame.MOUSEBUTTONDOWN:
-            cue_ball.body.apply_impulse_at_local_point((-500,0), (0,0))
+        if event.type == pygame.MOUSEBUTTONDOWN and taking_shot == True:
+            cue_ball.body.apply_impulse_at_local_point((-5000,-5000), (0,0))
         if event.type == pygame.QUIT:
             run = False
 
