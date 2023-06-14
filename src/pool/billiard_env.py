@@ -6,6 +6,7 @@ import numpy as np
 from pool.pool_sim import PhysicsSim, Params
 import pygame
 from pool.random_balls import RandomBalls
+from pool.pool_frame import Rectangle
 
 class BilliardEnv(gym.Env):
   """
@@ -19,7 +20,7 @@ class BilliardEnv(gym.Env):
               'video.frames_per_second': 15
               }
 
-  def __init__(self, computation_rectangle, d_centroids,cushions,pockets, seed=None, max_steps=500):
+  def __init__(self, computation_rectangle, d_centroids,cushions,pockets, seed=None, max_steps=5000):
     """ Constructor
     :param seed: the random seed for the environment
     :param max_steps: the maximum number of steps the episode lasts
@@ -27,9 +28,10 @@ class BilliardEnv(gym.Env):
     """
     self.computation_rectangle = computation_rectangle
     self.min_xy = computation_rectangle.top_left 
-    self.max_xy = computation_rectangle.top_left
+    self.max_xy = computation_rectangle.bottom_right
 
     self.screen = None
+    self.clock = None
     self.params = Params()
     self.params.MAX_ENV_STEPS = max_steps
     self.physics_eng = PhysicsSim()
@@ -44,13 +46,16 @@ class BilliardEnv(gym.Env):
     
     self.observation_space = spaces.Dict(
             {
-                ball_num: spaces.Box(low=self.min_xy, high=self.max_xy, shape=(2,), dtype=np.float32)
+                ball_num: spaces.Box(low=np.float32(self.min_xy), 
+                                     high=np.float32(self.max_xy), 
+                                     shape=(2,), 
+                                     dtype=np.float32)
                 for ball_num in range(0,16)
             }
     )
 
     ## Joint commands can be between [-1, 1]
-    self.action_space = spaces.Box(low=np.array([0]), high=np.array([360]), dtype=np.float32)
+    self.action_space = spaces.Box(low=np.float32(np.array([0])), high=np.float32(np.array([360])), dtype=np.float32)
 
     self.goals = np.array([hole['pose'] for hole in self.physics_eng.holes])
     self.goalRadius = [hole['radius'] for hole in self.physics_eng.holes]
@@ -67,7 +72,7 @@ class BilliardEnv(gym.Env):
     self.np_random, seed = seeding.np_random(seed)
     return [seed]
 
-  def reset(self, desired_ball_pose = None):
+  def reset(self, action, desired_ball_pose = None):
     """
     Function to reset the environment.
     - If param RANDOM_BALL_INIT_POSE is set, the ball appears in a random pose, otherwise it will appear at [-0.5, 0.2]
@@ -84,7 +89,8 @@ class BilliardEnv(gym.Env):
     self.physics_eng.reset(init_ball_pose)
     self.steps = 0
     self.turn = random.choice(['solid', 'strip'])
-    return self._get_obs()
+    self.physics_eng.move_cue_ball(action)
+    return self._get_obs(), self._get_info()
 
   def _get_obs(self):
     """
@@ -93,13 +99,20 @@ class BilliardEnv(gym.Env):
     """
     balls_pose={}
     for ball_num, ball_shape in self.physics_eng.balls.items():
-      ball_position = np.array([ball_shape.body.position])
+      ball_position = np.array(ball_shape.body.position)
       balls_pose[ball_num] = ball_position
 
       if (ball_position < self.min_xy).all() or (ball_position > self.max_xy).all():
+        print('truncated')
         self.truncate = True
     self.state = balls_pose
     return self.state
+  
+  def _get_info(self):
+    return {"total_collisions": self.physics_eng.total_collisions,
+            "accumulative_angles": self.physics_eng.accumulative_angles,
+            "collision_occurs": self.physics_eng.collision_occurs,
+            }
 
   def reward_function(self, info):
     """
@@ -110,10 +123,11 @@ class BilliardEnv(gym.Env):
     done = False
     potted_balls = []
     #check if any balls have been potted
-    for ball_num, ball_position in self.state:
+    for ball_num, ball_position in self.state.items():
       distances = np.linalg.norm(ball_position - self.goals, axis=1)
       if (distances <= self.goalRadius).any():
         potted_balls.append(ball_num)
+        print('terminated in dist to pockets')
         done = True
         info['reason'] = 'Ball in hole'
         if ball_num in [1,2,3,4,5,6,7] and self.turn=='solid':
@@ -124,11 +138,13 @@ class BilliardEnv(gym.Env):
           reward = -100
     info['potted_balls'] = potted_balls
 
-    if all(ball_shape.body.velocity < (0.1,0.1) for ball_shape in self.physics_eng.balls.values()):
+    if all(abs(ball_shape.body.velocity) <= self.params.BALL_TERMINAL_VELOCITY 
+           for ball_shape in self.physics_eng.balls.values()):
+      print('terminated in velocity', [ball_shape.body.velocity for ball_shape in self.physics_eng.balls.values()])
       done = True
       info['reason'] = 'Balls stopped moving'
     
-    if self.physics_eng.total_collisions > 3 or self.physics_eng.total_collisions == 0:
+    if self.physics_eng.total_collisions > 5 or self.physics_eng.total_collisions == 0:
       reward = -50
     if self.physics_eng.collision_occurs:
       if abs(self.physics_eng.angle) < 60:
@@ -136,7 +152,7 @@ class BilliardEnv(gym.Env):
 
     return reward, done, info
 
-  def step(self, action):
+  def step(self):
     """
     Performs an environment step.
     :param action: Arm Motor commands. Can be either torques or velocity, according to TORQUE_CONTROL parameter
@@ -152,27 +168,38 @@ class BilliardEnv(gym.Env):
     info = {}
 
     # Get reward
-    reward, done, info = self.reward_function(info)
+    if self.steps > 1: #let the cue ball roll
+      reward, done, info = self.reward_function(info)
+    else:
+      reward, done, info = 0, False, {}
 
     if self.steps >= self.params.MAX_ENV_STEPS:  ## Check if max number of steps has been exceeded
+      print('terminated in max steps')
       done = True
       info['reason'] = 'Max Steps reached: {}'.format(self.steps)
 
-    return self.state, reward, done, self.truncate, info
+    return self.state, reward, done, False, info
 
-  def render(self, mode='human', **kwargs):
+  def render(self, render_mode ='human'):
     """
     Rendering function
     :param mode: if human, renders on screen. If rgb_array, renders as numpy array
     :return: screen if mode=human, array if mode=rgb_array
     """
     # If no screen available create screen
-    if self.screen is None and mode == 'human':
-      self.screen = pygame.display.set_mode((self.params.DISPLAY_SIZE[0], self.params.DISPLAY_SIZE[1]))
-      pygame.display.set_caption('Billiard')
-      self.clock = pygame.time.Clock()
 
-    if self.state is None: return None ## If there is no state, exit
+    if self.screen is None and render_mode == "human":
+        pygame.init()
+        pygame.display.init()
+        self.screen = pygame.display.set_mode((self.params.DISPLAY_SIZE[0], self.params.DISPLAY_SIZE[1]))
+        pygame.display.set_caption('Billiard')
+
+    if self.clock is None and render_mode == "human":
+        self.clock = pygame.time.Clock()
+
+    for event in pygame.event.get():
+      if event.type == pygame.QUIT:
+          self.close()
 
     canvas = pygame.Surface((self.params.DISPLAY_SIZE[0], self.params.DISPLAY_SIZE[1]))
     canvas.fill((75, 75, 75))
@@ -225,7 +252,7 @@ class BilliardEnv(gym.Env):
           self.params.BALL_RADIUS,
         )
 
-    if self.render_mode == "human":
+    if render_mode == "human":
         # The following line copies our drawings from `canvas` to the visible window
         self.screen.blit(canvas, canvas.get_rect())
         pygame.event.pump()
@@ -243,3 +270,49 @@ class BilliardEnv(gym.Env):
     if self.screen is not None:
         pygame.display.quit()
         pygame.quit()
+
+
+if __name__ == "__main__":
+  
+  d_centroids={0:(200,103),8:(400,400),9:(500,600),14:(250,103)}
+  computation_rectangle = Rectangle((0,0), Params().DISPLAY_SIZE)
+  computation_rectangle = computation_rectangle.get_rectangle_with_offsets((127, 127, 127, 127))
+
+
+  #create six pockets on table
+  pockets = [
+  (55, 63),
+  (592, 48),
+  (1134, 64),
+  (55, 616),
+  (592, 629),
+  (1134, 616)
+  ]
+
+  #create pool table cushions
+  cushions = [
+  [(88, 56), (109, 77), (555, 77), (564, 56)],
+  [(621, 56), (630, 77), (1081, 77), (1102, 56)],
+  [(89, 621), (110, 600),(556, 600), (564, 621)],
+  [(622, 621), (630, 600), (1081, 600), (1102, 621)],
+  [(56, 96), (77, 117), (77, 560), (56, 581)],
+  [(1143, 96), (1122, 117), (1122, 560), (1143, 581)]]
+
+  env=BilliardEnv(computation_rectangle,d_centroids, cushions, pockets)
+  
+  #print(env.action_space.sample())
+  #print(env.observation_space.sample())
+  
+  action = env.action_space.sample()
+  observation, info = env.reset(action)
+  import time
+  for i in range(1000):
+    print(i)
+    action = env.action_space.sample()
+    observation, reward, terminated, truncated, info = env.step()
+    env.render()
+    time.sleep(0.01)
+    if terminated or truncated:
+        print('reseting', terminated, truncated)
+        observation, info = env.reset(action)
+  env.close()

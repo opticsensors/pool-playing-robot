@@ -21,13 +21,14 @@ class Params(object):
     self.BALL_ELASTICITY = 0.8
     self.BALL_FRICTION = 1000
     self.BALL_MASS = 5
+    self.BALL_TERMINAL_VELOCITY = 0.0
 
     self.CUSHION_ELASTICITY = 0.8
 
-    self.CUE_FORCE = 2000
+    self.CUE_FORCE = 5000
 
   # Graphic params
-    self.TARGET_FPS = 120
+    self.TARGET_FPS = 60
     self.TIME_STEP = 1.0 / self.TARGET_FPS
 
     self.MAX_ENV_STEPS = 300
@@ -62,6 +63,7 @@ class PhysicsSim(object):
     self.dt = self.params.TIME_STEP
     self.total_collisions = 0
     self.collision_occurs = 0
+    self.accumulative_angles = 0
 
   def create_cushions(self,cushions):
     """
@@ -137,7 +139,9 @@ class PhysicsSim(object):
     self.collision_occurs = 1
     shape1, shape2 = arbiter.shapes
     if type(shape1) is pymunk.shapes.Circle and type(shape2) is pymunk.shapes.Circle:
-       self.angle = shape2.body.position - shape1.body.position
+       XT = shape2.body.position - shape1.body.position
+       self.angle = shape1.body.velocity.get_angle_degrees_between(XT)
+       self.accumulative_angles += self.angle
     return True
 
   def handle_collisions(self):
@@ -168,6 +172,9 @@ class PhysicsSim(object):
 
     ## Recreate the balls 
     self.create_balls(new_balls_pose)
+    self.total_collisions = 0
+    self.collision_occurs = 0
+    self.accumulative_angles = 0
 
   def step(self, dt=None):
     """
@@ -249,4 +256,5 @@ if __name__ == "__main__":
         #print(phys.balls[0].body.position)
         #print(np.array(phys.balls[0].body.position))
         #print('--------------------------------')
+
 
