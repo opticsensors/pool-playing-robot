@@ -13,11 +13,7 @@ class Params(object):
     """
     Constructor
     """
-    self.TABLE_SIZE = np.array([1200, 678])
-    self.TABLE_CENTER = np.array(self.TABLE_SIZE / 2)
     self.DISPLAY_SIZE = (1200, 678)
-    self.TO_PIXEL = np.array(self.DISPLAY_SIZE) / self.TABLE_SIZE
-
     self.POCKET_CORNER_RADIUS = 25
     self.POCKET_MIDDLE_RADIUS = 25
 
@@ -31,7 +27,6 @@ class Params(object):
     self.CUE_FORCE = 2000
 
   # Graphic params
-    self.PPM = int(min(self.DISPLAY_SIZE)/max(self.TABLE_SIZE))
     self.TARGET_FPS = 120
     self.TIME_STEP = 1.0 / self.TARGET_FPS
 
@@ -65,6 +60,8 @@ class PhysicsSim(object):
     self.space = pymunk.Space()
     self.static_body = self.space.static_body
     self.dt = self.params.TIME_STEP
+    self.total_collisions = 0
+    self.collision_occurs = 0
 
   def create_cushions(self,cushions):
     """
@@ -77,6 +74,7 @@ class PhysicsSim(object):
         body.position = ((0, 0))
         shape = pymunk.Poly(body, c)
         shape.elasticity = self.params.CUSHION_ELASTICITY
+        shape.collision_type = 1
         self.space.add(body, shape)
         self.cushions.append(c)
 
@@ -100,6 +98,7 @@ class PhysicsSim(object):
         shape = pymunk.Circle(body, self.params.BALL_RADIUS)
         #shape.mass = self.params.BALL_MASS
         shape.elasticity = self.params.BALL_ELASTICITY
+        shape.collision_type = 1
         #use pivot joint to add friction
         pivot = pymunk.PivotJoint(self.static_body, body, (0, 0), (0, 0))
         pivot.max_bias = 0 # disable joint correction
@@ -132,6 +131,18 @@ class PhysicsSim(object):
     Fx=self.params.CUE_FORCE*vx
     Fy=self.params.CUE_FORCE*vy
     self.balls[0].body.apply_impulse_at_local_point((Fx,Fy), (0,0))
+
+  def callback_function(self,arbiter, space, data):
+    self.total_collisions += 1
+    self.collision_occurs = 1
+    shape1, shape2 = arbiter.shapes
+    if type(shape1) is pymunk.shapes.Circle and type(shape2) is pymunk.shapes.Circle:
+       self.angle = shape2.body.position - shape1.body.position
+    return True
+
+  def handle_collisions(self):
+    handler = self.space.add_default_collision_handler()
+    handler.begin = self.callback_function
 
   def reset(self, new_balls_pose):
     """
@@ -167,6 +178,7 @@ class PhysicsSim(object):
         self.space.step(self.dt)
     else:
        self.space.step(dt)
+    self.collision_occurs = 0
 
 
 if __name__ == "__main__":
@@ -196,6 +208,7 @@ if __name__ == "__main__":
     phys.create_balls(balls_pose)
     phys.create_cushions(cushions)
     phys.create_pockets(pockets)
+    phys.handle_collisions()
 
     screen = pygame.display.set_mode((phys.params.DISPLAY_SIZE[0], phys.params.DISPLAY_SIZE[1]))
     pygame.display.set_caption('Billiard')
@@ -228,3 +241,12 @@ if __name__ == "__main__":
 
         phys.step(1/120.0)
         clock.tick(120)
+
+        #debug
+        #print(phys.total_collisions)
+        #print(phys.balls[0].collision_type )
+        #print(phys.balls[0].body.velocity)
+        #print(phys.balls[0].body.position)
+        #print(np.array(phys.balls[0].body.position))
+        #print('--------------------------------')
+

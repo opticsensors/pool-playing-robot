@@ -14,7 +14,7 @@ class RandomBalls:
     
     def generate_random_balls(self, ncirc=None):
         if ncirc is None:
-            ncirc=random.randint(3, 15)# number of circles
+            ncirc=random.randint(4, 16)# number of circles from 4 to 16
         minx=self.computation_rectangle.left_x
         maxx=self.computation_rectangle.right_x
         miny=self.computation_rectangle.top_y
@@ -28,7 +28,16 @@ class RandomBalls:
                 circle_list.append((x, y))  
 
         cue_and_8ball=[0,8]
-        potting_balls=random.sample(range(1,15), ncirc-2)
-        balls=cue_and_8ball+potting_balls
+        npot=ncirc-2 #goes from 2 to 14
+        # at max there are 7 solid balls and 7 strip balls 
+        if npot-7>0:
+            min_num_solid_balls=npot-7
+        else:
+            min_num_solid_balls=1
+        nsolid=random.randint(min_num_solid_balls, npot-min_num_solid_balls)
+        nstrip=npot-nsolid
+        solid_balls=random.sample(range(1,8), nsolid)
+        strip_balls=random.sample(range(9,16), nstrip)
+        balls=cue_and_8ball+solid_balls+strip_balls
         return dict(zip(balls, circle_list))
 
