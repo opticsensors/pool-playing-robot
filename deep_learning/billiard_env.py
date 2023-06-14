@@ -4,7 +4,7 @@ from gym.utils import seeding
 import numpy as np
 from pool.pool_sim import PhysicsSim, Params
 import pygame
-
+from pool.random_balls import RandomBalls
 
 class BilliardEnv(gym.Env):
   """
@@ -18,21 +18,33 @@ class BilliardEnv(gym.Env):
               'video.frames_per_second': 15
               }
 
-  def __init__(self, seed=None, max_steps=500):
+  def __init__(self, computation_rectangle, d_centroids, seed=None, max_steps=500):
     """ Constructor
     :param seed: the random seed for the environment
     :param max_steps: the maximum number of steps the episode lasts
     :return:
     """
+    self.d_centroids = d_centroids
+    self.computation_rectangle = computation_rectangle
+    self.min_xy = computation_rectangle.top_left
+    self.max_xy = computation_rectangle.top_left
+
     self.screen = None
     self.params = Params()
     self.params.MAX_ENV_STEPS = max_steps
     self.physics_eng = PhysicsSim()
 
     ## Ball XY positions can be between -1.5 and 1.5
-    self.observation_space = spaces.Box(low=np.array([127,127]),                                                       
-                                        high=np.array([1200-127,678-127]), dtype=np.float32)                                       
-
+    #min_ball_coord = np.repeat( self.min_xy, len(self.d_centroids), axis=0)
+    #max_ball_coord = np.repeat( self.max_xy, len(self.d_centroids), axis=0)
+    #self.observation_space = spaces.Box(low=min_ball_coord,high=max_ball_coord, dtype=np.float32)                                       
+    
+    self.observation_space = spaces.Dict(
+            {
+                ball_num: spaces.Box(low=self.min_xy, high=self.max_xy, shape=(2,), dtype=np.float32)
+                for ball_num in self.d_centroids.keys()
+            }
+    )
 
     ## Joint commands can be between [-1, 1]
     self.action_space = spaces.Box(low=np.array([0]), high=np.array([360]), dtype=np.float32)
@@ -52,22 +64,21 @@ class BilliardEnv(gym.Env):
     self.np_random, seed = seeding.np_random(seed)
     return [seed]
 
-  def reset(self, desired_ball_pose=None):
+  def reset(self, desired_ball_pose = None):
     """
     Function to reset the environment.
     - If param RANDOM_BALL_INIT_POSE is set, the ball appears in a random pose, otherwise it will appear at [-0.5, 0.2]
-    - If param RANDOM_ARM_INIT_POSE is set, the arm joint positions will be set randomly, otherwise they will have [0, 0]
     :return: Initial observation
     """
-    if self.params.RANDOM_BALL_INIT_POSE:
-      init_ball_pose = np.array([self.np_random.uniform(low=-1.2, high=1.2),  # x
-                                 self.np_random.uniform(low=-1.2, high=1.2)])  # y
-    elif desired_ball_pose is not None:
-      init_ball_pose = np.array(desired_ball_pose)
+    if desired_ball_pose is None:
+      random_balls=RandomBalls(ball_radius=self.params.BALL_RADIUS,
+                              computation_rectangle=self.computation_rectangle)
+      init_ball_pose = random_balls.generate_random_balls()
+      #init_ball_pose = {k: np.array([v]) for k, v in desired_ball_pose.items()}
     else:
-      init_ball_pose = np.array([-0.5, 0.2])
+      init_ball_pose = desired_ball_pose.copy()
 
-    self.physics_eng.reset([init_ball_pose])
+    self.physics_eng.reset(init_ball_pose)
     self.steps = 0
     self.rew_area = None
     return self._get_obs()
@@ -75,17 +86,14 @@ class BilliardEnv(gym.Env):
   def _get_obs(self):
     """
     This function returns the state after reading the simulator parameters.
-    :return: state: composed of ([ball_pose_x, ball_pose_y], [joint0_angle, joint1_angle], [joint0_speed, joint1_speed])
+    :return: state: composed of ([ball_pose_x, ball_pose_y])
     """
     ball_pose = self.physics_eng.balls[0].position + self.physics_eng.wt_transform
-    joint0_a = self.physics_eng.arm['jointW0'].angle
-    joint0_v = self.physics_eng.arm['jointW0'].speed
-    joint1_a = self.physics_eng.arm['joint01'].angle
-    joint1_v = self.physics_eng.arm['joint01'].speed
+
     if np.abs(ball_pose[0]) > 1.5 or np.abs(ball_pose[1]) > 1.5:
       raise ValueError('Ball out of map in position: {}'.format(ball_pose))
 
-    self.state = np.array([ball_pose[0], ball_pose[1], joint0_a, joint1_a, joint0_v, joint1_v])
+    self.state = np.array([ball_pose[0], ball_pose[1]])
     return self.state
 
   def reward_function(self, info):

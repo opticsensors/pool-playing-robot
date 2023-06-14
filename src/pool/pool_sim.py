@@ -87,10 +87,9 @@ class PhysicsSim(object):
     :return:
     """
     ## List of balls in simulation
-    self.balls = []
-    self.balls_numbers = []
+    self.balls = {}
 
-    for idx, pose in enumerate(balls_pose):
+    for idx, pose in balls_pose.items():
         mass = self.params.BALL_MASS
         radius = self.params.BALL_RADIUS
         inertia = pymunk.moment_for_circle(mass, 0, radius, (0,0))
@@ -106,8 +105,7 @@ class PhysicsSim(object):
         pivot.max_bias = 0 # disable joint correction
         pivot.max_force = self.params.BALL_FRICTION # emulate linear friction
         self.space.add(body, shape, pivot)
-        self.balls.append(shape)
-        self.balls_numbers.append(idx)
+        self.balls[idx] = shape
 
   def create_pockets(self, pockets):
     """
@@ -173,7 +171,7 @@ class PhysicsSim(object):
 
 if __name__ == "__main__":
   
-    balls_pose=[(200,103),(400,400),(500,600),(250,103)]
+    balls_pose={0:(200,103),8:(400,400),9:(500,600),14:(250,103)}
 
     #create six pockets on table
     pockets = [
@@ -209,13 +207,13 @@ if __name__ == "__main__":
     while run:
         for event in pygame.event.get():
             if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
-                phys.balls[0].body.apply_impulse_at_local_point((-5000,-500), (0,0))
+                phys.move_cue_ball(225)
             if event.type == pygame.MOUSEBUTTONDOWN and event.button == 3:
-                phys.balls[0].body.apply_impulse_at_local_point((5000,-500), (0,0))
+                phys.move_cue_ball(315)
             if event.type == pygame.MOUSEBUTTONDOWN and event.button == 5:
-                phys.balls[0].body.apply_impulse_at_local_point((-5000,500), (0,0))
+                phys.move_cue_ball(135)
             if event.type == pygame.MOUSEBUTTONDOWN and event.button == 4:
-                phys.balls[0].body.apply_impulse_at_local_point((5000,500), (0,0))
+                phys.move_cue_ball(45)
             if event.type == pygame.MOUSEBUTTONDOWN and event.button == 2:
                 phys.reset(balls_pose)
                 a=1
