@@ -45,7 +45,7 @@ class BilliardEnv(gym.Env):
     dict_spaces={ str(ball_num): spaces.Box(low=np.float32(self.min_xy), 
                                      high=np.float32(self.max_xy), 
                                      shape=(2,), 
-                                     dtype=np.float32) for ball_num in range(16)}
+                                     dtype=np.float32) for ball_num in d_centroids}
     dict_spaces = {**{'turn': spaces.Discrete(2) }, **dict_spaces}
 
     self.observation_space = spaces.Dict(dict_spaces)
@@ -88,9 +88,10 @@ class BilliardEnv(gym.Env):
 
     self.physics_eng.reset(init_ball_pose)
     self.steps = 0
-    self.state = self._get_obs()
-
-    return self._get_obs(), self._get_info()
+    #self.states is created when we call self._get_obs() in return
+    observation = self._get_obs()
+    print('reset print',[e for e in self.state])
+    return observation, self._get_info()
 
   def _get_obs(self):
     """

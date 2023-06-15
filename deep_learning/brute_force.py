@@ -32,7 +32,7 @@ env=BilliardEnv(computation_rectangle,d_centroids, cushions, pockets)
 #print(env.action_space.sample())
 #print(env.observation_space.sample())
 gen=0
-incr=10
+incr=1
 action=0
 terminated=False
 truncated=False
@@ -42,7 +42,7 @@ while action<360:
     while not terminated or truncated:
         observation, reward, terminated, truncated, info = env.step(action)
         env.render()
-        time.sleep(0.02)
+        #time.sleep(0.02)
     print(gen,action, reward, info)
     action += incr
     terminated=False

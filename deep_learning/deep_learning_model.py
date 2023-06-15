@@ -30,7 +30,7 @@ cushions = [
 
 env=BilliardEnv(computation_rectangle,d_centroids, cushions, pockets)
 
-env.reset()
+env.reset(d_centroids, 1)
 print('obs_sape',[e for e in env.observation_space])
 print('state',[e for e in env.state])
 
@@ -41,7 +41,7 @@ model.learn(total_timesteps=10000)
 print('testing ...')
 episodes = 5
 for ep in range(episodes):
-	obs, info = env.reset()
+	obs, info = env.reset(d_centroids, 1)
 	terminate = False
 	truncated = False
 	print(ep)

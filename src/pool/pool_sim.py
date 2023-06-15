@@ -21,7 +21,7 @@ class Params(object):
     self.BALL_ELASTICITY = 0.8
     self.BALL_FRICTION = 1000
     self.BALL_MASS = 5
-    self.BALL_TERMINAL_VELOCITY = 0.5
+    self.BALL_TERMINAL_VELOCITY = 60
 
     self.CUSHION_ELASTICITY = 0.8
 
