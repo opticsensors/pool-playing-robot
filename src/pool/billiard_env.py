@@ -17,7 +17,7 @@ class BilliardEnv(gym.Env):
   ball_x, ball_y -> [-1.5, 1.5]
   """
 
-  def __init__(self, computation_rectangle, d_centroids,cushions,pockets, seed=None, max_steps=5000, render_mode ='human'):
+  def __init__(self, computation_rectangle, d_centroids,cushions,pockets, max_steps=5000, render_mode ='human'):
     """ Constructor
     :param seed: the random seed for the environment
     :param max_steps: the maximum number of steps the episode lasts
@@ -44,7 +44,7 @@ class BilliardEnv(gym.Env):
     dict_spaces={ str(ball_num): spaces.Box(low=np.float32(self.min_xy), 
                                      high=np.float32(self.max_xy), 
                                      shape=(2,), 
-                                     dtype=np.float32) for ball_num in range(0,16)}
+                                     dtype=np.float32) for ball_num in d_centroids}
     dict_spaces = {**{'turn': spaces.Discrete(2) }, **dict_spaces}
 
     self.observation_space = spaces.Dict(dict_spaces)
@@ -71,14 +71,20 @@ class BilliardEnv(gym.Env):
       random_balls=RandomBalls(ball_radius=self.params.BALL_RADIUS,
                               computation_rectangle=self.computation_rectangle)
       init_ball_pose = random_balls.generate_random_balls()
-      print(init_ball_pose)
     else:
       init_ball_pose = desired_ball_pose.copy()
 
     self.physics_eng.reset(init_ball_pose)
     self.steps = 0
     self.turn = random.randint(0,1)
-    #self.physics_eng.move_cue_ball(action)
+
+    dict_spaces={ str(ball_num): spaces.Box(low=np.float32(self.min_xy), 
+                                     high=np.float32(self.max_xy), 
+                                     shape=(2,), 
+                                     dtype=np.float32) for ball_num in init_ball_pose}
+    dict_spaces = {**{'turn': spaces.Discrete(2) }, **dict_spaces}
+    self.observation_space = spaces.Dict(dict_spaces)
+
     return self._get_obs(), self._get_info()
 
   def _get_obs(self):
