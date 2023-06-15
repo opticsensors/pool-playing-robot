@@ -31,11 +31,14 @@ cushions = [
 env=BilliardEnv(computation_rectangle,d_centroids, cushions, pockets)
 
 env.reset()
+print('obs_sape',[e for e in env.observation_space])
+print('state',[e for e in env.state])
 
 model = PPO('MultiInputPolicy', env, verbose=1)
 print('learning ... ')
-model.learn(total_timesteps=1000)
+model.learn(total_timesteps=10000)
 
+print('testing ...')
 episodes = 5
 for ep in range(episodes):
 	obs, info = env.reset()

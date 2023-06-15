@@ -25,7 +25,7 @@ class Params(object):
 
     self.CUSHION_ELASTICITY = 0.8
 
-    self.CUE_FORCE = 5000
+    self.CUE_FORCE = 7000
 
   # Graphic params
     self.TARGET_FPS = 60
@@ -136,12 +136,12 @@ class PhysicsSim(object):
 
   def callback_function(self,arbiter, space, data):
     self.total_collisions += 1
-    self.collision_occurs = 1
     shape1, shape2 = arbiter.shapes
     if type(shape1) is pymunk.shapes.Circle and type(shape2) is pymunk.shapes.Circle:
-       XT = shape2.body.position - shape1.body.position
-       self.angle = shape1.body.velocity.get_angle_degrees_between(XT)
-       self.accumulative_angles += self.angle
+      self.collision_occurs = 1
+      XT = shape2.body.position - shape1.body.position
+      self.angle = shape1.body.velocity.get_angle_degrees_between(XT)
+      self.accumulative_angles += self.angle
     return True
 
   def handle_collisions(self):
@@ -250,7 +250,7 @@ if __name__ == "__main__":
         clock.tick(120)
 
         #debug
-        #print(phys.total_collisions)
+        print(phys.total_collisions)
         #print(phys.balls[0].collision_type )
         #print(phys.balls[0].body.velocity)
         #print(phys.balls[0].body.position)

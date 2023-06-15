@@ -44,7 +44,7 @@ class BilliardEnv(gym.Env):
     dict_spaces={ str(ball_num): spaces.Box(low=np.float32(self.min_xy), 
                                      high=np.float32(self.max_xy), 
                                      shape=(2,), 
-                                     dtype=np.float32) for ball_num in d_centroids}
+                                     dtype=np.float32) for ball_num in range(16)}
     dict_spaces = {**{'turn': spaces.Discrete(2) }, **dict_spaces}
 
     self.observation_space = spaces.Dict(dict_spaces)
@@ -55,7 +55,7 @@ class BilliardEnv(gym.Env):
     self.goals = np.array([hole['pose'] for hole in self.physics_eng.holes])
     self.goalRadius = [hole['radius'] for hole in self.physics_eng.holes]
     self.truncate = False
-
+    self.state={}
     self.render_mode = render_mode
 
   def reset(self, desired_ball_pose = None, seed=None, options=None):
@@ -77,13 +77,7 @@ class BilliardEnv(gym.Env):
     self.physics_eng.reset(init_ball_pose)
     self.steps = 0
     self.turn = random.randint(0,1)
-
-    dict_spaces={ str(ball_num): spaces.Box(low=np.float32(self.min_xy), 
-                                     high=np.float32(self.max_xy), 
-                                     shape=(2,), 
-                                     dtype=np.float32) for ball_num in init_ball_pose}
-    dict_spaces = {**{'turn': spaces.Discrete(2) }, **dict_spaces}
-    self.observation_space = spaces.Dict(dict_spaces)
+    self.state = self._get_obs()
 
     return self._get_obs(), self._get_info()
 
@@ -100,7 +94,7 @@ class BilliardEnv(gym.Env):
       if (ball_position < self.min_xy).all() or (ball_position > self.max_xy).all():
         print('truncated')
         self.truncate = True
-    self.state = balls_pose
+    self.state=(balls_pose).copy()
     return {**{'turn': self.turn }, **self.state}
   
   def _get_info(self):
@@ -123,28 +117,31 @@ class BilliardEnv(gym.Env):
       distances = np.linalg.norm(ball_position - self.goals, axis=1)
       if (distances <= self.goalRadius).any():
         potted_balls.append(ball_num)
-        print('terminated in dist to pockets')
         done = True
-        info['reason'] = 'Ball in hole'
+        info['reason'] = 'Terminated: ball in hole'
         if ball_num in [1,2,3,4,5,6,7] and self.turn==0: #solid
           reward = 100
+          info['pot solid']=True
         elif ball_num in [9,10,11,12,13,14,15] and self.turn==1: #strip
           reward = 100
+          info['pot strip']=True
         else:
           reward = -100
-    info['potted_balls'] = potted_balls
+          info['pot wrong ball']=True
+    #info['potted_balls'] = potted_balls
 
     if all(abs(ball_shape.body.velocity) <= self.params.BALL_TERMINAL_VELOCITY 
            for ball_shape in self.physics_eng.balls.values()):
-      print('terminated in velocity')
       done = True
-      info['reason'] = 'Balls stopped moving'
+      info['reason'] = 'Terminated: balls velocity 0'
     
     if self.physics_eng.total_collisions > 5 or self.physics_eng.total_collisions == 0:
       reward = -50
+      info['invalid num coll']=True
     if self.physics_eng.collision_occurs:
       if abs(self.physics_eng.angle) < 60:
         reward = 25
+        info['angle_coll']=True
 
     return reward, done, info
 
@@ -301,7 +298,7 @@ if __name__ == "__main__":
   observation, info = env.reset()
   import time
   for i in range(1000):
-    print(i)
+    print(len(observation))
     action = env.action_space.sample()
     observation, reward, terminated, truncated, info = env.step(action)
     env.render()
