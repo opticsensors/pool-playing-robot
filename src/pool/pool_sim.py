@@ -21,11 +21,11 @@ class Params(object):
     self.BALL_ELASTICITY = 0.8
     self.BALL_FRICTION = 1000
     self.BALL_MASS = 5
-    self.BALL_TERMINAL_VELOCITY = 0.0
+    self.BALL_TERMINAL_VELOCITY = 0.5
 
     self.CUSHION_ELASTICITY = 0.8
 
-    self.CUE_FORCE = 7000
+    self.CUE_FORCE = 6000
 
   # Graphic params
     self.TARGET_FPS = 60

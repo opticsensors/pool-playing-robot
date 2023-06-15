@@ -35,6 +35,7 @@ class BilliardEnv(gym.Env):
     self.physics_eng.create_balls(d_centroids)
     self.physics_eng.create_cushions(cushions)
     self.physics_eng.create_pockets(pockets)
+    self.physics_eng.handle_collisions()
 
     ## Ball XY positions can be between -1.5 and 1.5
     #min_ball_coord = np.repeat( self.min_xy, len(d_centroids), axis=0)
@@ -58,7 +59,7 @@ class BilliardEnv(gym.Env):
     self.state={}
     self.render_mode = render_mode
 
-  def reset(self, desired_ball_pose = None, seed=None, options=None):
+  def reset(self, desired_ball_pose=None, turn=None, seed=None, options=None):
     """
     Function to reset the environment.
     - If param RANDOM_BALL_INIT_POSE is set, the ball appears in a random pose, otherwise it will appear at [-0.5, 0.2]
@@ -67,6 +68,11 @@ class BilliardEnv(gym.Env):
     # We need the following line to seed self.np_random
     super().reset(seed=seed)
 
+    if turn is None:
+      self.turn = random.randint(0,1)
+    else:
+      self.turn = turn
+
     if desired_ball_pose is None:
       random_balls=RandomBalls(ball_radius=self.params.BALL_RADIUS,
                               computation_rectangle=self.computation_rectangle)
@@ -74,9 +80,14 @@ class BilliardEnv(gym.Env):
     else:
       init_ball_pose = desired_ball_pose.copy()
 
+    for ball_pose in init_ball_pose.values():
+      ball_pose=np.array(ball_pose)
+      if (ball_pose < self.min_xy).all() or (ball_pose > self.max_xy).all():
+        print('truncated')
+        self.truncate = True
+
     self.physics_eng.reset(init_ball_pose)
     self.steps = 0
-    self.turn = random.randint(0,1)
     self.state = self._get_obs()
 
     return self._get_obs(), self._get_info()
@@ -91,9 +102,6 @@ class BilliardEnv(gym.Env):
       ball_position = np.array(ball_shape.body.position)
       balls_pose[str(ball_num)] = ball_position
 
-      if (ball_position < self.min_xy).all() or (ball_position > self.max_xy).all():
-        print('truncated')
-        self.truncate = True
     self.state=(balls_pose).copy()
     return {**{'turn': self.turn }, **self.state}
   
@@ -112,6 +120,7 @@ class BilliardEnv(gym.Env):
     reward = 0
     done = False
     potted_balls = []
+    info['turn']=self.turn
     #check if any balls have been potted
     for ball_num, ball_position in self.state.items():
       distances = np.linalg.norm(ball_position - self.goals, axis=1)
@@ -119,15 +128,15 @@ class BilliardEnv(gym.Env):
         potted_balls.append(ball_num)
         done = True
         info['reason'] = 'Terminated: ball in hole'
-        if ball_num in [1,2,3,4,5,6,7] and self.turn==0: #solid
-          reward = 100
-          info['pot solid']=True
-        elif ball_num in [9,10,11,12,13,14,15] and self.turn==1: #strip
-          reward = 100
-          info['pot strip']=True
+        if ball_num in ['1','2','3','4','5','6','7'] and self.turn==0: #solid
+          reward += 100
+          info['pot solid']=ball_num
+        elif ball_num in ['9','10','11','12','13','14','15'] and self.turn==1: #strip
+          reward += 100
+          info['pot strip']=ball_num
         else:
-          reward = -100
-          info['pot wrong ball']=True
+          reward += -100
+          info['pot wrong ball']=ball_num
     #info['potted_balls'] = potted_balls
 
     if all(abs(ball_shape.body.velocity) <= self.params.BALL_TERMINAL_VELOCITY 
@@ -136,11 +145,11 @@ class BilliardEnv(gym.Env):
       info['reason'] = 'Terminated: balls velocity 0'
     
     if self.physics_eng.total_collisions > 5 or self.physics_eng.total_collisions == 0:
-      reward = -50
-      info['invalid num coll']=True
+      reward += -50
+      info['invalid num coll']=self.physics_eng.total_collisions
     if self.physics_eng.collision_occurs:
       if abs(self.physics_eng.angle) < 60:
-        reward = 25
+        reward += 25
         info['angle_coll']=True
 
     return reward, done, info
@@ -298,9 +307,9 @@ if __name__ == "__main__":
   observation, info = env.reset()
   import time
   for i in range(1000):
-    print(len(observation))
     action = env.action_space.sample()
     observation, reward, terminated, truncated, info = env.step(action)
+    print(env.physics_eng.total_collisions)
     env.render()
     time.sleep(0.01)
     if terminated or truncated:
