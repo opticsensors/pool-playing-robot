@@ -1,20 +1,13 @@
 import numpy as np
-from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import Dense, Flatten
-from tensorflow.keras.optimizers import Adam
-from pool.pool_sim import Params
-from pool.random_balls import RandomBalls
+import gymnasium as gym
+from stable_baselines3 import PPO
 from pool.pool_frame import Rectangle
+from pool.pool_sim import Params
 from pool.billiard_env import BilliardEnv
-from gym.spaces.utils import flatdim
-
-from rl.agents import DQNAgent
-from rl.policy import BoltzmannQPolicy
-from rl.memory import SequentialMemory
 
 d_centroids={0:(200,103),8:(400,400),9:(500,600),14:(250,103)}
 computation_rectangle = Rectangle((0,0), Params().DISPLAY_SIZE)
-computation_rectangle = computation_rectangle.get_rectangle_with_offsets((127, 127, 127, 127))
+computation_rectangle = computation_rectangle.get_rectangle_with_offsets((130, 130, 130, 130))
 
 #create six pockets on table
 pockets = [
@@ -37,26 +30,21 @@ cushions = [
 
 env=BilliardEnv(computation_rectangle,d_centroids, cushions, pockets)
 
-states = flatdim(env.observation_space)
-actions = env.action_space.n
+env.reset()
 
-model = Sequential()  
-model.add(Flatten(input_shape=(1,states)))  
-model.add(Dense(24, activation='relu', input_shape=states))
-model.add(Dense(24, activation='relu'))
-model.add(Dense(actions, activation='linear'))
+model = PPO('MultiInputPolicy', env, verbose=1)
+print('learning ... ')
+model.learn(total_timesteps=1000)
 
-agent = DQNAgent(
-    model=model,
-    memory=SequentialMemory(limit=50000, window_length=1),
-    policy = BoltzmannQPolicy(),
-    nb_actions=actions,
-    nb_steps_warmup=10, 
-    target_model_update=0.01)    
+episodes = 5
+for ep in range(episodes):
+	obs, info = env.reset()
+	terminate = False
+	truncated = False
+	print(ep)
+	while not terminate or not truncated:
+		action, _states = model.predict(obs)
+		obs, rewards, terminate, truncate, info = env.step(action)
+		env.render()
+		print(rewards)
 
-agent.compile(Adam(lr=0.001), metrics=['mae'])
-agent.fit(env, nb_steps=50000, visualize=False, verbose=1)
-results = agent.test(env, nb_episodes=10, visualize=True)
-print(np.mean(results.history["episode_reward"]))
-
-env.close()
