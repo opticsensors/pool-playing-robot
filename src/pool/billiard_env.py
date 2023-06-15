@@ -16,9 +16,6 @@ class BilliardEnv(gym.Env):
   The values that these components can take are:
   ball_x, ball_y -> [-1.5, 1.5]
   """
-  metadata = {'render.modes': ['human'],
-              'video.frames_per_second': 15
-              }
 
   def __init__(self, computation_rectangle, d_centroids,cushions,pockets, seed=None, max_steps=5000):
     """ Constructor
@@ -44,15 +41,13 @@ class BilliardEnv(gym.Env):
     #max_ball_coord = np.repeat( self.max_xy, len(d_centroids), axis=0)
     #self.observation_space = spaces.Box(low=min_ball_coord,high=max_ball_coord, dtype=np.float32)                                       
     
-    self.observation_space = spaces.Dict(
-            {
-                ball_num: spaces.Box(low=np.float32(self.min_xy), 
+    dict_spaces={ball_num: spaces.Box(low=np.float32(self.min_xy), 
                                      high=np.float32(self.max_xy), 
                                      shape=(2,), 
-                                     dtype=np.float32)
-                for ball_num in range(0,16)
-            }
-    )
+                                     dtype=np.float32) for ball_num in range(0,16)}
+    dict_spaces = {**{'turn': spaces.Discrete(2) }, **dict_spaces}
+
+    self.observation_space = spaces.Dict(dict_spaces)
 
     ## Joint commands can be between [-1, 1]
     self.action_space = spaces.Box(low=np.float32(np.array([0])), high=np.float32(np.array([360])), dtype=np.float32)
@@ -88,7 +83,7 @@ class BilliardEnv(gym.Env):
 
     self.physics_eng.reset(init_ball_pose)
     self.steps = 0
-    self.turn = random.choice(['solid', 'strip'])
+    self.turn = random.randint(0,1)
     self.physics_eng.move_cue_ball(action)
     return self._get_obs(), self._get_info()
 
@@ -106,10 +101,11 @@ class BilliardEnv(gym.Env):
         print('truncated')
         self.truncate = True
     self.state = balls_pose
-    return self.state
+    return {**{'turn': self.turn }, **self.state}
   
   def _get_info(self):
-    return {"total_collisions": self.physics_eng.total_collisions,
+    return {"turn": self.turn,
+            "total_collisions": self.physics_eng.total_collisions,
             "accumulative_angles": self.physics_eng.accumulative_angles,
             "collision_occurs": self.physics_eng.collision_occurs,
             }
@@ -130,9 +126,9 @@ class BilliardEnv(gym.Env):
         print('terminated in dist to pockets')
         done = True
         info['reason'] = 'Ball in hole'
-        if ball_num in [1,2,3,4,5,6,7] and self.turn=='solid':
+        if ball_num in [1,2,3,4,5,6,7] and self.turn==0: #solid
           reward = 100
-        elif ball_num in [9,10,11,12,13,14,15] and self.turn=='strip':
+        elif ball_num in [9,10,11,12,13,14,15] and self.turn==1: #strip
           reward = 100
         else:
           reward = -100
@@ -178,7 +174,7 @@ class BilliardEnv(gym.Env):
       done = True
       info['reason'] = 'Max Steps reached: {}'.format(self.steps)
 
-    return self.state, reward, done, False, info
+    return {**{'turn': self.turn }, **self.state}, reward, done, False, info
 
   def render(self, render_mode ='human'):
     """
