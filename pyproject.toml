@@ -30,6 +30,10 @@ dependencies = [
     "scikit-learn",
     "scipy",
     "ultralytics",
+    "gymnasium",
+    "stable-baselines3",
+    "pygame",
+    "pymunk",
 ]
 
 [project.urls]

@@ -34,6 +34,10 @@ They should be installed automatically, but we can install them manually runing 
 
 ```py -m pip install <package_name>```
 
+Note that stable-baselines3 was installed with:
+
+```py -m pip install git+https://github.com/DLR-RM/stable-baselines3 ```
+
 # Usage example
 
 ```python
