@@ -3,7 +3,7 @@ from pool.pool_sim import Params
 from pool.billiard_env import BilliardEnv
 import time
 
-d_centroids={0:(200,103),8:(400,400),9:(500,500),14:(250,103)}
+d_centroids={0:(200,103),8:(400,400),9:(500,500),1:(250,103)}
 computation_rectangle = Rectangle((0,0), Params().DISPLAY_SIZE)
 computation_rectangle = computation_rectangle.get_rectangle_with_offsets((127, 127, 127, 127))
 

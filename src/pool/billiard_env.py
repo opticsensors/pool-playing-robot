@@ -47,7 +47,6 @@ class BilliardEnv(gym.Env):
                                      shape=(2,), 
                                      dtype=np.float32) for ball_num in d_centroids}
     dict_spaces = {**{'turn': spaces.Discrete(2) }, **dict_spaces}
-
     self.observation_space = spaces.Dict(dict_spaces)
 
     ## Joint commands can be between [-1, 1]
@@ -76,7 +75,7 @@ class BilliardEnv(gym.Env):
     if desired_ball_pose is None:
       random_balls=RandomBalls(ball_radius=self.params.BALL_RADIUS,
                               computation_rectangle=self.computation_rectangle)
-      init_ball_pose = random_balls.generate_random_balls()
+      init_ball_pose = random_balls.generate_random_positions_given_balls([0,8,1,9])
     else:
       init_ball_pose = desired_ball_pose.copy()
 
@@ -90,7 +89,6 @@ class BilliardEnv(gym.Env):
     self.steps = 0
     #self.states is created when we call self._get_obs() in return
     observation = self._get_obs()
-    print('reset print',[e for e in self.state])
     return observation, self._get_info()
 
   def _get_obs(self):
@@ -169,7 +167,7 @@ class BilliardEnv(gym.Env):
     ## Simulate timestep
     self.physics_eng.step()
     ## Get state
-    self._get_obs()
+    observation = self._get_obs()
     info = {}
 
     # Get reward
@@ -180,7 +178,7 @@ class BilliardEnv(gym.Env):
       done = True
       info['reason'] = 'Max Steps reached: {}'.format(self.steps)
 
-    return {**{'turn': self.turn }, **self.state}, reward, done, False, info
+    return observation, reward, done, False, info
 
   def render(self):
     """

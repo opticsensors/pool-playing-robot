@@ -5,7 +5,7 @@ from pool.pool_frame import Rectangle
 from pool.pool_sim import Params
 from pool.billiard_env import BilliardEnv
 
-d_centroids={0:(200,103),8:(400,400),9:(500,600),14:(250,103)}
+d_centroids={0:(200,103),8:(400,400),1:(500,600),9:(250,103)}
 computation_rectangle = Rectangle((0,0), Params().DISPLAY_SIZE)
 computation_rectangle = computation_rectangle.get_rectangle_with_offsets((130, 130, 130, 130))
 
@@ -36,7 +36,7 @@ print('state',[e for e in env.state])
 
 model = PPO('MultiInputPolicy', env, verbose=1)
 print('learning ... ')
-model.learn(total_timesteps=10000)
+model.learn(total_timesteps=2000)
 
 print('testing ...')
 episodes = 5
