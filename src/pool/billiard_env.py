@@ -57,6 +57,7 @@ class BilliardEnv(gym.Env):
     self.truncate = False
     self.state={}
     self.render_mode = render_mode
+    self.reward = 0
 
   def reset(self, desired_ball_pose=None, turn=None, seed=None, options=None):
     """
@@ -87,6 +88,7 @@ class BilliardEnv(gym.Env):
 
     self.physics_eng.reset(init_ball_pose)
     self.steps = 0
+    self.reward = 0
     #self.states is created when we call self._get_obs() in return
     observation = self._get_obs()
     return observation, self._get_info()
@@ -107,8 +109,8 @@ class BilliardEnv(gym.Env):
   def _get_info(self):
     return {"turn": self.turn,
             "total_collisions": self.physics_eng.total_collisions,
-            "accumulative_angles": self.physics_eng.accumulative_angles,
-            "collision_occurs": self.physics_eng.collision_occurs,
+            "ball_collision_happened": self.physics_eng.ball_collision_happened,
+            "first_ball_collision": self.physics_eng.first_ball_collision
             }
 
   def reward_function(self, info):
@@ -116,7 +118,6 @@ class BilliardEnv(gym.Env):
     This function calculates the reward
     :return:
     """
-    reward = 0
     done = False
     potted_balls = []
     info['turn']=self.turn
@@ -128,13 +129,13 @@ class BilliardEnv(gym.Env):
         done = True
         info['reason'] = 'Terminated: ball in hole'
         if ball_num in ['1','2','3','4','5','6','7'] and self.turn==0: #solid
-          reward += 100
+          self.reward += 50
           info['pot solid']=ball_num
         elif ball_num in ['9','10','11','12','13','14','15'] and self.turn==1: #strip
-          reward += 100
+          self.reward += 50
           info['pot strip']=ball_num
         else:
-          reward += -100
+          self.reward += -10
           info['pot wrong ball']=ball_num
     #info['potted_balls'] = potted_balls
 
@@ -143,15 +144,18 @@ class BilliardEnv(gym.Env):
       done = True
       info['reason'] = 'Terminated: balls velocity 0'
     
-    if self.physics_eng.total_collisions > 5 or self.physics_eng.total_collisions == 0:
-      reward += -1
+    if self.physics_eng.total_collisions > 6:
+      self.reward += -1
       info['invalid num coll']=self.physics_eng.total_collisions
-    if self.physics_eng.collision_occurs:
-      if abs(self.physics_eng.angle) < 60:
-        reward += 5
-        info['angle_coll']=True
 
-    return reward, done, info
+    if self.physics_eng.ball_collision_happened:
+      if self.turn == self.physics_eng.first_ball_collision:
+        self.reward += 4
+      else:
+        self.reward += -1
+      self.physics_eng.ball_collision_happened = False # so we dont add this multiple times
+
+    return self.reward, done, info
 
   def step(self, action):
     """
@@ -274,7 +278,7 @@ class BilliardEnv(gym.Env):
 
 if __name__ == "__main__":
   
-  d_centroids={0:(200,103),8:(400,400),9:(500,600),14:(250,103)}
+  d_centroids={0:(200,103),8:(400,400),9:(500,600),1:(250,103)}
   computation_rectangle = Rectangle((0,0), Params().DISPLAY_SIZE)
   computation_rectangle = computation_rectangle.get_rectangle_with_offsets((127, 127, 127, 127))
 
@@ -308,9 +312,13 @@ if __name__ == "__main__":
   for i in range(1000):
     action = env.action_space.sample()
     observation, reward, terminated, truncated, info = env.step(action)
-    print(env.physics_eng.total_collisions)
+    print('step',i,'turn',env.turn,
+          'total_coll',env.physics_eng.total_collisions,
+          'is_ball_coll',env.physics_eng.ball_collision_happened, 
+          'first_coll',env.physics_eng.first_ball_collision,
+          'rew', reward)
     env.render()
-    time.sleep(0.01)
+    time.sleep(0.05)
     if terminated or truncated:
         print('reseting', terminated, truncated)
         observation, info = env.reset()

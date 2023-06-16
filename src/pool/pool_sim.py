@@ -62,8 +62,8 @@ class PhysicsSim(object):
     self.static_body = self.space.static_body
     self.dt = self.params.TIME_STEP
     self.total_collisions = 0
-    self.collision_occurs = 0
-    self.accumulative_angles = 0
+    self.ball_collision_happened = False
+    self.first_ball_collision = None
 
   def create_cushions(self,cushions):
     """
@@ -76,7 +76,7 @@ class PhysicsSim(object):
         body.position = ((0, 0))
         shape = pymunk.Poly(body, c)
         shape.elasticity = self.params.CUSHION_ELASTICITY
-        shape.collision_type = 1
+        shape.collision_type = 4
         self.space.add(body, shape)
         self.cushions.append(c)
 
@@ -100,7 +100,14 @@ class PhysicsSim(object):
         shape = pymunk.Circle(body, self.params.BALL_RADIUS)
         #shape.mass = self.params.BALL_MASS
         shape.elasticity = self.params.BALL_ELASTICITY
-        shape.collision_type = 1
+        if idx in [1,2,3,4,5,6,7]:
+          shape.collision_type = 0
+        elif idx in [9,10,11,12,13,14,15]:
+          shape.collision_type = 1
+        elif idx == 0:
+           shape.collision_type = 2
+        elif idx == 8:
+           shape.collision_type = 3
         #use pivot joint to add friction
         pivot = pymunk.PivotJoint(self.static_body, body, (0, 0), (0, 0))
         pivot.max_bias = 0 # disable joint correction
@@ -134,19 +141,32 @@ class PhysicsSim(object):
     Fy=self.params.CUE_FORCE*vy
     self.balls[0].body.apply_impulse_at_local_point((Fx,Fy), (0,0))
 
-  def callback_function(self,arbiter, space, data):
+  def callback_function_default(self,arbiter, space, data):
     self.total_collisions += 1
     shape1, shape2 = arbiter.shapes
-    if type(shape1) is pymunk.shapes.Circle and type(shape2) is pymunk.shapes.Circle:
-      self.collision_occurs = 1
-      XT = shape2.body.position - shape1.body.position
-      self.angle = shape1.body.velocity.get_angle_degrees_between(XT)
-      self.accumulative_angles += self.angle
     return True
-
+  
+  def callback_function_cue_solid(self,arbiter, space, data):
+    self.total_collisions += 1
+    if not self.ball_collision_happened:
+      self.first_ball_collision = 0
+      self.ball_collision_happened = True
+    return True
+  
+  def callback_function_cue_strip(self,arbiter, space, data):
+    self.total_collisions += 1
+    if not self.ball_collision_happened:
+      self.first_ball_collision = 1
+      self.ball_collision_happened = True
+    return True
+  
   def handle_collisions(self):
-    handler = self.space.add_default_collision_handler()
-    handler.begin = self.callback_function
+    handler_default = self.space.add_default_collision_handler()
+    handler20 = self.space.add_collision_handler(2,0)
+    handler21 = self.space.add_collision_handler(2,1)
+    handler_default.begin = self.callback_function_default
+    handler20.begin = self.callback_function_cue_solid
+    handler21.begin = self.callback_function_cue_strip
 
   def reset(self, new_balls_pose):
     """
@@ -173,8 +193,8 @@ class PhysicsSim(object):
     ## Recreate the balls 
     self.create_balls(new_balls_pose)
     self.total_collisions = 0
-    self.collision_occurs = 0
-    self.accumulative_angles = 0
+    self.ball_collision_happened = False
+    self.first_ball_collision = None
 
   def step(self, dt=None):
     """
@@ -190,7 +210,7 @@ class PhysicsSim(object):
 
 if __name__ == "__main__":
   
-    balls_pose={0:(200,103),8:(400,400),9:(500,600),14:(250,103)}
+    balls_pose={0:(200,103),8:(400,400),9:(500,500),1:(250,103)}
 
     #create six pockets on table
     pockets = [
@@ -250,11 +270,6 @@ if __name__ == "__main__":
         clock.tick(120)
 
         #debug
-        print(phys.total_collisions)
-        #print(phys.balls[0].collision_type )
-        #print(phys.balls[0].body.velocity)
-        #print(phys.balls[0].body.position)
-        #print(np.array(phys.balls[0].body.position))
-        #print('--------------------------------')
+        print(phys.total_collisions,phys.ball_collision_happened,phys.first_ball_collision)
 
 

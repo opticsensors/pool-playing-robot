@@ -45,8 +45,9 @@ model = PPO('MultiInputPolicy', env, verbose=1,
 		batch_size=64, 
 		n_epochs=20
 	    )
+model = PPO.load('./PP0.zip', env)
 print('learning ... ')
-model.learn(total_timesteps=50000)
+model.learn(total_timesteps=5000)
 model.save('PP0')
 
 print('testing ...')
@@ -60,5 +61,5 @@ for ep in range(episodes):
 		action, _states = model.predict(obs)
 		obs, rewards, terminate, truncate, info = env.step(action)
 		env.render()
-		#print(rewards)
+		print(rewards)
 
