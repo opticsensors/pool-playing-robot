@@ -11,10 +11,7 @@ from pool.pool_frame import Rectangle
 class BilliardEnv(gym.Env):
   """
   State is composed of:
-  s = ([ball_x, ball_y])
-
-  The values that these components can take are:
-  ball_x, ball_y -> [-1.5, 1.5]
+  s = {turn: 0 or 1, ball_i: [xi, yi], ball_j: [xj, yj], ...}
   """
 
   def __init__(self, computation_rectangle, d_centroids,cushions,pockets, max_steps=5000, render_mode ='human'):
@@ -37,11 +34,7 @@ class BilliardEnv(gym.Env):
     self.physics_eng.create_pockets(pockets)
     self.physics_eng.handle_collisions()
 
-    ## Ball XY positions can be between -1.5 and 1.5
-    #min_ball_coord = np.repeat( self.min_xy, len(d_centroids), axis=0)
-    #max_ball_coord = np.repeat( self.max_xy, len(d_centroids), axis=0)
-    #self.observation_space = spaces.Box(low=min_ball_coord,high=max_ball_coord, dtype=np.float32)                                       
-    
+    ## Ball XY positions can be between pool table limits                                   
     dict_spaces={ str(ball_num): spaces.Box(low=np.float32(self.min_xy), 
                                      high=np.float32(self.max_xy), 
                                      shape=(2,), 
@@ -49,7 +42,7 @@ class BilliardEnv(gym.Env):
     dict_spaces = {**{'turn': spaces.Discrete(2) }, **dict_spaces}
     self.observation_space = spaces.Dict(dict_spaces)
 
-    ## Joint commands can be between [-1, 1]
+    #angle between 0 and 3600 degrees
     self.action_space = spaces.Box(low=np.float32(np.array([0])), high=np.float32(np.array([360])), dtype=np.float32)
 
     self.goals = np.array([hole['pose'] for hole in self.physics_eng.holes])
@@ -62,7 +55,7 @@ class BilliardEnv(gym.Env):
   def reset(self, desired_ball_pose=None, turn=None, seed=None, options=None):
     """
     Function to reset the environment.
-    - If param RANDOM_BALL_INIT_POSE is set, the ball appears in a random pose, otherwise it will appear at [-0.5, 0.2]
+    - If param RANDOM_BALL_INIT_POSE is set, the ball appears in a random pose, otherwise it will appear at specific locations
     :return: Initial observation
     """
     # We need the following line to seed self.np_random
@@ -89,14 +82,14 @@ class BilliardEnv(gym.Env):
     self.physics_eng.reset(init_ball_pose)
     self.steps = 0
     self.reward = 0
-    #self.states is created when we call self._get_obs() in return
+    #self.states is created when we call self._get_obs() 
     observation = self._get_obs()
     return observation, self._get_info()
 
   def _get_obs(self):
     """
     This function returns the state after reading the simulator parameters.
-    :return: state: composed of ([ball_pose_x, ball_pose_y])
+    :return: state: 
     """
     balls_pose={}
     for ball_num, ball_shape in self.physics_eng.balls.items():
@@ -160,7 +153,6 @@ class BilliardEnv(gym.Env):
   def step(self, action):
     """
     Performs an environment step.
-    :param action: Arm Motor commands. Can be either torques or velocity, according to TORQUE_CONTROL parameter
     :return: state, reward, final, info
     """
     # apply action only in the begining 

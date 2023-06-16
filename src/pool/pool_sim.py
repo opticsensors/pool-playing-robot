@@ -30,17 +30,7 @@ class Params(object):
   # Graphic params
     self.TARGET_FPS = 60
     self.TIME_STEP = 1.0 / self.TARGET_FPS
-
     self.MAX_ENV_STEPS = 300
-
-    self.TORQUE_CONTROL = False
-    self.TEST = True
-
-    self.RANDOM_ARM_INIT_POSE = False
-    self.RANDOM_BALL_INIT_POSE = False
-
-    self.SHOW_ARM_IN_ARRAY = True
-
 
 class PhysicsSim(object):
   """
@@ -49,7 +39,6 @@ class PhysicsSim(object):
   def __init__(self, params=None):
     """
     Constructor
-    :param balls_pose: Initial ball poses. Is a list of the ball poses [ball0, ball1, ...]
     :param params: Parameters
     """
     if params is None:
@@ -86,7 +75,7 @@ class PhysicsSim(object):
     :param balls_pose: Initial pose of the ball in table RF
     :return:
     """
-    ## List of balls in simulation
+    ## dict of balls in simulation
     self.balls = {}
 
     for idx, pose in balls_pose.items():
@@ -130,9 +119,7 @@ class PhysicsSim(object):
 
   def move_cue_ball(self, angle):
     """
-    Move the given joint of the given value
-    :param joint: Joint to move
-    :param value: Speed or torque to add to the joint
+    Move the cue ball the given value
     :return:
     """
     vx=math.cos(math.radians(angle))
@@ -143,7 +130,6 @@ class PhysicsSim(object):
 
   def callback_function_default(self,arbiter, space, data):
     self.total_collisions += 1
-    shape1, shape2 = arbiter.shapes
     return True
   
   def callback_function_cue_solid(self,arbiter, space, data):
@@ -170,9 +156,8 @@ class PhysicsSim(object):
 
   def reset(self, new_balls_pose):
     """
-    Reset the world to the given arm and balls poses
+    Reset the world to the given balls poses
     :param balls_pose:
-    :param arm_position:
     :return:
     """
 
