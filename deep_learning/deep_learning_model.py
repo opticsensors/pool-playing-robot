@@ -1,11 +1,13 @@
 import numpy as np
 import gymnasium as gym
+from gymnasium.wrappers.normalize import NormalizeObservation, NormalizeReward
+from gymnasium.wrappers import RescaleAction
 from stable_baselines3 import PPO
 from pool.pool_frame import Rectangle
 from pool.pool_sim import Params
 from pool.billiard_env import BilliardEnv
 
-d_centroids={0:(200,103),8:(400,400),1:(500,600),9:(250,103)}
+d_centroids={0:(200,103),8:(400,400),1:(500,500),9:(250,103)}
 computation_rectangle = Rectangle((0,0), Params().DISPLAY_SIZE)
 computation_rectangle = computation_rectangle.get_rectangle_with_offsets((130, 130, 130, 130))
 
@@ -29,25 +31,34 @@ cushions = [
 [(1143, 96), (1122, 117), (1122, 560), (1143, 581)]]
 
 env=BilliardEnv(computation_rectangle,d_centroids, cushions, pockets)
+#env=NormalizeReward(env)
+#env=NormalizeObservation(env)
+#env=RescaleAction(env, 0, 1)
 
-env.reset(d_centroids, 1)
+env.reset()
 print('obs_sape',[e for e in env.observation_space])
 print('state',[e for e in env.state])
 
-model = PPO('MultiInputPolicy', env, verbose=1)
+model = PPO('MultiInputPolicy', env, verbose=1, 
+	    learning_rate=0.00003,
+		n_steps=2048, 
+		batch_size=64, 
+		n_epochs=20
+	    )
 print('learning ... ')
-model.learn(total_timesteps=2000)
+model.learn(total_timesteps=50000)
+model.save('PP0')
 
 print('testing ...')
-episodes = 5
+episodes = 10
 for ep in range(episodes):
-	obs, info = env.reset(d_centroids, 1)
+	obs, info = env.reset()
 	terminate = False
 	truncated = False
 	print(ep)
-	while not terminate or not truncated:
+	while not terminate and not truncated:
 		action, _states = model.predict(obs)
 		obs, rewards, terminate, truncate, info = env.step(action)
 		env.render()
-		print(rewards)
+		#print(rewards)
 

@@ -144,11 +144,11 @@ class BilliardEnv(gym.Env):
       info['reason'] = 'Terminated: balls velocity 0'
     
     if self.physics_eng.total_collisions > 5 or self.physics_eng.total_collisions == 0:
-      reward += -50
+      reward += -1
       info['invalid num coll']=self.physics_eng.total_collisions
     if self.physics_eng.collision_occurs:
       if abs(self.physics_eng.angle) < 60:
-        reward += 25
+        reward += 5
         info['angle_coll']=True
 
     return reward, done, info
