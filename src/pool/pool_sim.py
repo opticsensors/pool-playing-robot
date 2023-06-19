@@ -169,30 +169,11 @@ class PhysicsSim(object):
 if __name__ == "__main__":
   
     balls_pose={0:(200,103),8:(400,400),9:(500,500),1:(250,103)}
-
-    #create six pockets on table
-    pockets = [
-    (55, 63),
-    (592, 48),
-    (1134, 64),
-    (1134, 616),
-    (592, 629),
-    (55, 616),
-    ]
-
-    #create pool table cushions
-    cushions = [
-    [(88, 56), (109, 77), (555, 77), (564, 56)],
-    [(621, 56), (630, 77), (1081, 77), (1102, 56)],
-    [(89, 621), (110, 600),(556, 600), (564, 621)],
-    [(622, 621), (630, 600), (1081, 600), (1102, 621)],
-    [(56, 96), (77, 117), (77, 560), (56, 581)],
-    [(1143, 96), (1122, 117), (1122, 560), (1143, 581)]
-]
+    params=Params()
     phys = PhysicsSim()
     phys.create_balls(balls_pose)
-    phys.create_cushions(cushions)
-    phys.create_pockets(pockets)
+    phys.create_cushions(params.CUSHIONS)
+    phys.create_pockets(params.POCKETS)
     phys.handle_collisions()
 
     screen = pygame.display.set_mode((phys.params.DISPLAY_SIZE[0], phys.params.DISPLAY_SIZE[1]))

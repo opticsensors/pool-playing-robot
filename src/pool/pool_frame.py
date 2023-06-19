@@ -4,30 +4,20 @@ import pool.utils as utils
 
 class Pockets:
     def __init__(self,
-                 corner_rectangle, 
-                 middle_segment,
+                 pockets,
                  computation_rectangle,
                  precision):
-        
 
-        self.corner_rectangle = corner_rectangle
-        self.middle_segment = middle_segment
         self.computation_rectangle = computation_rectangle
+        self.list_of_pockets = pockets
         self.setup_pockets_todraw()
-        self.setup_mouths(80,70)
+        self.setup_mouths(80,70)  
         self.setup_pockets_tocompute(precision)
     
     def setup_pockets_todraw(self):
-        pockets_id=np.array([1,3,4,6,2,5]).reshape(-1,1)
-        l_points_to_draw=[self.corner_rectangle.top_left,
-                          self.corner_rectangle.top_right,
-                          self.corner_rectangle.bottom_left,
-                          self.corner_rectangle.bottom_right,
-                          self.middle_segment[0],
-                          self.middle_segment[1]]
-
-        pockets = np.vstack(l_points_to_draw)
-        self.pockets_to_draw = np.hstack([pockets_id,pockets])
+        pockets_id=np.array([1,2,3,4,5,6]).reshape(-1,1)
+        arr_of_pockets = np.vstack(self.list_of_pockets)
+        self.pockets_to_draw = np.hstack([pockets_id,arr_of_pockets])
 
     def setup_pockets_tocompute(self, precision):
         l_points_mouth=[]
@@ -39,7 +29,7 @@ class Pockets:
             l_points_mouth.append(points)
  
         # add ids of pockets:
-        pockets_id=np.array([1,3,4,6,2,5]).reshape(-1,1)
+        pockets_id=np.array([1,2,3,4,5,6]).reshape(-1,1)
         pockets_sub_id=np.arange(1,precision+2).reshape(-1,1)
         pocket_ids=utils.get_row_combinations_of_two_arrays(pockets_id,pockets_sub_id)
         pockets = np.vstack(l_points_mouth)
@@ -54,8 +44,8 @@ class Pockets:
                                           [0, width_corner],
                                           [0, -width_corner],
                                           [0, -width_corner ]])
-        horizontal_points=self.computation_rectangle.rectangle+widths_corners_horizontal
-        vertical_points=self.computation_rectangle.rectangle+widths_corners_vertical
+        horizontal_points = self.computation_rectangle.rectangle + widths_corners_horizontal
+        vertical_points = self.computation_rectangle.rectangle + widths_corners_vertical
         return np.hstack((horizontal_points,vertical_points))
         
     def get_middle_mouths(self, width_middle):
@@ -70,7 +60,7 @@ class Pockets:
         return np.hstack((middle_top_points,middle_bottom_points))
 
     def setup_mouths(self, width_corner, width_middle):
-        middle_x = (self.middle_segment[0][0]+self.middle_segment[1][0])/2
+        middle_x = (self.list_of_pockets[1][0] + self.list_of_pockets[4][0]) / 2
         top_y = self.computation_rectangle.top_y
         bottom_y = self.computation_rectangle.bottom_y
         middle_top_point = np.array([middle_x, top_y])
@@ -144,9 +134,9 @@ class PoolFrame:
             pocket_id=row[0]
             point=row[1:]
             if pocket_id in [2,5]: #middle pockets are smaller
-                img=self.draw_pocket(img, point,112)
+                img=self.draw_pocket(img, point, 112) # TODO replace 112 with params.POCKET_MIDDLE_RADIUS
             else: #[1,3,4,6]
-                img=self.draw_pocket(img, point,210)
+                img=self.draw_pocket(img, point, 210) # TODO replace 210 with params.POCKET_CORNER_RADIUS
 
         for row in self.pockets.mouth:
             img=self.draw_segment(img,row)
