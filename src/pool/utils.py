@@ -21,11 +21,11 @@ class Params(object):
     self.COMPUTATIONAL_RECTANGLE = self.DISPLAY_RECTANGLE.get_rectangle_with_offsets((260, 250, 240, 250))
 
     self.POCKETS = [(55, 63),     # top left          
-                    (592, 48),    # top middle      
                     (1134, 64),   # top right       
                     (1134, 616),  # bottom right     
-                    (592, 629),   # bottom middle  
-                    (55, 616)]    # bottom left
+                    (55, 616),    # bottom left
+                    (592, 48),    # top middle    
+                    (592, 629)]   # bottom middle    
 
     self.CUSHIONS = [[(88, 56), (109, 77), (555, 77), (564, 56)],        #order doesn't matter here     
                     [(621, 56), (630, 77), (1081, 77), (1102, 56)],         

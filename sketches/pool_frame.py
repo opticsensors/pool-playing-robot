@@ -14,12 +14,13 @@ img_rectangle=Rectangle(top_left=(0,0),
 computation_rectangle=img_rectangle.get_rectangle_with_offsets((260, 250, 240, 250))
 #pockets_corners_rect=img_rectangle.get_rectangle_with_offsets((96, 120, 96, 120))
 
-pockets = [(96, 120),     # top left          
-           (2430, 164),    # top middle      
-           (96, H-120),   # top right       
+pockets = [(96, 120),      # top left          
+           (96, H-120),    # top right       
            (W-96, H-120),  # bottom right     
-           (2430, 2574),   # bottom middle  
-           (96, H-120)]    # bottom left
+           (96, H-120),    # bottom left
+           (2430, 164),    # top middle    
+           (2430, 2574)]   # bottom middle    
+
 
 pockets=Pockets(pockets = pockets,
                 computation_rectangle = computation_rectangle,

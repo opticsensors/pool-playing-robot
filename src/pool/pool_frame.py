@@ -15,7 +15,7 @@ class Pockets:
         self.setup_pockets_tocompute(precision)
     
     def setup_pockets_todraw(self):
-        pockets_id=np.array([1,2,3,4,5,6]).reshape(-1,1)
+        pockets_id=np.array([1,3,4,6,2,5]).reshape(-1,1)
         arr_of_pockets = np.vstack(self.list_of_pockets)
         self.pockets_to_draw = np.hstack([pockets_id,arr_of_pockets])
 
@@ -29,7 +29,7 @@ class Pockets:
             l_points_mouth.append(points)
  
         # add ids of pockets:
-        pockets_id=np.array([1,2,3,4,5,6]).reshape(-1,1)
+        pockets_id=np.array([1,3,4,6,2,5]).reshape(-1,1)
         pockets_sub_id=np.arange(1,precision+2).reshape(-1,1)
         pocket_ids=utils.get_row_combinations_of_two_arrays(pockets_id,pockets_sub_id)
         pockets = np.vstack(l_points_mouth)
