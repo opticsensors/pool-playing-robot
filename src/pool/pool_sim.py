@@ -3,34 +3,7 @@ import pymunk
 import pymunk.pygame_util
 import math
 import numpy as np
-
-class Params(object):
-  """
-  Define simulation parameters.
-  The world is centered at the lower left corner of the table.
-  """
-  def __init__(self):
-    """
-    Constructor
-    """
-    self.DISPLAY_SIZE = (1200, 678)
-    self.POCKET_CORNER_RADIUS = 25
-    self.POCKET_MIDDLE_RADIUS = 25
-
-    self.BALL_RADIUS = 25
-    self.BALL_ELASTICITY = 0.8
-    self.BALL_FRICTION = 1000
-    self.BALL_MASS = 5
-    self.BALL_TERMINAL_VELOCITY = 60
-
-    self.CUSHION_ELASTICITY = 0.8
-
-    self.CUE_FORCE = 6000
-
-  # Graphic params
-    self.TARGET_FPS = 60
-    self.TIME_STEP = 1.0 / self.TARGET_FPS
-    self.MAX_ENV_STEPS = 300
+from pool.utils import Params
 
 class PhysicsSim(object):
   """
@@ -202,9 +175,9 @@ if __name__ == "__main__":
     (55, 63),
     (592, 48),
     (1134, 64),
-    (55, 616),
+    (1134, 616),
     (592, 629),
-    (1134, 616)
+    (55, 616),
     ]
 
     #create pool table cushions

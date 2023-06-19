@@ -3,10 +3,10 @@ import gymnasium as gym
 from gymnasium import error, spaces, utils
 from gymnasium.utils import seeding
 import numpy as np
-from pool.pool_sim import PhysicsSim, Params
+from pool.pool_sim import PhysicsSim
 import pygame
 from pool.random_balls import RandomBalls
-from pool.pool_frame import Rectangle
+from pool.utils import Params, Rectangle
 
 class BilliardEnv(gym.Env):
   """

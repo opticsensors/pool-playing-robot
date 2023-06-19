@@ -3,8 +3,7 @@ import gymnasium as gym
 from gymnasium.wrappers.normalize import NormalizeObservation, NormalizeReward
 from gymnasium.wrappers import RescaleAction
 from stable_baselines3 import PPO
-from pool.pool_frame import Rectangle
-from pool.pool_sim import Params
+from pool.utils import Params, Rectangle
 from pool.billiard_env import BilliardEnv
 
 d_centroids={0:(200,103),8:(400,400),1:(500,500),9:(250,103)}

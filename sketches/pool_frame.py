@@ -1,8 +1,9 @@
 import cv2
 import numpy as np
-from pool.pool_frame import PoolFrame,Rectangle,Pockets, Cushions
+from pool.pool_frame import PoolFrame,Pockets, Cushions
 from pool.random_balls import RandomBalls
 from pool.brain import CTP, CBTP, CTTP, CTBP
+from pool.utils import Rectangle
 
 img = cv2.imread(f'./results/warp_corners.jpg')
 H=img.shape[0]

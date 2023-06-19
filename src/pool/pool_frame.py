@@ -2,58 +2,6 @@ import numpy as np
 import cv2
 import pool.utils as utils
 
-class Rectangle:
-    def __init__(self, top_left, bottom_right):
-
-        self.rectangle = np.array([[top_left[0],     top_left[1]],       # top left 
-                                   [bottom_right[0], top_left[1]],   # top right      
-                                   [bottom_right[0], bottom_right[1]],   # bottom right  
-                                   [top_left[0],     bottom_right[1]]])      # bottom left   
-    @property
-    def width(self):
-        return self.rectangle[2,0]-self.rectangle[0,0]
-    @property
-    def height(self):
-        return self.rectangle[2,1]-self.rectangle[0,1]
-    @property
-    def top_y(self):
-        return self.rectangle[0,1]
-    @property
-    def bottom_y(self):
-        return self.rectangle[2,1]
-    @property
-    def left_x(self):
-        return self.rectangle[0,0]
-    @property
-    def right_x(self):
-        return self.rectangle[2,0]
-    @property
-    def top_left(self):
-        return self.rectangle[0,:]
-    @property
-    def top_right(self):
-        return self.rectangle[1,:]
-    @property
-    def bottom_right(self):
-        return self.rectangle[2,:]
-    @property
-    def bottom_left(self):
-        return self.rectangle[3,:]
-
-    def get_rectangle_with_offsets(self, different_offsets):
-        offset_top_y, offset_right_x, offset_bottom_y, offset_left_x = different_offsets
-        top_left=self.top_left+np.array([offset_left_x , offset_top_y])
-        bottom_right=self.bottom_right+np.array([-offset_right_x, -offset_bottom_y])
-        return Rectangle(top_left, bottom_right)
-    
-    def set_rectangle_with_offsets(self, different_offsets):
-        offset_top_y, offset_right_x, offset_bottom_y, offset_left_x = different_offsets
-        offsets_matrix = np.array([[offset_left_x , offset_top_y],
-                                   [-offset_right_x, offset_top_y],
-                                   [-offset_right_x, -offset_bottom_y],
-                                   [offset_left_x , -offset_bottom_y],])
-        self.rectangle = self.rectangle+offsets_matrix
- 
 class Pockets:
     def __init__(self,
                  corner_rectangle, 
