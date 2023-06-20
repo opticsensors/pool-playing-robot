@@ -25,7 +25,7 @@ class PhysicsSim(object):
     self.dt = self.params.TIME_STEP
     self.total_collisions = 0
     self.ball_collision_happened = False
-    self.first_ball_collision = None
+    self.first_ball_collision = -1
 
   def create_cushions(self,cushions):
     """
@@ -152,7 +152,7 @@ class PhysicsSim(object):
     self.create_balls(new_balls_pose)
     self.total_collisions = 0
     self.ball_collision_happened = False
-    self.first_ball_collision = None
+    self.first_ball_collision = -1
 
   def step(self, dt=None):
     """

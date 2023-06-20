@@ -51,7 +51,6 @@ class BilliardEnv(gym.Env):
     self.state={}
     self.render_mode = render_mode
     self.reward = 0
-    self.already_checked = False 
 
   def reset(self, desired_ball_pose=None, turn=None, seed=None, options=None):
     """
@@ -84,7 +83,6 @@ class BilliardEnv(gym.Env):
     self.physics_eng.reset(init_ball_pose)
     self.steps = 0
     self.reward = 0
-    self.already_checked = False
     #self.states is created when we call self._get_obs() 
     observation = self._get_obs()
     info = self._get_info()
@@ -140,17 +138,6 @@ class BilliardEnv(gym.Env):
            for ball_shape in self.physics_eng.balls.values()):
       done = True
       info['reason'] = 'Terminated: balls velocity 0'
-    
-    if self.physics_eng.total_collisions > 5: # TODO this should only be checked once !!!
-      self.reward += -1
-      info['invalid num coll']=self.physics_eng.total_collisions
-
-    if self.physics_eng.ball_collision_happened and not self.already_checked: 
-      if self.turn == self.physics_eng.first_ball_collision:
-        self.reward += 4
-      else:
-        self.reward += -2
-      self.already_checked = True
 
     return self.reward, done, info
 
@@ -159,19 +146,31 @@ class BilliardEnv(gym.Env):
     Performs an environment step.
     :return: state, reward, final, info
     """
-    # apply action only in the begining 
-    if self.steps == 0:
-      self.physics_eng.move_cue_ball(action)
-
     self.steps += 1
-    ## Simulate timestep
-    self.physics_eng.step()
-    ## Get state
-    observation = self._get_obs()
-    info = {}
+    self.physics_eng.move_cue_ball(action)
+    done = False
+    while not done:
+      ## Simulate timestep
+      self.physics_eng.step()
+      ## Get state
+      observation = self._get_obs()
+      info = {}
+      # Get reward
+      reward, done, info = self.reward_function(info)
 
-    # Get reward
-    reward, done, info = self.reward_function(info)
+      self.render() # TODO remove
+      print(info)
+      
+    # we check this conditions outside of the loop/at the end of the simulation
+    if self.physics_eng.total_collisions > 5:
+      reward += -1
+      info['invalid num coll']=self.physics_eng.total_collisions
+
+    if self.physics_eng.ball_collision_happened:
+      if self.turn == self.physics_eng.first_ball_collision:
+        reward += 4
+      else:
+        reward += -2
 
     if self.steps >= self.params.MAX_ENV_STEPS:  ## Check if max number of steps has been exceeded
       print('terminated in max steps')
@@ -284,7 +283,7 @@ if __name__ == "__main__":
   
   observation, info = env.reset()
   import time
-  for i in range(1000):
+  for i in range(10):
     action = env.action_space.sample()
     observation, reward, terminated, truncated, info = env.step(action)
     print('step',i,'turn',env.turn,
@@ -292,8 +291,8 @@ if __name__ == "__main__":
           'is_ball_coll',env.physics_eng.ball_collision_happened, 
           'first_coll',env.physics_eng.first_ball_collision,
           'rew', reward)
-    env.render()
-    time.sleep(0.01)
+    #env.render()
+    time.sleep(1)
     if terminated or truncated:
         print('reseting', terminated, truncated)
         observation, info = env.reset()

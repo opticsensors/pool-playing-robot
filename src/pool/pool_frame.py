@@ -11,7 +11,7 @@ class Pockets:
         self.computation_rectangle = computation_rectangle
         self.list_of_pockets = pockets
         self.setup_pockets_todraw()
-        self.setup_mouths(80,70)  
+        self.setup_mouths(80,70)  # TODO replace this for params in Params()
         self.setup_pockets_tocompute(precision)
     
     def setup_pockets_todraw(self):

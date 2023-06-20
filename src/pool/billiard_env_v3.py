@@ -14,7 +14,7 @@ class BilliardEnv(gym.Env):
   s = {turn: 0 or 1, ball_i: [xi, yi], ball_j: [xj, yj], ...}
   """
 
-  def __init__(self, computation_rectangle, d_centroids,cushions,pockets, max_steps=5000, render_mode ='human'):
+  def __init__(self, computation_rectangle, d_centroids,cushions,pockets, max_steps=None, render_mode ='human'):
     """ Constructor
     :param seed: the random seed for the environment
     :param max_steps: the maximum number of steps the episode lasts
@@ -27,7 +27,10 @@ class BilliardEnv(gym.Env):
     self.screen = None
     self.clock = None
     self.params = Params()
-    self.params.MAX_ENV_STEPS = max_steps
+    if max_steps is None:
+      self.max_steps = self.params.MAX_ENV_STEPS
+    else:
+      self.max_steps = max_steps
     self.physics_eng = PhysicsSim()
     self.physics_eng.create_balls(d_centroids)
     self.physics_eng.create_cushions(cushions)
@@ -51,7 +54,6 @@ class BilliardEnv(gym.Env):
     self.state={}
     self.render_mode = render_mode
     self.reward = 0
-    self.already_checked = False 
 
   def reset(self, desired_ball_pose=None, turn=None, seed=None, options=None):
     """
@@ -84,7 +86,6 @@ class BilliardEnv(gym.Env):
     self.physics_eng.reset(init_ball_pose)
     self.steps = 0
     self.reward = 0
-    self.already_checked = False
     #self.states is created when we call self._get_obs() 
     observation = self._get_obs()
     info = self._get_info()
@@ -116,6 +117,7 @@ class BilliardEnv(gym.Env):
     :return:
     """
     done = False
+    step_finished = False
     potted_balls = []
     info['turn']=self.turn
     #check if any balls have been potted
@@ -138,47 +140,53 @@ class BilliardEnv(gym.Env):
 
     if all(abs(ball_shape.body.velocity) <= self.params.BALL_TERMINAL_VELOCITY 
            for ball_shape in self.physics_eng.balls.values()):
-      done = True
+      step_finished = True
       info['reason'] = 'Terminated: balls velocity 0'
-    
-    if self.physics_eng.total_collisions > 5: # TODO this should only be checked once !!!
-      self.reward += -1
-      info['invalid num coll']=self.physics_eng.total_collisions
 
-    if self.physics_eng.ball_collision_happened and not self.already_checked: 
-      if self.turn == self.physics_eng.first_ball_collision:
-        self.reward += 4
-      else:
-        self.reward += -2
-      self.already_checked = True
-
-    return self.reward, done, info
+    return self.reward, done, step_finished, info
 
   def step(self, action):
     """
     Performs an environment step.
     :return: state, reward, final, info
     """
-    # apply action only in the begining 
-    if self.steps == 0:
-      self.physics_eng.move_cue_ball(action)
-
     self.steps += 1
-    ## Simulate timestep
-    self.physics_eng.step()
-    ## Get state
-    observation = self._get_obs()
-    info = {}
+    self.physics_eng.move_cue_ball(action)
+    done = False
+    step_finished = False
+    while not done and not step_finished:
+      ## Simulate timestep
+      self.physics_eng.step()
+      ## Get state
+      observation = self._get_obs()
+      info = {}
+      # Get reward
+      reward, done, step_finished, info = self.reward_function(info)
 
-    # Get reward
-    reward, done, info = self.reward_function(info)
+      self.render() # TODO remove
+    
+    # we check this conditions outside of the loop/at the end of the simulation
+    if self.physics_eng.total_collisions > 5:
+      reward += -1
+      info['invalid num coll']=self.physics_eng.total_collisions
 
+    if self.physics_eng.ball_collision_happened:
+      if self.turn == self.physics_eng.first_ball_collision:
+        reward += 4
+      else:
+        reward += -2
     if self.steps >= self.params.MAX_ENV_STEPS:  ## Check if max number of steps has been exceeded
       print('terminated in max steps')
       done = True
       info['reason'] = 'Max Steps reached: {}'.format(self.steps)
 
-    return observation, reward, done, False, info
+    print(self.steps, self.physics_eng.ball_collision_happened, self.turn, self.physics_eng.first_ball_collision, reward)
+
+    self.physics_eng.total_collisions = 0
+    self.physics_eng.ball_collision_happened = False
+    self.physics_eng.first_ball_collision = None
+
+    return observation, reward, done , False, info
 
   def render(self):
     """
@@ -284,14 +292,9 @@ if __name__ == "__main__":
   
   observation, info = env.reset()
   import time
-  for i in range(1000):
+  for i in range(10):
     action = env.action_space.sample()
     observation, reward, terminated, truncated, info = env.step(action)
-    print('step',i,'turn',env.turn,
-          'total_coll',env.physics_eng.total_collisions,
-          'is_ball_coll',env.physics_eng.ball_collision_happened, 
-          'first_coll',env.physics_eng.first_ball_collision,
-          'rew', reward)
     env.render()
     time.sleep(0.01)
     if terminated or truncated:

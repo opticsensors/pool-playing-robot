@@ -43,7 +43,7 @@ class Params(object):
     self.BALL_ELASTICITY = 0.8
     self.BALL_FRICTION = 1000
     self.BALL_MASS = 5
-    self.BALL_TERMINAL_VELOCITY = 60
+    self.BALL_TERMINAL_VELOCITY = 0
 
     self.CUSHION_ELASTICITY = 0.8
     self.CUE_FORCE = 6000
@@ -51,7 +51,7 @@ class Params(object):
     # Graphic params
     self.TARGET_FPS = 60
     self.TIME_STEP = 1.0 / self.TARGET_FPS
-    self.MAX_ENV_STEPS = 300
+    self.MAX_ENV_STEPS = 10
 
 
 class Rectangle:
