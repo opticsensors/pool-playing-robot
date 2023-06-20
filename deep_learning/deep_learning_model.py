@@ -4,7 +4,7 @@ from gymnasium.wrappers.normalize import NormalizeObservation, NormalizeReward
 from gymnasium.wrappers import RescaleAction
 from stable_baselines3 import PPO
 from pool.utils import Params, Rectangle
-from pool.billiard_env_v3 import BilliardEnv
+from pool.billiard_env_several_shots import BilliardEnv
 #from stable_baselines3.common.noise import NormalActionNoise
 
 params = Params()

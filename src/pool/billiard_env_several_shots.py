@@ -38,7 +38,7 @@ class BilliardEnv(gym.Env):
     dict_spaces={ str(ball_num): spaces.Box(low=np.float32(self.min_xy), 
                                      high=np.float32(self.max_xy), 
                                      shape=(2,), 
-                                     dtype=np.float32) for ball_num in d_centroids}
+                                     dtype=np.float32) for ball_num in d_centroids} 
     dict_spaces = {**{'turn': spaces.Discrete(2) }, **dict_spaces}
     self.observation_space = spaces.Dict(dict_spaces)
 
@@ -114,6 +114,7 @@ class BilliardEnv(gym.Env):
     :return:
     """
     done = False
+    step_finished = False
     info['turn']=self.turn
     #check if any balls have been potted
     for ball_num, ball_position in self.state.items():
@@ -133,9 +134,9 @@ class BilliardEnv(gym.Env):
 
     if all(abs(ball_shape.body.velocity) <= self.params.BALL_TERMINAL_VELOCITY 
            for ball_shape in self.physics_eng.balls.values()):
-      done = True
+      step_finished = True
 
-    return self.reward, done, info
+    return self.reward, done, step_finished, info
 
   def step(self, action):
     """
@@ -145,14 +146,15 @@ class BilliardEnv(gym.Env):
     self.steps += 1
     self.physics_eng.move_cue_ball(action)
     done = False
-    while not done:
+    step_finished = False
+    while not done and not step_finished:
       ## Simulate timestep
       self.physics_eng.step()
       ## Get state
       observation = self._get_obs()
       info = {}
       # Get reward
-      reward, done, info = self.reward_function(info)
+      reward, done, step_finished, info = self.reward_function(info)
 
       self.render() # TODO remove
 
@@ -161,6 +163,10 @@ class BilliardEnv(gym.Env):
 
     info = {**info, **self._get_info()}
     info['action'] = action
+
+    self.physics_eng.total_collisions = 0
+    self.physics_eng.ball_collision_happened = False
+    self.physics_eng.first_ball_collision = None
 
     return observation, reward, done, False, info
 

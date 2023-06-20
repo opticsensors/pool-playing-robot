@@ -1,7 +1,7 @@
 import time
 import pandas as pd
 from pool.utils import Params, Rectangle
-from pool.billiard_env_v4 import BilliardEnv
+from pool.billiard_env_single_shot import BilliardEnv
 from pool.random_balls import RandomBalls
 
 params=Params()
