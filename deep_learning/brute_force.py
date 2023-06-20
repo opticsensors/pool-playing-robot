@@ -1,52 +1,53 @@
-from pool.pool_frame import Rectangle
-from pool.pool_sim import Params
-from pool.billiard_env import BilliardEnv
 import time
+import pandas as pd
+from pool.utils import Params, Rectangle
+from pool.billiard_env_v4 import BilliardEnv
+from pool.random_balls import RandomBalls
 
-d_centroids={0:(200,103),8:(400,400),9:(500,500),1:(250,103)}
+params=Params()
 computation_rectangle = Rectangle((0,0), Params().DISPLAY_SIZE)
 computation_rectangle = computation_rectangle.get_rectangle_with_offsets((127, 127, 127, 127))
 
+random_balls=RandomBalls(ball_radius=params.BALL_RADIUS, computation_rectangle=computation_rectangle)
+config=random_balls.generate_random_positions_given_balls([0,8,1,9])
 
-#create six pockets on table
-pockets = [
-(55, 63),
-(592, 48),
-(1134, 64),
-(55, 616),
-(592, 629),
-(1134, 616)
-]
+env=BilliardEnv(computation_rectangle, config, params.CUSHIONS, params.POCKETS)
+turn = 0
 
-#create pool table cushions
-cushions = [
-[(88, 56), (109, 77), (555, 77), (564, 56)],
-[(621, 56), (630, 77), (1081, 77), (1102, 56)],
-[(89, 621), (110, 600),(556, 600), (564, 621)],
-[(622, 621), (630, 600), (1081, 600), (1102, 621)],
-[(56, 96), (77, 117), (77, 560), (56, 581)],
-[(1143, 96), (1122, 117), (1122, 560), (1143, 581)]]
+observation, info = env.reset(config, turn)
 
-env=BilliardEnv(computation_rectangle,d_centroids, cushions, pockets)
-
-#print(env.action_space.sample())
-#print(env.observation_space.sample())
-gen=0
-incr=1
-action=0
-terminated=False
-truncated=False
-observation, info = env.reset(d_centroids, 1)
+incr=0.088
+dict_to_save = {}
+list_of_dict = []
+action = 0
 while action<360:
-    gen+=1
-    while not terminated or truncated:
-        observation, reward, terminated, truncated, info = env.step(action)
-        env.render()
-        #time.sleep(0.02)
-    print(gen,action, reward, info)
+    observation, reward, terminated, truncated, info = env.step(action)
+    print(action)
+    if terminated or truncated:
+        dict_to_save['turn']=info['turn']
+        dict_to_save['total_collisions']=info['total_collisions']
+        dict_to_save['first_ball_collision']=info['first_ball_collision']
+        dict_to_save['potted_ball']=info['potted_ball']
+        dict_to_save['action']=info['action']
+
+        # add initial positions
+        for ball_num,ball in config.items():
+            dict_to_save[f'start_ball{ball_num}_x']=ball[0]
+            dict_to_save[f'start_ball{ball_num}_y']=ball[1]
+
+        # add final positions
+        for ball_num,ball in info['termination_positions'].items():
+            dict_to_save[f'end_ball{ball_num}_x']=ball[0]
+            dict_to_save[f'end_ball{ball_num}_y']=ball[1]
+
+        list_of_dict.append(dict_to_save.copy())
+        env.close()
+        env=BilliardEnv(computation_rectangle, config, params.CUSHIONS, params.POCKETS)
+        observation, info = env.reset(config, turn)
+
     action += incr
-    terminated=False
-    truncated=False
-    observation, info = env.reset(d_centroids, 1)
+
+df = pd.DataFrame(list_of_dict, columns=list(list_of_dict[0].keys()))
+df.to_csv(path_or_buf=f'./brute_force_data.csv', sep=',',index=False)
 
 env.close()

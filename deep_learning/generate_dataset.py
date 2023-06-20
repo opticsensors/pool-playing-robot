@@ -10,13 +10,13 @@ computation_rectangle = computation_rectangle.get_rectangle_with_offsets((127, 1
 
 l_configs=[]
 random_balls=RandomBalls(ball_radius=params.BALL_RADIUS, computation_rectangle=computation_rectangle)
-for _ in range(5):
+for _ in range(3):
     l_configs.append(random_balls.generate_random_positions_given_balls([0,8,1,9]))
 
 env=BilliardEnv(computation_rectangle, l_configs[0], params.CUSHIONS, params.POCKETS)
 observation, info = env.reset(l_configs[0])
 
-incr=0.25
+incr=0.1
 dict_to_save = {}
 list_of_dict = []
 for i,config in enumerate(l_configs):
