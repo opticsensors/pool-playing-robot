@@ -175,7 +175,7 @@ class BilliardEnv(gym.Env):
     if self.screen is None and self.render_mode == "human":
         pygame.init()
         pygame.display.init()
-        self.screen = pygame.display.set_mode((self.params.DISPLAY_SIZE[0], self.params.DISPLAY_SIZE[1]))
+        self.screen = pygame.display.set_mode((self.params.DISPLAY_SIZE[0]//4, self.params.DISPLAY_SIZE[1]//4))
         pygame.display.set_caption('Billiard')
 
     if self.clock is None and self.render_mode == "human":
@@ -238,6 +238,7 @@ class BilliardEnv(gym.Env):
 
     if self.render_mode == "human":
         # The following line copies our drawings from `canvas` to the visible window
+        canvas = pygame.transform.scale(canvas, (self.params.DISPLAY_SIZE[0]//4, self.params.DISPLAY_SIZE[1]//4))
         self.screen.blit(canvas, canvas.get_rect())
         pygame.event.pump()
         pygame.display.update()
@@ -258,26 +259,16 @@ class BilliardEnv(gym.Env):
 
 if __name__ == "__main__":
   params=Params()
-  d_centroids={0:(200,103),8:(400,400),9:(500,600),1:(250,103)}
-  computation_rectangle = Rectangle((0,0), Params().DISPLAY_SIZE)
-  computation_rectangle = computation_rectangle.get_rectangle_with_offsets((127, 127, 127, 127))
-  env=BilliardEnv(computation_rectangle,d_centroids, params.CUSHIONS, params.POCKETS)
-  
-  #print(env.action_space.sample())
-  #print(env.observation_space.sample())
+  d_centroids={0:(900,900),8:(400,400),9:(500,600),1:(2000,1600)}
+  env=BilliardEnv(params.COMPUTATIONAL_RECTANGLE, d_centroids, params.CUSHIONS, params.POCKETS)
   
   observation, info = env.reset()
   import time
   for i in range(1000):
     action = env.action_space.sample()
     observation, reward, terminated, truncated, info = env.step(action)
-    print('step',i,'turn',env.turn,
-          'total_coll',env.physics_eng.total_collisions,
-          'is_ball_coll',env.physics_eng.ball_collision_happened, 
-          'first_coll',env.physics_eng.first_ball_collision,
-          'rew', reward)
     env.render()
-    time.sleep(0.01)
+    #time.sleep(0.01)
     if terminated or truncated:
         print('reseting', terminated, truncated)
         observation, info = env.reset()

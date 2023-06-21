@@ -84,11 +84,11 @@ class PhysicsSim(object):
     """
     # Holes in simulation. Represented as list of dicts.
     self.holes = [{'pose': np.array(pockets[0]), 'radius': self.params.POCKET_CORNER_RADIUS},
-                  {'pose': np.array(pockets[1]), 'radius': self.params.POCKET_MIDDLE_RADIUS},
+                  {'pose': np.array(pockets[1]), 'radius': self.params.POCKET_CORNER_RADIUS},
                   {'pose': np.array(pockets[2]), 'radius': self.params.POCKET_CORNER_RADIUS},
                   {'pose': np.array(pockets[3]), 'radius': self.params.POCKET_CORNER_RADIUS},
                   {'pose': np.array(pockets[4]), 'radius': self.params.POCKET_MIDDLE_RADIUS},
-                  {'pose': np.array(pockets[5]), 'radius': self.params.POCKET_CORNER_RADIUS}]
+                  {'pose': np.array(pockets[5]), 'radius': self.params.POCKET_MIDDLE_RADIUS}]
 
   def move_cue_ball(self, angle):
     """
