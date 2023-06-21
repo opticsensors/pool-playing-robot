@@ -7,11 +7,11 @@ class Pockets:
                  pockets,
                  computation_rectangle,
                  precision):
-
+        params=utils.Params()
         self.computation_rectangle = computation_rectangle
         self.list_of_pockets = pockets
         self.setup_pockets_todraw()
-        self.setup_mouths(80,70)  # TODO replace this for params in Params()
+        self.setup_mouths(params.MOUTH_CORNER_WIDTH,params.MOUTH_MIDDLE_WIDTH)
         self.setup_pockets_tocompute(precision)
     
     def setup_pockets_todraw(self):
@@ -126,6 +126,7 @@ class PoolFrame:
         return img
     
     def draw_frame(self, img):
+        params=utils.Params()
         cv2.rectangle(img, self.top_left, 
                       self.bottom_right, 
                       (0,255,0), 
@@ -134,9 +135,9 @@ class PoolFrame:
             pocket_id=row[0]
             point=row[1:]
             if pocket_id in [2,5]: #middle pockets are smaller
-                img=self.draw_pocket(img, point, 112) # TODO replace 112 with params.POCKET_MIDDLE_RADIUS
+                img=self.draw_pocket(img, point, params.POCKET_MIDDLE_RADIUS) 
             else: #[1,3,4,6]
-                img=self.draw_pocket(img, point, 210) # TODO replace 210 with params.POCKET_CORNER_RADIUS
+                img=self.draw_pocket(img, point, params.POCKET_CORNER_RADIUS) 
 
         for row in self.pockets.mouth:
             img=self.draw_segment(img,row)

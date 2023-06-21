@@ -4,17 +4,16 @@ import pandas as pd
 import pool.utils as utils
 
 
-class Brain:
-    
-    BALL_RADIUS=102 
+class Brain: 
 
     def __init__(self,
                 pool_frame,
                 ball_radius = None,
         ):
         
+        params = utils.Params()
         if ball_radius is None:
-            self.ball_radius=Brain.BALL_RADIUS
+            self.ball_radius=params.BALL_RADIUS
         else:
             self.ball_radius=ball_radius
         
@@ -66,7 +65,7 @@ class Brain:
 
         return result
     
-    def get_cue_ball_reflections(self,C):
+    def get_cue_ball_reflections(self,C): # TODO try to merge get_cue_ball_reflections() and get_T_ball_reflections()
         if len(C.shape)==1:
             C=C.reshape(1,2)
 
@@ -326,6 +325,18 @@ class CTP(Brain):
         img=self.draw_trajectories(img,df[['Tx', 'Ty']].values,df[['Px', 'Py']].values) 
             
         return img
+    
+    def sort_df_by_difficulty(self, df):
+        T=df[['Tx', 'Ty']].values
+        X=df[['Xx', 'Xy']].values
+        C=df[['Cx', 'Cy']].values
+        P=df[['Px', 'Py']].values
+        XC_TX_abs_angle = self.deviation_from_ideal_angle(T,X,C)
+        dist_CX = np.linalg.norm(X-C, axis=1)
+        dist_TP = np.linalg.norm(P-T, axis=1)
+        df['dificulty'] = dist_CX*dist_TP / np.cos(XC_TX_abs_angle)
+        df = df.sort_values(by=['dificulty'], ascending=False)
+        return df
 
     def selected_shots(self,d_centroids,ball_type):
         param=self.ball_config_param(d_centroids,ball_type)
@@ -335,10 +346,7 @@ class CTP(Brain):
         df['Xy']=X_comb[:,1]
         collision_configs=self.collision_trajectories(df)
         df=df[~(collision_configs)]
-        df['XC_TX_abs_angle'] = self.deviation_from_ideal_angle(df[['Tx', 'Ty']].values,
-                                                                df[['Xx', 'Xy']].values,
-                                                                df[['Cx', 'Cy']].values)
-        df=df[df['XC_TX_abs_angle'] < 60]
+        df = self.sort_df_by_difficulty(df)
         return df
 
 class CBTP(Brain):
@@ -388,6 +396,20 @@ class CBTP(Brain):
         img=self.draw_trajectories(img,df[['Tx', 'Ty']].values, df[['Px', 'Py']].values) 
         return img
 
+    def sort_df_by_difficulty(self, df):
+        T=df[['Tx', 'Ty']].values
+        X=df[['Xx', 'Xy']].values
+        C=df[['Cx', 'Cy']].values
+        B=df[['Bx', 'By']].values
+        P=df[['Px', 'Py']].values
+        XB_TX_abs_angle = self.deviation_from_ideal_angle(T,X,B)
+        dist_CB = np.linalg.norm(B-C, axis=1)
+        dist_BX = np.linalg.norm(X-B, axis=1)
+        dist_TP = np.linalg.norm(P-T, axis=1)
+        df['dificulty'] = (dist_CB+dist_BX)*dist_TP / np.cos(XB_TX_abs_angle)
+        df = df.sort_values(by=['dificulty'], ascending=False)
+        return df
+
     def selected_shots(self,d_centroids,ball_type):
         param=self.ball_config_param(d_centroids,ball_type)
         df=self.generate_combinations(param)
@@ -404,10 +426,7 @@ class CBTP(Brain):
         df=df[~(collision_configs)]
         valid_bounces=self.find_valid_cushion_impacts(df[['C_reflect_id','Bx','By']].values)
         df=df[valid_bounces]
-        df['XB_TX_abs_angle'] = self.deviation_from_ideal_angle(df[['Tx', 'Ty']].values,
-                                                                df[['Xx', 'Xy']].values,
-                                                                df[['Bx', 'By']].values)
-        df=df[df['XB_TX_abs_angle'] < 60]
+        df = self.sort_df_by_difficulty(df)
         return df
     
 class CTTP(Brain):
@@ -455,6 +474,24 @@ class CTTP(Brain):
         img=self.draw_trajectories(img,df[['TTx', 'TTy']].values, df[['Xx', 'Xy']].values)
         img=self.draw_trajectories(img,df[['Tx', 'Ty']].values, df[['Px', 'Py']].values) 
         return img
+    
+    def sort_df_by_difficulty(self, df):
+        T=df[['Tx', 'Ty']].values
+        X=df[['Xx', 'Xy']].values
+        TT=df[['TTx', 'TTy']].values
+        Xnew=df[['X_new_x', 'X_new_y']].values
+        C=df[['Cx', 'Cy']].values
+        P=df[['Px', 'Py']].values
+        XC_TX_abs_angle = self.deviation_from_ideal_angle(T,X,C)
+        XnewT_TTXnew_abs_angle = self.deviation_from_ideal_angle(TT,Xnew,T)
+        dist_CX = np.linalg.norm(X-C, axis=1)
+        dist_TXnew = np.linalg.norm(Xnew-T, axis=1)
+        dist_TTP = np.linalg.norm(P-TT, axis=1)
+        difficulty1 = dist_CX*dist_TXnew / np.cos(XC_TX_abs_angle)
+        difficulty2 = dist_TXnew*dist_TTP / np.cos(XnewT_TTXnew_abs_angle)
+        df['dificulty'] = (difficulty1 + difficulty2)/2
+        df = df.sort_values(by=['dificulty'], ascending=False)
+        return df
 
     def selected_shots(self,d_centroids,ball_type):
         param=self.ball_config_param(d_centroids,ball_type)
@@ -470,15 +507,7 @@ class CTTP(Brain):
 
         collision_configs=self.collision_trajectories(df)
         df=df[~(collision_configs)]
-        df['XTT_TX_abs_angle'] = self.deviation_from_ideal_angle(df[['Tx', 'Ty']].values,
-                                                                df[['Xx', 'Xy']].values,
-                                                                df[['TTx', 'TTy']].values)
-        df=df[df['XTT_TX_abs_angle'] < 50]
-        df['XnewC_TTXnew_abs_angle'] = self.deviation_from_ideal_angle(df[['TTx', 'TTy']].values,
-                                                                df[['X_new_x', 'X_new_y']].values,
-                                                                df[['Cx', 'Cy']].values)
-        df=df[df['XnewC_TTXnew_abs_angle'] < 60]
-
+        df = self.sort_df_by_difficulty(df)
         return df
     
 class CTBP(Brain):
@@ -530,6 +559,20 @@ class CTBP(Brain):
         img=self.draw_trajectories(img,df[['Bx', 'By']].values, df[['Px', 'Py']].values) 
         return img
 
+    def sort_df_by_difficulty(self, df):
+        T=df[['Tx', 'Ty']].values
+        X=df[['Xx', 'Xy']].values
+        C=df[['Cx', 'Cy']].values
+        B=df[['Bx', 'By']].values
+        P=df[['Px', 'Py']].values
+        XC_TX_abs_angle = self.deviation_from_ideal_angle(T,X,C)
+        dist_CX = np.linalg.norm(X-C, axis=1)
+        dist_TB = np.linalg.norm(B-T, axis=1)
+        dist_BP = np.linalg.norm(P-B, axis=1)
+        df['dificulty'] = (dist_TB+dist_BP)*dist_CX / np.cos(XC_TX_abs_angle)
+        df = df.sort_values(by=['dificulty'], ascending=False)
+        return df
+
     def selected_shots(self,d_centroids,ball_type): 
         param=self.ball_config_param(d_centroids,ball_type)
         df=self.generate_combinations(param)
@@ -563,5 +606,6 @@ class CTBP(Brain):
 
         valid_bounces=self.find_valid_cushion_impacts(df[['T_reflect_sub_id','Bx','By']].values)
         df=df[valid_bounces]
+        df = self.sort_df_by_difficulty(df)
 
         return df

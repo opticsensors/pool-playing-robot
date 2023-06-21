@@ -15,7 +15,7 @@ computation_rectangle=img_rectangle.get_rectangle_with_offsets((260, 250, 240, 2
 #pockets_corners_rect=img_rectangle.get_rectangle_with_offsets((96, 120, 96, 120))
 
 pockets = [(96, 120),      # top left          
-           (96, H-120),    # top right       
+           (W-96, 120),    # top right       
            (W-96, H-120),  # bottom right     
            (96, H-120),    # bottom left
            (2430, 164),    # top middle    

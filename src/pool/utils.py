@@ -2,44 +2,42 @@ import numpy as np
 
 class Params(object):
   """
-  Define simulation parameters.
-  The world is centered at the lower left corner of the table.
+  Define all used parameters
   """
   def __init__(self):
     """
     Constructor
     """
 
-    ## System params 
-    # pool frame params 
-    self.DISPLAY_SIZE = (1200, 678) # W x H 
-    self.POCKET_CORNER_RADIUS = 25
-    self.POCKET_MIDDLE_RADIUS = 25
+    ## POOL FRAME PARAMS
+    self.DISPLAY_SIZE = (4822, 2719) # W x H 
+    self.POCKET_CORNER_RADIUS = 210
+    self.POCKET_MIDDLE_RADIUS = 112
     self.MOUTH_CORNER_WIDTH = 80
     self.MOUTH_MIDDLE_WIDTH = 70
     self.DISPLAY_RECTANGLE = Rectangle(top_left=(0,0), bottom_right=self.DISPLAY_SIZE)
     self.COMPUTATIONAL_RECTANGLE = self.DISPLAY_RECTANGLE.get_rectangle_with_offsets((260, 250, 240, 250))
 
-    self.POCKETS = [(55, 63),     # top left          
-                    (1134, 64),   # top right       
-                    (1134, 616),  # bottom right     
-                    (55, 616),    # bottom left
-                    (592, 48),    # top middle    
-                    (592, 629)]   # bottom middle    
+    self.POCKETS = [(96, 120),                                            # top left          
+                    (self.DISPLAY_SIZE[0]-96, 120),                       # top right       
+                    (self.DISPLAY_SIZE[0]-96, self.DISPLAY_SIZE[1]-120),  # bottom right     
+                    (96, self.DISPLAY_SIZE[1]-120),                       # bottom left
+                    (2430, 164),                                          # top middle    
+                    (2430, 2574)]                                         # bottom middle    
 
-    self.CUSHIONS = [[(88, 56), (109, 77), (555, 77), (564, 56)],        #order doesn't matter here     
-                    [(621, 56), (630, 77), (1081, 77), (1102, 56)],         
-                    [(89, 621), (110, 600),(556, 600), (564, 621)],         
-                    [(622, 621), (630, 600), (1081, 600), (1102, 621)],         
-                    [(56, 96), (77, 117), (77, 560), (56, 581)],              
-                    [(1143, 96), (1122, 117), (1122, 560), (1143, 581)]]         
+    self.CUSHIONS = [[(308, 0), (2304, 0), (2200, 138), (419, 138)],        #order doesn't matter here     
+                    [(2552, 0), (4516, 0), (4382, 138), (2660, 138)],         
+                    [(4822, 269), (4822, 2452),(4665, 2288), (4665, 413)],         
+                    [(4515, 2719), (2552, 2719), (2660, 2571), (4382, 2571)],         
+                    [(2305, 2719), (308, 2719), (419, 2571), (2201, 2571)],              
+                    [(0, 2452), (0, 269), (154, 414), (154, 2287)]]         
             
     self.CUSHION_RANGES = ((445,2154),    # top and bottom left cushion ranges
                            (2729,4338),   # top and bottom right cushion ranges
                            (476,2223))    # left and right cushion ranges
-
-    #physics params
-    self.BALL_RADIUS = 25
+      
+    #PHYSICS PARAMS
+    self.BALL_RADIUS = 102
     self.BALL_ELASTICITY = 0.8
     self.BALL_FRICTION = 1000
     self.BALL_MASS = 5
@@ -47,10 +45,60 @@ class Params(object):
     self.CUSHION_ELASTICITY = 0.8
     self.CUE_FORCE = 5500
 
-    # Graphic params
+    # GRAPHIC PARAMS
     self.TARGET_FPS = 120
     self.TIME_STEP = 1.0 / self.TARGET_FPS
     self.MAX_ENV_STEPS = 10
+
+    ## EYE PARAMS
+    #we map each color with a number:
+    self.NUM_TO_COLOR={
+        0:'white' ,
+        1:'yellow',
+        2:'blue',
+        3:'red',
+        4:'purple',
+        5:'orange',
+        6:'green',
+        7:'burgundy',
+        8:'black'
+    }
+
+    #decision tree: knowing ball color and type, we can know its number
+    self.COLOR_AND_TYPE_TO_NUM={
+        'white'   : {'cue ball': 0},
+        'yellow'  : {'solid':1, 'striped':9},
+        'blue'    : {'solid':2, 'striped':10},
+        'red'     : {'solid':3, 'striped':11},
+        'purple'  : {'solid':4, 'striped':12},
+        'orange'  : {'solid':5, 'striped':13},
+        'green'   : {'solid':6, 'striped':14},
+        'burgundy': {'solid':7, 'striped':15},
+        'black'   : {'solid':8}
+    }
+    
+    #lab calibration results of ball colors
+    #sorted by rows like: white, yellow, blue, red,... (same order as pool balls)
+    self.COLOR_TO_LAB={
+        'white'   : [227, 130, 148],
+        'yellow'  : [216.18407452, 124.80355131, 195.73519079],
+        'blue'    : [89.64986175, 134.93342045, 103.84520826],
+        'red'     : [147.45829885, 172.49603901, 178.22393935],
+        'purple'  : [78.6311673, 135.5586135, 123.057679],
+        'orange'  : [180.62554741, 151.8795586 , 187.98600759],
+        'green'   : [110.05696026, 106.50088757, 132.41375192],
+        'burgundy': [121.56706638, 160.19773476, 158.41379201],
+        'black'   : [58, 129, 136]
+    }
+    
+    self.WHITE_LOWER_LAB=[175, 0, 0]
+    self.WHITE_UPPER_LAB=[255, 147, 164]
+    self.WHITE_LOWER_HSV=[0, 0, 179]
+    self.WHITE_UPPER_HSV=[180, 106, 255]
+    
+    self.RECTANGLE_AREA=self.DISPLAY_RECTANGLE[0]*self.DISPLAY_RECTANGLE[1] # W*H
+    self.BALL_AREA=np.pi*self.BALL_RADIUS**2 #PI*RADI^2
+    self.RATIO_BALL_RECTANGLE = self.BALL_AREA/self.RECTANGLE_AREA
 
 
 class Rectangle:
@@ -134,7 +182,7 @@ def angle_between_two_vectors(u,v):
     dot = u[:,0]*v[:,0] + u[:,1]*v[:,1] # equivalent to np.sum(u*v, axis=1)
     cosine_angle = dot / (np.linalg.norm(u, axis=1)* np.linalg.norm(v, axis=1))
     angle = np.arccos(cosine_angle)
-    return np.degrees(angle)
+    return angle #in radians
 
 def line_intersect(a1, a2, b1, b2):
     T = np.array([[0, -1], [1, 0]])
