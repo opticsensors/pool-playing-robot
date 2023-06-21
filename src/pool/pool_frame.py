@@ -60,7 +60,7 @@ class Pockets:
         return np.hstack((middle_top_points,middle_bottom_points))
 
     def setup_mouths(self, width_corner, width_middle):
-        middle_x = (self.list_of_pockets[1][0] + self.list_of_pockets[4][0]) / 2
+        middle_x = (self.list_of_pockets[4][0] + self.list_of_pockets[5][0]) / 2
         top_y = self.computation_rectangle.top_y
         bottom_y = self.computation_rectangle.bottom_y
         middle_top_point = np.array([middle_x, top_y])
