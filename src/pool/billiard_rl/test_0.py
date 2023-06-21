@@ -1,5 +1,8 @@
 """Just randomly impulses balls"""
 
+# Stable baselines 3 has a work-in-progress PR for gymnasium support
+# https://github.com/DLR-RM/stable-baselines3/pull/1327
+
 import math
 import random
 
@@ -9,6 +12,9 @@ import pygame
 import pymunk
 import pymunk.pygame_util
 from gymnasium import spaces
+from matplotlib import pyplot as plt
+from stable_baselines3 import PPO
+from stable_baselines3.common.vec_env.dummy_vec_env import DummyVecEnv
 
 
 class BilliardEnv_0(gym.Env):
@@ -18,7 +24,15 @@ class BilliardEnv_0(gym.Env):
         # We define the action space
         self.action_space = spaces.Box(
             low=np.array([0.0, 0.0]),
-            high=np.array([360.0, 1000.0]),
+            high=np.array([360.0, 10_000.0]),
+            dtype=np.float32,
+        )
+        # self.action_space = spaces.MultiDiscrete([360, 1000])
+
+        # We define the observation space
+        self.observation_space = spaces.Box(
+            low=np.array([-1000.0, -1000.0]),
+            high=np.array([1000.0, 1000.0]),
             dtype=np.float32,
         )
 
@@ -47,11 +61,19 @@ class BilliardEnv_0(gym.Env):
         y = radius * math.sin(angle)
         self.target: tuple[int, int] = (int(x), int(y))
 
-    def reset(self):
+    def reset(self, seed=None):
         super().reset()
 
-    def reward_function(self):
-        pass
+        # Physics reset
+        self.space.bodies[0].position = (0, 0)
+        self.space.bodies[0].velocity = (0, 0)
+        self.space.bodies[0].angular_velocity = 0
+
+        # Target reset
+        self._setup_target()
+
+        # Observation is returned
+        return np.array(self.target, dtype=np.float32)
 
     def step(self, action):
         # We hit the ball
@@ -67,13 +89,18 @@ class BilliardEnv_0(gym.Env):
         for _ in range(num_steps):
             self.space.step(step_size)
 
-        # Reward is the distance to the target
+        # Reward
         ball_position = self.space.bodies[0].position
-        distance_to_target = np.linalg.norm(
-            np.array(ball_position) - np.array(self.target)
-        )
+        reward = -np.linalg.norm(np.array(ball_position) - np.array(self.target))
+        # Terminated
+        terminated = True
+        # Observation
+        observation = np.array(ball_position, dtype=np.float32)
+        # Info
+        info = {}
 
-        return None, -distance_to_target, True, {}
+        # return None, -distance_to_target, True, {}
+        return observation, reward, terminated, False, info
 
     def render(self):
         # Simple pygame draw example
@@ -109,12 +136,48 @@ class BilliardEnv_0(gym.Env):
                     return
 
 
-if __name__ == "__main__":
-    env = BilliardEnv_0()
+# if __name__ == "__main__":
+#     env = BilliardEnv_0()
+#     for i in range(10):
+#         action = env.action_space.sample()
+#         observation, reward, done, info = env.step(action)
+#         print(reward)
+#     print("Done!")
 
-    for i in range(10):
-        action = env.action_space.sample()
-        observation, reward, done, info = env.step(action)
-        print(reward)
+
+if __name__ == "__main__":
+    # Training metadata
+    rewards = []
+
+    env = BilliardEnv_0()
+    # Stable Baselines3 algorithms require a vectorized environment to run
+    env = DummyVecEnv([lambda: env])
+    model = PPO(
+        "MlpPolicy",
+        env,
+        verbose=1,
+        # n_steps=512,
+    )
+
+    for i in range(20):
+        sub_rewards = []
+        for j in range(20):
+            obs = env.reset()
+            action, _states = model.predict(obs, deterministic=True)
+            obs, reward, done, info = env.step(action)
+            if done:
+                obs = env.reset()
+            sub_rewards.append(reward)
+        avg_reward = np.mean(sub_rewards)
+        rewards.append(avg_reward)
+        print(avg_reward)
+        model.learn(
+            total_timesteps=10_000,
+            progress_bar=True,
+        )
 
     print("Done!")
+
+    # Plot rewards
+    plt.plot(rewards)
+    plt.show()
