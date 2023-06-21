@@ -114,7 +114,6 @@ class BilliardEnv(gym.Env):
     :return:
     """
     done = False
-    info['turn']=self.turn
     #check if any balls have been potted
     for ball_num, ball_position in self.state.items():
       distances = np.linalg.norm(ball_position - self.goals, axis=1)
@@ -128,8 +127,6 @@ class BilliardEnv(gym.Env):
           info['potted_ball']='correct_ball'
         else:
           info['potted_ball']='wrong_ball'
-      else:
-          info['potted_ball']='nothing'
 
     if all(abs(ball_shape.body.velocity) <= self.params.BALL_TERMINAL_VELOCITY 
            for ball_shape in self.physics_eng.balls.values()):
@@ -153,7 +150,6 @@ class BilliardEnv(gym.Env):
       info = {}
       # Get reward
       reward, done, info = self.reward_function(info)
-
       #self.render() # TODO remove
 
     if self.steps >= self.params.MAX_ENV_STEPS:  ## Check if max number of steps has been exceeded
@@ -161,6 +157,8 @@ class BilliardEnv(gym.Env):
 
     info = {**info, **self._get_info()}
     info['action'] = action
+    if 'potted_ball' not in info:
+      info['potted_ball'] = 'none'
 
     return observation, reward, done, False, info
 
@@ -258,7 +256,7 @@ class BilliardEnv(gym.Env):
 
 if __name__ == "__main__":
   params=Params()
-  d_centroids={0:(200,103),8:(400,400),9:(500,600),1:(250,103)}
+  d_centroids={0: (414, 248), 8: (543, 265), 1: (305, 328), 9: (480, 346)}
   computation_rectangle = Rectangle((0,0), Params().DISPLAY_SIZE)
   computation_rectangle = computation_rectangle.get_rectangle_with_offsets((127, 127, 127, 127))
   env=BilliardEnv(computation_rectangle,d_centroids, params.CUSHIONS, params.POCKETS)
@@ -266,19 +264,16 @@ if __name__ == "__main__":
   #print(env.action_space.sample())
   #print(env.observation_space.sample())
   
-  observation, info = env.reset()
+  observation, info = env.reset(d_centroids,0)
   import time
   for i in range(10):
-    action = env.action_space.sample()
+    #action = env.action_space.sample()
+    action=149
     observation, reward, terminated, truncated, info = env.step(action)
-    print('step',i,'turn',env.turn,
-          'total_coll',env.physics_eng.total_collisions,
-          'is_ball_coll',env.physics_eng.ball_collision_happened, 
-          'first_coll',env.physics_eng.first_ball_collision,
-          'rew', reward)
+    print(info['potted_ball'])
     #env.render()
     time.sleep(1)
     if terminated or truncated:
         print('reseting', terminated, truncated)
-        observation, info = env.reset()
+        observation, info = env.reset(d_centroids,0)
   env.close()
