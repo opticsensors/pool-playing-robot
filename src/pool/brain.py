@@ -198,8 +198,8 @@ class Brain:
         bottom_point2=self.pool_frame.bottom_left
 
         #left_segment
-        left_point1=self.bottom_left
-        left_point2=self.top_left
+        left_point1=self.pool_frame.bottom_left
+        left_point2=self.pool_frame.top_left
 
         #intersection can happen between four different segments (edges of pool frame)
 
@@ -232,16 +232,16 @@ class Brain:
     
     def find_valid_cushion_impacts(self, B):
         #cushion 1 (horizontal_left)
-        xmin1=self.pool_frame.xmin_horizontal_left_cushion
-        xmax1=self.pool_frame.xmax_horizontal_left_cushion
+        xmin1=self.pool_frame.xrange_horizontal_left_cushion[0]
+        xmax1=self.pool_frame.xrange_horizontal_left_cushion[1]
 
         #cushion 2 (horizontal_right)
-        xmin2=self.pool_frame.xmin_horizontal_right_cushion
-        xmax2=self.pool_frame.xmax_horizontal_right_cushion
+        xmin2=self.pool_frame.xrange_horizontal_right_cushion[0]
+        xmax2=self.pool_frame.xrange_horizontal_right_cushion[1]
 
         #cushion 3 (vertical)
-        ymin=self.pool_frame.ymin_vertical_cushion
-        ymax=self.pool_frame.ymax_vertical_cushion
+        ymin=self.pool_frame.xrange_vertical_cushion[0]
+        ymax=self.pool_frame.xrange_vertical_cushion[1]
         
         cond_horiz = (B[:,0]==1) | (B[:,0]==3)
         cond_verti = (B[:,0]==2) | (B[:,0]==4)
@@ -335,7 +335,7 @@ class CTP(Brain):
         dist_CX = np.linalg.norm(X-C, axis=1)
         dist_TP = np.linalg.norm(P-T, axis=1)
         df['dificulty'] = dist_CX*dist_TP / np.cos(XC_TX_abs_angle)
-        df = df.sort_values(by=['dificulty'], ascending=False)
+        df = df.sort_values(by=['dificulty'], ascending=True)
         return df
 
     def selected_shots(self,d_centroids,ball_type):
@@ -407,7 +407,7 @@ class CBTP(Brain):
         dist_BX = np.linalg.norm(X-B, axis=1)
         dist_TP = np.linalg.norm(P-T, axis=1)
         df['dificulty'] = (dist_CB+dist_BX)*dist_TP / np.cos(XB_TX_abs_angle)
-        df = df.sort_values(by=['dificulty'], ascending=False)
+        df = df.sort_values(by=['dificulty'], ascending=True)
         return df
 
     def selected_shots(self,d_centroids,ball_type):
@@ -490,7 +490,7 @@ class CTTP(Brain):
         difficulty1 = dist_CX*dist_TXnew / np.cos(XC_TX_abs_angle)
         difficulty2 = dist_TXnew*dist_TTP / np.cos(XnewT_TTXnew_abs_angle)
         df['dificulty'] = (difficulty1 + difficulty2)/2
-        df = df.sort_values(by=['dificulty'], ascending=False)
+        df = df.sort_values(by=['dificulty'], ascending=True)
         return df
 
     def selected_shots(self,d_centroids,ball_type):
@@ -570,7 +570,7 @@ class CTBP(Brain):
         dist_TB = np.linalg.norm(B-T, axis=1)
         dist_BP = np.linalg.norm(P-B, axis=1)
         df['dificulty'] = (dist_TB+dist_BP)*dist_CX / np.cos(XC_TX_abs_angle)
-        df = df.sort_values(by=['dificulty'], ascending=False)
+        df = df.sort_values(by=['dificulty'], ascending=True)
         return df
 
     def selected_shots(self,d_centroids,ball_type): 

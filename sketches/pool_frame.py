@@ -38,9 +38,19 @@ random_balls=RandomBalls(ball_radius=102,
 d_centroids=random_balls.generate_random_balls()
 
 ctp=CTP(pool_frame, 102)
+cbtp=CBTP(pool_frame, 102)
+cttp=CTTP(pool_frame, 102)
+ctbp=CTBP(pool_frame, 102)
+
 df_ctp=ctp.selected_shots(d_centroids, 'solid')
-img=ctp.draw_pool_balls(d_centroids,img)
-img=ctp.draw_all_trajectories(df_ctp, img)
+df_cbtp=cbtp.selected_shots(d_centroids, 'solid')
+df_cttp=cttp.selected_shots(d_centroids, 'solid')
+df_ctbp=ctbp.selected_shots(d_centroids, 'solid')
+
+img=ctbp.draw_pool_balls(d_centroids,img)
+img=ctbp.draw_all_trajectories(df_ctbp, img)
 cv2.imwrite('./results/selected_shots.png', img)
 
+print(d_centroids)
+print(df_ctbp)
 

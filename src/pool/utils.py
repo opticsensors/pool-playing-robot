@@ -96,7 +96,7 @@ class Params(object):
     self.WHITE_LOWER_HSV=[0, 0, 179]
     self.WHITE_UPPER_HSV=[180, 106, 255]
     
-    self.RECTANGLE_AREA=self.DISPLAY_RECTANGLE[0]*self.DISPLAY_RECTANGLE[1] # W*H
+    self.RECTANGLE_AREA=self.DISPLAY_SIZE[0]*self.DISPLAY_SIZE[1] # W*H
     self.BALL_AREA=np.pi*self.BALL_RADIUS**2 #PI*RADI^2
     self.RATIO_BALL_RECTANGLE = self.BALL_AREA/self.RECTANGLE_AREA
 
