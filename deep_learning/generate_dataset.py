@@ -33,13 +33,13 @@ for i,config in enumerate(l_configs):
 
             # add initial positions
             for ball_num,ball in config.items():
-                dict_to_save[f'start_ball{ball_num}_x']=ball[0]
-                dict_to_save[f'start_ball{ball_num}_y']=ball[1]
+                dict_to_save[f'start_ball_{ball_num}_x']=ball[0]
+                dict_to_save[f'start_ball_{ball_num}_y']=ball[1]
 
             # add final positions
             for ball_num,ball in info['termination_positions'].items():
-                dict_to_save[f'end_ball{ball_num}_x']=ball[0]
-                dict_to_save[f'end_ball{ball_num}_y']=ball[1]
+                dict_to_save[f'end_ball_{ball_num}_x']=ball[0]
+                dict_to_save[f'end_ball_{ball_num}_y']=ball[1]
 
             list_of_dict.append(dict_to_save.copy())
             env.close()
