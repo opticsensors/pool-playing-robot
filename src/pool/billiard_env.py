@@ -128,8 +128,6 @@ class BilliardEnv(gym.Env):
           info['potted_ball']='correct_ball'
         else:
           info['potted_ball']='wrong_ball'
-      else:
-          info['potted_ball']='nothing'
 
     if all(abs(ball_shape.body.velocity) <= self.params.BALL_TERMINAL_VELOCITY 
            for ball_shape in self.physics_eng.balls.values()):
@@ -161,7 +159,9 @@ class BilliardEnv(gym.Env):
 
     info = {**info, **self._get_info()}
     info['action'] = action
-
+    if 'potted_ball' not in info:
+      info['potted_ball'] = 'none'
+      
     return observation, reward, done, False, info
 
   def render(self):
