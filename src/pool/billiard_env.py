@@ -14,7 +14,7 @@ class BilliardEnv(gym.Env):
   s = {turn: 0 or 1, ball_i: [xi, yi], ball_j: [xj, yj], ...}
   """
 
-  def __init__(self, computation_rectangle, d_centroids,cushions,pockets, max_steps=5000, render_mode ='human'):
+  def __init__(self, computation_rectangle, d_centroids,cushions,pockets, max_steps=5000, render_mode ='human'): # TODO remove d_centroids from here
     """ Constructor
     :param seed: the random seed for the environment
     :param max_steps: the maximum number of steps the episode lasts
@@ -34,7 +34,7 @@ class BilliardEnv(gym.Env):
     self.physics_eng.create_pockets(pockets)
     self.physics_eng.handle_collisions()
 
-    ## Ball XY positions can be between pool table limits                                   
+    ## Observations are the ball XY positions and player turn                                  
     dict_spaces={ str(ball_num): spaces.Box(low=np.float32(self.min_xy), 
                                      high=np.float32(self.max_xy), 
                                      shape=(2,), 
@@ -42,7 +42,7 @@ class BilliardEnv(gym.Env):
     dict_spaces = {**{'turn': spaces.Discrete(2) }, **dict_spaces}
     self.observation_space = spaces.Dict(dict_spaces)
 
-    #angle between 0 and 3600 degrees
+    #action is the angle of the cue ball between 0 and 360 degrees
     self.action_space = spaces.Box(low=np.float32(np.array([0])), high=np.float32(np.array([360])), dtype=np.float32)
 
     self.goals = np.array([hole['pose'] for hole in self.physics_eng.holes])
@@ -73,7 +73,7 @@ class BilliardEnv(gym.Env):
     else:
       init_ball_pose = desired_ball_pose.copy()
 
-    # we wont check this cnsition for now because we suppose the random generated data is within pool frame limits
+    # we wont check this condition for now because we suppose the random generated data is within pool frame limits
     #for ball_pose in init_ball_pose.values():
     #  ball_pose=np.array(ball_pose)
     #  if (ball_pose < self.min_xy).all() or (ball_pose > self.max_xy).all():
@@ -129,6 +129,7 @@ class BilliardEnv(gym.Env):
         else:
           info['potted_ball']='wrong_ball'
 
+    # check if balls have stopped moving
     if all(abs(ball_shape.body.velocity) <= self.params.BALL_TERMINAL_VELOCITY 
            for ball_shape in self.physics_eng.balls.values()):
       done = True
@@ -268,6 +269,7 @@ if __name__ == "__main__":
     action = env.action_space.sample()
     observation, reward, terminated, truncated, info = env.step(action)
     env.render()
+    print(i)
     #time.sleep(0.01)
     if terminated or truncated:
         print('reseting', terminated, truncated)

@@ -14,4 +14,4 @@ __pycache__/
 .tox
 .cache
 
-data/
+results/

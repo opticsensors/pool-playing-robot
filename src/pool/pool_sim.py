@@ -45,7 +45,7 @@ class PhysicsSim(object):
   def create_balls(self, balls_pose):
     """
     Creates the balls in the simulation at the given positions
-    :param balls_pose: Initial pose of the ball in table RF
+    :param balls_pose: Initial pose of the ball in table 
     :return:
     """
     ## dict of balls in simulation
@@ -56,11 +56,8 @@ class PhysicsSim(object):
         radius = self.params.BALL_RADIUS
         inertia = pymunk.moment_for_circle(mass, 0, radius, (0,0))
         body = pymunk.Body(mass, inertia)
-    
-        #body = pymunk.Body()
         body.position = pose
         shape = pymunk.Circle(body, self.params.BALL_RADIUS)
-        #shape.mass = self.params.BALL_MASS
         shape.elasticity = self.params.BALL_ELASTICITY
         if idx in [1,2,3,4,5,6,7]:
           shape.collision_type = 0
@@ -176,7 +173,7 @@ if __name__ == "__main__":
     phys.create_pockets(params.POCKETS)
     phys.handle_collisions()
 
-    screen = pygame.display.set_mode((phys.params.DISPLAY_SIZE[0], phys.params.DISPLAY_SIZE[1]))
+    screen = pygame.display.set_mode((phys.params.DISPLAY_SIZE[0]//4, phys.params.DISPLAY_SIZE[1]//4))
     pygame.display.set_caption('Billiard')
     clock = pygame.time.Clock()
     screen.fill((50,50,50)) 

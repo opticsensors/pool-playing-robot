@@ -167,10 +167,8 @@ class Brain:
     def find_X(self,T,P):
 
         r=self.ball_radius
-        # we calculate d and b using T and C points
         b=np.linalg.norm(T-P, axis=1)
-
-        #virtual point X (see fig 4.1 adelaide university thesis)
+        # virtual point X 
         # we parametrize the line PT equation and compute the point 
         # that is 2*r distance from T
         t=1+2*r*(1/b)
@@ -256,6 +254,14 @@ class Brain:
         final_cond = cond1 | cond2 | cond3
 
         return final_cond
+    
+    def actuator_angle(self,df):
+        #angle to send to the actuator
+        CX = df[['Xx','Xy']].values-df[['Cx','Cy']].values
+        x_axis = np.array([[1,0]])
+        angle = utils.angle_between_two_vectors(x_axis, CX)
+        df['angle'] = np.degrees(angle)
+        return df
     
     def ball_config_param(self,d_centroids, ball_type):
         no_cue = self.get_all_detected_balls_except_cue(d_centroids)
@@ -347,6 +353,8 @@ class CTP(Brain):
         collision_configs=self.collision_trajectories(df)
         df=df[~(collision_configs)]
         df = self.sort_df_by_difficulty(df)
+        df = self.actuator_angle(df)
+
         return df
 
 class CBTP(Brain):
@@ -427,6 +435,7 @@ class CBTP(Brain):
         valid_bounces=self.find_valid_cushion_impacts(df[['C_reflect_id','Bx','By']].values)
         df=df[valid_bounces]
         df = self.sort_df_by_difficulty(df)
+        df = self.actuator_angle(df)
         return df
     
 class CTTP(Brain):
@@ -508,6 +517,7 @@ class CTTP(Brain):
         collision_configs=self.collision_trajectories(df)
         df=df[~(collision_configs)]
         df = self.sort_df_by_difficulty(df)
+        df = self.actuator_angle(df)
         return df
     
 class CTBP(Brain):
@@ -607,5 +617,5 @@ class CTBP(Brain):
         valid_bounces=self.find_valid_cushion_impacts(df[['T_reflect_sub_id','Bx','By']].values)
         df=df[valid_bounces]
         df = self.sort_df_by_difficulty(df)
-
+        df = self.actuator_angle(df)
         return df
