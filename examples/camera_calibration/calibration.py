@@ -1,5 +1,7 @@
 import numpy as np
 import cv2 as cv
+import os
+from pool.utils import Params
 
 ################ FIND CHESSBOARD CORNERS - OBJECT POINTS AND IMAGE POINTS #############################
 
@@ -21,7 +23,7 @@ imgpoints = [] # 2d points in image plane.
 # bad images are not considered (manually removed)
 for count in [0,1,2,3,5,6,9,10,11,12,13,14,15,16,17,18,19,21,23,24,25]:
 
-    img = cv.imread(f"./camera_calibration/img_{count}.jpg")
+    img = cv.imread(f"./results/img_{count}.jpg")
     gray = cv.cvtColor(img, cv.COLOR_BGR2GRAY)
 
     # Find the chess board corners
@@ -40,10 +42,7 @@ for count in [0,1,2,3,5,6,9,10,11,12,13,14,15,16,17,18,19,21,23,24,25]:
         cv.imshow('img', cv.resize(img, (0,0), fx=0.25, fy=0.25))
         cv.waitKey(2000)
 
-
 cv.destroyAllWindows()
-
-
 
 ############## CALIBRATION #######################################################
 
@@ -54,12 +53,13 @@ print("\nDistortion params:\n", dist)
 print("\nRotation vetors:\n", rvecs)
 print("\nTranslation Vectors:\n", tvecs)
 
-np.save('./data/cameraMatrix.npy', cameraMatrix)
-np.save('./data/dist.npy', dist)
+path_to_repo=Params().PATH_REPO
+np.save(os.path.join(path_to_repo,'data','cameraMatrix.npy'), cameraMatrix)
+np.save(os.path.join(path_to_repo,'data','dist.npy'), dist)
 
 ############## UNDISTORTION #####################################################
 
-img = cv.imread('./data/corners.jpg')
+img = cv.imread('./results/corners_0.jpg')
 h,  w = img.shape[:2]
 newCameraMatrix, roi = cv.getOptimalNewCameraMatrix(cameraMatrix, dist, (w,h), 1, (w,h))
 
