@@ -1,4 +1,5 @@
 import numpy as np
+import os
 
 class Params(object):
   """
@@ -8,6 +9,14 @@ class Params(object):
     """
     Constructor
     """
+    ## REPO PATH
+    self.PATH_REPO = os.path.abspath(
+        os.path.join(
+            os.path.abspath(__file__),
+            "..","..","..",
+        )
+    )
+
 
     ## POOL FRAME PARAMS
     self.DISPLAY_SIZE = (4822, 2719) # W x H 
@@ -100,6 +109,10 @@ class Params(object):
     self.BALL_AREA=np.pi*self.BALL_RADIUS**2 #PI*RADI^2
     self.RATIO_BALL_RECTANGLE = self.BALL_AREA/self.RECTANGLE_AREA
 
+    self.ARUCOS_POOL_FRAME = [[2,3],  #top                 
+                              [4,5],  #right            
+                              [6,7],  #bottom         
+                              [0,1]]  #left 
 
 class Rectangle:
     def __init__(self, top_left, bottom_right):

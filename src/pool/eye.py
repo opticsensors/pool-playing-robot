@@ -1,4 +1,5 @@
 import cv2
+import os
 import numpy as np
 from matplotlib import pyplot as plt
 from skimage.feature import peak_local_max
@@ -6,146 +7,38 @@ from skimage.segmentation import watershed
 from scipy import ndimage
 from ultralytics import YOLO
 from ultralytics.yolo.utils.plotting import Annotator
+from pool.utils import Params
 
 class Eye(object):
     """
     A class that finds the centroid of the pool balls and classifies them
 
-    Attributes
-    ----------    
-    ...
-
     """
 
-    #we map each color with a number:
-    NUM_TO_COLOR={
-        0:'white' ,
-        1:'yellow',
-        2:'blue',
-        3:'red',
-        4:'purple',
-        5:'orange',
-        6:'green',
-        7:'burgundy',
-        8:'black'
-    }
-
-    #decision tree: knowing ball color and type, we can know its number
-    COLOR_AND_TYPE_TO_NUM={
-        'white'   : {'cue ball': 0},
-        'yellow'  : {'solid':1, 'striped':9},
-        'blue'    : {'solid':2, 'striped':10},
-        'red'     : {'solid':3, 'striped':11},
-        'purple'  : {'solid':4, 'striped':12},
-        'orange'  : {'solid':5, 'striped':13},
-        'green'   : {'solid':6, 'striped':14},
-        'burgundy': {'solid':7, 'striped':15},
-        'black'   : {'solid':8}
-    }
-    
-    #lab calibration results of ball colors
-    #sorted by rows like: white, yellow, blue, red,... (same order as pool balls)
-    COLOR_TO_LAB={
-        'white'   : [227, 130, 148],
-        'yellow'  : [216.18407452, 124.80355131, 195.73519079],
-        'blue'    : [89.64986175, 134.93342045, 103.84520826],
-        'red'     : [147.45829885, 172.49603901, 178.22393935],
-        'purple'  : [78.6311673, 135.5586135, 123.057679],
-        'orange'  : [180.62554741, 151.8795586 , 187.98600759],
-        'green'   : [110.05696026, 106.50088757, 132.41375192],
-        'burgundy': [121.56706638, 160.19773476, 158.41379201],
-        'black'   : [58, 129, 136]
-    }
-    
-    WHITE_LOWER_LAB=[175, 0, 0]
-    WHITE_UPPER_LAB=[255, 147, 164]
-    WHITE_LOWER_HSV=[0, 0, 179]
-    WHITE_UPPER_HSV=[180, 106, 255]
-    
-    RECTANGLE_AREA=382352 #HxV
-    BALL_AREA=1134.115 #PI*RADI^2
-    RATIO_BALL_RECTANGLE=0.00296615132
-
-    def __init__(self, **kwargs):
-        param = {  # with defaults
-            'lower_lab': Eye.WHITE_LOWER_LAB,
-            'upper_lab': Eye.WHITE_UPPER_LAB,
-            'lower_hsv': Eye.WHITE_LOWER_HSV,
-            'upper_hsv': Eye.WHITE_UPPER_HSV,
-            'colors':    Eye.COLOR_TO_LAB,
-            }
-        param.update(kwargs)
+    def __init__(self, 
+                 cameraMatrix = None,
+                 dist = None,
+                 arucos_pool_frame = None):
+        params=Params()
+        if cameraMatrix is None:
+            self.cameraMatrix = np.load(os.path.join(params.PATH_REPO, 'data', 'cameraMatrix.npy'))
+        else:
+            self.cameraMatrix = cameraMatrix
+        if dist is None:
+            self.dist = np.load(os.path.join(params.PATH_REPO, 'data', 'dist.npy'))
+        else:
+            self.dist = dist
+        if arucos_pool_frame is None:
+            self.arucos_pool_frame = params.ARUCOS_POOL_FRAME
+        else:
+            self.arucos_pool_frame = arucos_pool_frame
         
-        self._lower_hsv=param['lower_hsv']
-        self._lower_lab=param['lower_lab']
-        self._upper_hsv=param['upper_hsv']
-        self._upper_lab=param['upper_lab']
-        self._color_to_lab=param['colors']
-
-    @staticmethod
-    def _dict_to_arr( color_to_lab):
-
-        color_to_num = {v: k for k, v in Eye.NUM_TO_COLOR.items()}
-        num_to_lab={color_to_num[k]: v for k, v in color_to_lab.items()}
-        lab_arr=np.zeros((len(color_to_lab),3))
-        for num in num_to_lab:
-            lab=num_to_lab[num]
-            lab_arr[num,:]=np.array(lab)
-        
-        return lab_arr
-
     @staticmethod
     def _intersect(line1,line2):
         vx1,vy1,x1,y1=line1
         vx2,vy2,x2,y2=line2
         t = (vy2*(x2-x1)-vx2*(y2-y1))/(vx1*vy2-vx2*vy1)
         return (x1+vx1*t,y1+vy1*t)
-
-    @property
-    def lower_hsv(self):
-        return np.array(self._lower_hsv)
-    
-    @lower_hsv.setter
-    def lower_hsv(self,color):
-        if isinstance(color, list):
-            self._lower_hsv=color
-
-    @property
-    def lower_lab(self):
-        return np.array(self._lower_lab)
-    
-    @lower_lab.setter
-    def lower_lab(self,color):
-        if isinstance(color, list):
-            self._lower_lab=color
-
-    @property
-    def upper_hsv(self):
-        return np.array(self._upper_hsv)
-    
-    @upper_hsv.setter
-    def upper_hsv(self,color):
-        if isinstance(color, list):
-            self._upper_hsv=color
-
-    @property
-    def upper_lab(self):
-        return np.array(self._upper_lab)
-    
-    @upper_lab.setter
-    def upper_lab(self,color):
-        if isinstance(color, list):
-            self._upper_lab=color
-
-    @property
-    def color_to_lab(self):
-        lab_arr=self._dict_to_arr(self._color_to_lab)
-        return lab_arr
-    
-    @color_to_lab.setter
-    def color_to_lab(self,color_to_lab):
-        if isinstance(color_to_lab, dict):
-            self._color_to_lab=color_to_lab
 
     def undistort_image(self,img, cameraMatrix, dist, remapping=False):
         h,  w = img.shape[:2]
@@ -250,11 +143,149 @@ class Eye(object):
                 cY = (topLeft[1] + bottomRight[1]) / 2.0
                 id_to_centroids[markerID]=(cX,cY)
         
-        if aruco_to_track in id_to_centroids:
+        if aruco_to_track in id_to_centroids: #TODO make more aruco ids trackable
             return id_to_centroids[aruco_to_track]
         else:   
             raise ValueError('the aruco specified is not found in the img')
-            
+
+    def calculate_perspective_matrix(self, corners) -> np.ndarray:
+
+        # Order points in clockwise order:
+        # First, we separate corners into individual points
+        # Index 0 - top-right
+        #       1 - top-left
+        #       2 - bottom-left
+        #       3 - bottom-right
+        top_r, top_l, bottom_l, bottom_r = corners[0], corners[1], corners[2], corners[3]
+
+        # Determine width of new image which is the max distance between 
+        # (bottom right and bottom left) or (top right and top left) x-coordinates
+        width_A = np.sqrt(((bottom_r[0] - bottom_l[0]) ** 2) + ((bottom_r[1] - bottom_l[1]) ** 2))
+        width_B = np.sqrt(((top_r[0] - top_l[0]) ** 2) + ((top_r[1] - top_l[1]) ** 2))
+        width = max(int(width_A), int(width_B))
+
+        # Determine height of new image which is the max distance between 
+        # (top right and bottom right) or (top left and bottom left) y-coordinates
+        height_A = np.sqrt(((top_r[0] - bottom_r[0]) ** 2) + ((top_r[1] - bottom_r[1]) ** 2))
+        height_B = np.sqrt(((top_l[0] - bottom_l[0]) ** 2) + ((top_l[1] - bottom_l[1]) ** 2))
+        height = max(int(height_A), int(height_B))
+
+        # Construct new points to obtain top-down view of image in 
+        # top_r, top_l, bottom_l, bottom_r order
+        dimensions = np.array([[0, 0], [width - 1, 0], [width - 1, height - 1], 
+                        [0, height - 1]], dtype = "float32")
+
+        # Convert to Numpy format
+        corners = np.array(corners, dtype="float32")
+
+        # Find perspective transform matrix
+        matrix = cv2.getPerspectiveTransform(corners, dimensions)
+
+        return matrix
+    
+    def transform_image_given_a_matrix(self, image, corners, matrix):
+        # Return the transformed image
+
+        # width  = image.shape[1]
+        # height = image.shape[0]
+
+        top_r, top_l, bottom_l, bottom_r = corners[0], corners[1], corners[2], corners[3]
+
+        # Determine width of new image which is the max distance between 
+        # (bottom right and bottom left) or (top right and top left) x-coordinates
+        width_A = np.sqrt(((bottom_r[0] - bottom_l[0]) ** 2) + ((bottom_r[1] - bottom_l[1]) ** 2))
+        width_B = np.sqrt(((top_r[0] - top_l[0]) ** 2) + ((top_r[1] - top_l[1]) ** 2))
+        width = max(int(width_A), int(width_B))
+
+        # Determine height of new image which is the max distance between 
+        # (top right and bottom right) or (top left and bottom left) y-coordinates
+        height_A = np.sqrt(((top_r[0] - bottom_r[0]) ** 2) + ((top_r[1] - bottom_r[1]) ** 2))
+        height_B = np.sqrt(((top_l[0] - bottom_l[0]) ** 2) + ((top_l[1] - bottom_l[1]) ** 2))
+        height = max(int(height_A), int(height_B))
+        
+        return cv2.warpPerspective(image, matrix, (width, height))
+
+    
+class ClassicCV:
+    def __init__(self, **kwargs):
+        self.params = Params()
+        param = {  # with defaults
+            'lower_lab': self.params.WHITE_LOWER_LAB,
+            'upper_lab': self.params.WHITE_UPPER_LAB,
+            'lower_hsv': self.params.WHITE_LOWER_HSV,
+            'upper_hsv': self.params.WHITE_UPPER_HSV,
+            'colors':    self.params.COLOR_TO_LAB,
+            }
+        param.update(kwargs)
+        
+        self._lower_hsv=param['lower_hsv']
+        self._lower_lab=param['lower_lab']
+        self._upper_hsv=param['upper_hsv']
+        self._upper_lab=param['upper_lab']
+        self._color_to_lab=param['colors']
+
+    def _dict_to_arr(self,color_to_lab):
+        color_to_num = {v: k for k, v in self.params.NUM_TO_COLOR.items()}
+        num_to_lab={color_to_num[k]: v for k, v in color_to_lab.items()}
+        lab_arr=np.zeros((len(color_to_lab),3))
+        for num in num_to_lab:
+            lab=num_to_lab[num]
+            lab_arr[num,:]=np.array(lab)
+        
+        return lab_arr
+
+    @staticmethod
+    def _intersect(line1,line2):
+        vx1,vy1,x1,y1=line1
+        vx2,vy2,x2,y2=line2
+        t = (vy2*(x2-x1)-vx2*(y2-y1))/(vx1*vy2-vx2*vy1)
+        return (x1+vx1*t,y1+vy1*t)
+
+    @property
+    def lower_hsv(self):
+        return np.array(self._lower_hsv)
+    
+    @lower_hsv.setter
+    def lower_hsv(self,color):
+        if isinstance(color, list):
+            self._lower_hsv=color
+
+    @property
+    def lower_lab(self):
+        return np.array(self._lower_lab)
+    
+    @lower_lab.setter
+    def lower_lab(self,color):
+        if isinstance(color, list):
+            self._lower_lab=color
+
+    @property
+    def upper_hsv(self):
+        return np.array(self._upper_hsv)
+    
+    @upper_hsv.setter
+    def upper_hsv(self,color):
+        if isinstance(color, list):
+            self._upper_hsv=color
+
+    @property
+    def upper_lab(self):
+        return np.array(self._upper_lab)
+    
+    @upper_lab.setter
+    def upper_lab(self,color):
+        if isinstance(color, list):
+            self._upper_lab=color
+
+    @property
+    def color_to_lab(self):
+        lab_arr=self._dict_to_arr(self._color_to_lab)
+        return lab_arr
+    
+    @color_to_lab.setter
+    def color_to_lab(self,color_to_lab):
+        if isinstance(color_to_lab, dict):
+            self._color_to_lab=color_to_lab
 
     def get_cloth_color(self,hsv,search_width=45):
         """
@@ -306,104 +337,6 @@ class Eye(object):
 
         return inverted_mask,prostprocessed_mask
 
-    def perspective_transform(self,image, corners):
-        """
-        4 point prespective transform.
-        Aligns pool table edges with image edges.
-        """
-
-        # Order points in clockwise order:
-        # First, we separate corners into individual points
-        # Index 0 - top-right
-        #       1 - top-left
-        #       2 - bottom-left
-        #       3 - bottom-right
-        top_r, top_l, bottom_l, bottom_r = corners[0], corners[1], corners[2], corners[3]
-
-        # Determine width of new image which is the max distance between 
-        # (bottom right and bottom left) or (top right and top left) x-coordinates
-        width_A = np.sqrt(((bottom_r[0] - bottom_l[0]) ** 2) + ((bottom_r[1] - bottom_l[1]) ** 2))
-        width_B = np.sqrt(((top_r[0] - top_l[0]) ** 2) + ((top_r[1] - top_l[1]) ** 2))
-        width = max(int(width_A), int(width_B))
-
-        # Determine height of new image which is the max distance between 
-        # (top right and bottom right) or (top left and bottom left) y-coordinates
-        height_A = np.sqrt(((top_r[0] - bottom_r[0]) ** 2) + ((top_r[1] - bottom_r[1]) ** 2))
-        height_B = np.sqrt(((top_l[0] - bottom_l[0]) ** 2) + ((top_l[1] - bottom_l[1]) ** 2))
-        height = max(int(height_A), int(height_B))
-
-        # Construct new points to obtain top-down view of image in 
-        # top_r, top_l, bottom_l, bottom_r order
-        dimensions = np.array([[0, 0], [width - 1, 0], [width - 1, height - 1], 
-                        [0, height - 1]], dtype = "float32")
-
-        # Convert to Numpy format
-        corners = np.array(corners, dtype="float32")
-
-        # Find perspective transform matrix
-        matrix = cv2.getPerspectiveTransform(corners, dimensions)
-
-        # Return the transformed image
-        return cv2.warpPerspective(image, matrix, (width, height)), matrix
-
-    def calculate_perspective_matrix(self, corners) -> np.ndarray:
-
-        # Order points in clockwise order:
-        # First, we separate corners into individual points
-        # Index 0 - top-right
-        #       1 - top-left
-        #       2 - bottom-left
-        #       3 - bottom-right
-        top_r, top_l, bottom_l, bottom_r = corners[0], corners[1], corners[2], corners[3]
-
-        # Determine width of new image which is the max distance between 
-        # (bottom right and bottom left) or (top right and top left) x-coordinates
-        width_A = np.sqrt(((bottom_r[0] - bottom_l[0]) ** 2) + ((bottom_r[1] - bottom_l[1]) ** 2))
-        width_B = np.sqrt(((top_r[0] - top_l[0]) ** 2) + ((top_r[1] - top_l[1]) ** 2))
-        width = max(int(width_A), int(width_B))
-
-        # Determine height of new image which is the max distance between 
-        # (top right and bottom right) or (top left and bottom left) y-coordinates
-        height_A = np.sqrt(((top_r[0] - bottom_r[0]) ** 2) + ((top_r[1] - bottom_r[1]) ** 2))
-        height_B = np.sqrt(((top_l[0] - bottom_l[0]) ** 2) + ((top_l[1] - bottom_l[1]) ** 2))
-        height = max(int(height_A), int(height_B))
-
-        # Construct new points to obtain top-down view of image in 
-        # top_r, top_l, bottom_l, bottom_r order
-        dimensions = np.array([[0, 0], [width - 1, 0], [width - 1, height - 1], 
-                        [0, height - 1]], dtype = "float32")
-
-        # Convert to Numpy format
-        corners = np.array(corners, dtype="float32")
-
-        # Find perspective transform matrix
-        matrix = cv2.getPerspectiveTransform(corners, dimensions)
-
-        return matrix
-    
-    def transform_image_given_a_matrix(self, image, corners, matrix):
-        # Return the transformed image
-
-        # width  = image.shape[1]
-        # height = image.shape[0]
-
-
-        top_r, top_l, bottom_l, bottom_r = corners[0], corners[1], corners[2], corners[3]
-
-        # Determine width of new image which is the max distance between 
-        # (bottom right and bottom left) or (top right and top left) x-coordinates
-        width_A = np.sqrt(((bottom_r[0] - bottom_l[0]) ** 2) + ((bottom_r[1] - bottom_l[1]) ** 2))
-        width_B = np.sqrt(((top_r[0] - top_l[0]) ** 2) + ((top_r[1] - top_l[1]) ** 2))
-        width = max(int(width_A), int(width_B))
-
-        # Determine height of new image which is the max distance between 
-        # (top right and bottom right) or (top left and bottom left) y-coordinates
-        height_A = np.sqrt(((top_r[0] - bottom_r[0]) ** 2) + ((top_r[1] - bottom_r[1]) ** 2))
-        height_B = np.sqrt(((top_l[0] - bottom_l[0]) ** 2) + ((top_l[1] - bottom_l[1]) ** 2))
-        height = max(int(height_A), int(height_B))
-        
-        return cv2.warpPerspective(image, matrix, (width, height))
-
     def crop_image(self, img, h_offset, v_offset):
         return img[v_offset:-v_offset, h_offset:-h_offset]
 
@@ -424,7 +357,7 @@ class Eye(object):
         factor_of_safety=0.15
         H=thresh.shape[1]
         V=thresh.shape[0]
-        min_size=factor_of_safety*H*V*Eye.RATIO_BALL_RECTANGLE 
+        min_size=factor_of_safety*H*V*self.params.RATIO_BALL_RECTANGLE 
         #max_size=16*H*V*Eye.RATIO_BALL_RECTANGLE #all balls connected
 
         #find all your connected components (white blobs in your image)
@@ -537,101 +470,12 @@ class Eye(object):
                 measured_lab=np.tile(avg_lab, (9, 1))#there are 9 colors
                 error=np.sqrt(np.sum(np.power(measured_lab[:,1:] - self.color_to_lab[:,1:], 2), axis=1)) #we use chroma instead of euclidean distance
                 row_with_min_error=np.unravel_index(np.nanargmin(error, axis=None), error.shape)[0]
-                ball_color=Eye.NUM_TO_COLOR[row_with_min_error]
-                ball_number=Eye.COLOR_AND_TYPE_TO_NUM[ball_color][ball_type]
+                ball_color=self.params.NUM_TO_COLOR[row_with_min_error]
+                ball_number=self.params.COLOR_AND_TYPE_TO_NUM[ball_color][ball_type]
                 old_to_new[i]=ball_number
                 print(f'ball {i}= %white: {proportion_white_pixels}, color: {ball_color}, ball_type: {ball_type}, ball num: {ball_number}')
 
         return {old_to_new[k]: v for k, v in d_centroids.items()}
-
-    def YOLO(self, img, conf, overlap_threshold, data_path , model_path):
-        model = YOLO(model_path)
-        _img = img.copy() # to make annotations
-        # source image understands bgr cv2 format
-        results = model.predict(task='detect', mode='predict', source=img, conf=conf, data=data_path, model=model_path)
-
-        for r in results:
-            
-            num_predictions=r.boxes.shape[0]
-
-            #conf, ball id and ball centroid will be stored in predictions
-            predictions=np.zeros((num_predictions,8))
-            annotator = Annotator(_img)
-            
-            boxes = r.boxes
-            for id,box in enumerate(boxes):
-                
-                b = box.xyxy[0]  # get box coordinates in (top, left, bottom, right) format
-                c = box.cls #get the predicted class 
-                conf = box.conf #get the confidence of thr prediction
-                annotator.box_label(b, model.names[int(c)])
-                
-                x_top_left, y_top_left, x_bottom_right, y_bottom_right=b
-                cx=(x_top_left+x_bottom_right)/2
-                cy=(y_top_left+y_bottom_right)/2        
-                #img = cv2.circle(img, (int(cx),int(cy)), radius=7, color=(0, 255, 0), thickness=-1)
-                
-                ball_number=int(model.names[int(c)])
-                cx=float(cx)
-                cy=float(cy)
-                conf=float(conf)
-
-                predictions[id,0]=conf
-                predictions[id,1]=ball_number
-                predictions[id,2]=cx
-                predictions[id,3]=cy
-                predictions[id,4]=x_bottom_right-x_top_left
-                predictions[id,5]=y_bottom_right-y_top_left
-
-        #img = annotator.result()  
-        #cv2.imwrite('YOLO_Detection.jpg', img)     
-
-        list_of_balls=[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15]
-        valid_centroids=np.zeros((1,2))
-        d_centroids={}
-        d_annotations={}
-        l_annotations=[]
-
-        #we should take into account that predictions is already sorted from high conf to low
-        for i,pred in enumerate(predictions):
-            ball_number = pred[1]
-            centroid = pred[2:4]
-            conf=pred[0]
-            h=pred[4]
-            w=pred[5]
-            
-            #first prediction has a different treatment:
-            if i==0:
-                list_of_balls.remove(ball_number)
-                valid_centroids[:]=centroid
-                d_centroids[ball_number]=[centroid[0],centroid[1]]
-                d_annotations['x']=int(centroid[0])
-                d_annotations['y']=int(centroid[1])
-                d_annotations['width']=int(w)
-                d_annotations['height']=int(h)
-                d_annotations['confidence']=conf
-                d_annotations['class']=str(int(ball_number))
-                l_annotations.append(d_annotations.copy())
-
-            else:
-                if ball_number in list_of_balls: #ball num not assigned yet
-                    
-                    distances=np.linalg.norm(centroid - valid_centroids, axis=1)
-                    
-                    if (distances>overlap_threshold).any():
-
-                        list_of_balls.remove(ball_number)
-                        valid_centroids = np.vstack([valid_centroids, centroid])
-                        d_centroids[ball_number]=[centroid[0],centroid[1]]
-                        d_annotations['x']=int(centroid[0])
-                        d_annotations['y']=int(centroid[1])
-                        d_annotations['width']=w
-                        d_annotations['height']=h
-                        d_annotations['confidence']=conf
-                        d_annotations['class']=str(int(ball_number))
-                        l_annotations.append(d_annotations.copy())
-
-        return d_centroids, l_annotations
 
     def tune_ball_color(self,img,numbered_balls,color_space='hsv'):
         """
@@ -688,8 +532,8 @@ class Eye(object):
                 measured_lab=np.tile(avg_lab, (9, 1))#there are 9 colors
                 error=np.sqrt(np.sum(np.power(measured_lab[:,1:] - self.color_to_lab[:,1:], 2), axis=1)) #we use chroma instead of euclidean distance
                 row_with_min_error=np.unravel_index(np.nanargmin(error, axis=None), error.shape)[0]
-                ball_color=Eye.NUM_TO_COLOR[row_with_min_error]
-                ball_number=Eye.COLOR_AND_TYPE_TO_NUM[ball_color][ball_type]
+                ball_color=self.params.NUM_TO_COLOR[row_with_min_error]
+                ball_number=self.params.COLOR_AND_TYPE_TO_NUM[ball_color][ball_type]
 
                 
                 fig = plt.figure()
@@ -761,3 +605,118 @@ class Eye(object):
         markers = cv2.watershed(warp,markers)
 
         return markers
+
+
+class Yolo:
+    def __init__(self, data_path=None, model_path=None):
+        params=Params()
+        if data_path is None:
+            self.data_path = os.path.join(params.PATH_REPO, 'data', 'data.yaml')
+        else:
+            self.data_path = data_path
+        if model_path is None:
+            self.model_path = os.path.join(params.PATH_REPO, 'data', 'yolov8m_version9.pt')
+        else:
+            self.model_path = model_path
+
+    def detect_balls(self, img, conf, overlap_threshold):
+        model = YOLO(self.model_path)
+        _img = img.copy() # to make annotations
+        # source image understands bgr cv2 format
+        results = model.predict(task='detect', 
+                                mode='predict', 
+                                source=img, 
+                                conf=conf, 
+                                data=self.data_path, 
+                                model=self.model_path)
+
+        for r in results:
+            
+            num_predictions=r.boxes.shape[0]
+
+            #conf, ball id and ball centroid will be stored in predictions
+            predictions=np.zeros((num_predictions,8))
+            annotator = Annotator(_img)
+            
+            boxes = r.boxes
+            for id,box in enumerate(boxes):
+                
+                b = box.xyxy[0]  # get box coordinates in (top, left, bottom, right) format
+                c = box.cls #get the predicted class 
+                conf = box.conf #get the confidence of thr prediction
+                annotator.box_label(b, model.names[int(c)])
+                
+                x_top_left, y_top_left, x_bottom_right, y_bottom_right=b
+                cx=(x_top_left+x_bottom_right)/2
+                cy=(y_top_left+y_bottom_right)/2        
+                
+                ball_number=int(model.names[int(c)])
+                cx=float(cx)
+                cy=float(cy)
+                conf=float(conf)
+
+                predictions[id,0]=conf
+                predictions[id,1]=ball_number
+                predictions[id,2]=cx
+                predictions[id,3]=cy
+                predictions[id,4]=x_bottom_right-x_top_left
+                predictions[id,5]=y_bottom_right-y_top_left
+
+        #img = annotator.result()  
+        #cv2.imwrite('YOLO_Detection.jpg', img)     
+
+        list_of_balls=[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15]
+        valid_centroids=np.zeros((1,2))
+        d_centroids={}
+        d_annotations={}
+        l_annotations=[]
+
+        #we should take into account that predictions is already sorted from high conf to low
+        for i,pred in enumerate(predictions):
+            ball_number = pred[1]
+            centroid = pred[2:4]
+            conf=pred[0]
+            h=pred[4]
+            w=pred[5]
+            
+            #first prediction has a different treatment:
+            if i==0:
+                list_of_balls.remove(ball_number)
+                valid_centroids[:]=centroid
+                d_centroids[ball_number]=[centroid[0],centroid[1]]
+                d_annotations['x']=int(centroid[0])
+                d_annotations['y']=int(centroid[1])
+                d_annotations['width']=int(w)
+                d_annotations['height']=int(h)
+                d_annotations['confidence']=conf
+                d_annotations['class']=str(int(ball_number))
+                l_annotations.append(d_annotations.copy())
+
+            else:
+                if ball_number in list_of_balls: #ball num not assigned yet
+                    
+                    distances=np.linalg.norm(centroid - valid_centroids, axis=1)
+                    
+                    if (distances>overlap_threshold).any():
+
+                        list_of_balls.remove(ball_number)
+                        valid_centroids = np.vstack([valid_centroids, centroid])
+                        d_centroids[ball_number]=[centroid[0],centroid[1]]
+                        d_annotations['x']=int(centroid[0])
+                        d_annotations['y']=int(centroid[1])
+                        d_annotations['width']=w
+                        d_annotations['height']=h
+                        d_annotations['confidence']=conf
+                        d_annotations['class']=str(int(ball_number))
+                        l_annotations.append(d_annotations.copy())
+
+        return d_centroids, l_annotations
+    
+    def debug(self, img, d_centroids):
+        for ball_num in d_centroids:
+            x,y=d_centroids[ball_num]
+            img=cv2.putText(img, "#{}".format(ball_num), (int(x) - 10, int(y)),
+            cv2.FONT_HERSHEY_SIMPLEX, 2, (0, 255, 0), 3)
+            img=cv2.circle(img, (int(x), int(y)), 8, (255, 0, 255), -1)
+
+        return img
