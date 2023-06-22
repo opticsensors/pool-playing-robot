@@ -234,13 +234,6 @@ class ClassicCV:
         
         return lab_arr
 
-    @staticmethod
-    def _intersect(line1,line2):
-        vx1,vy1,x1,y1=line1
-        vx2,vy2,x2,y2=line2
-        t = (vy2*(x2-x1)-vx2*(y2-y1))/(vx1*vy2-vx2*vy1)
-        return (x1+vx1*t,y1+vy1*t)
-
     @property
     def lower_hsv(self):
         return np.array(self._lower_hsv)
@@ -293,7 +286,7 @@ class ClassicCV:
         In a well lit image, this will be the cloth
         """
 
-        hist = cv2.calcHist([hsv], [0], None, [180], [0, 180]) # origina: hist = cv2.calcHist([hsv], [1], None, [180], [0, 180])
+        hist = cv2.calcHist([hsv], [0], None, [180], [0, 180]) # original: hist = cv2.calcHist([hsv], [1], None, [180], [0, 180])
         h_max = np.unravel_index(np.nanargmax(hist, axis=None), hist.shape)[0]
         
         hist = cv2.calcHist([hsv], [1], None, [256], [0, 256])
@@ -387,10 +380,12 @@ class ClassicCV:
         # Compute Euclidean distance from every binary pixel
         # to the nearest zero pixel then find peaks
         distance_map = ndimage.distance_transform_edt(thresh)
-        local_max = peak_local_max(distance_map, indices=False, min_distance=20, labels=thresh)
+        local_max = peak_local_max(distance_map, min_distance=20, labels=thresh)
+        peaks_mask = np.zeros_like(distance_map, dtype=bool)
+        peaks_mask[tuple(local_max.T)] = True
 
         # Perform connected component analysis then apply Watershed
-        markers = ndimage.label(local_max, structure=np.ones((3, 3)))[0]
+        markers = ndimage.label(peaks_mask, structure=np.ones((3, 3)))[0]
         labels = watershed(-distance_map, markers, mask=thresh)
         #l_unique=[ball_num for ball_num in labels if ball_num!=0]
 
@@ -404,20 +399,23 @@ class ClassicCV:
                 d_centroids[i]=centroid
 
         return labels,d_centroids
+    
+    def debug_find_ball_blobs(self, blobs, numbered_blobs):
+        blobs_3ch=cv2.merge((blobs,blobs,blobs))
+        for label in np.unique(numbered_blobs):
+            if label == 0:
+                continue
 
-    def tune_white_color(self,img,numbered_balls):
-        """
+            # Create a mask
+            mask = np.zeros(blobs.shape, dtype="uint8")
+            mask[numbered_blobs == label] = 255
 
-        """
-        for i in np.unique(numbered_balls):
-            if i!=0:
-                masked_ball = np.zeros((img.shape[:-1]), dtype=np.uint8)#1 ch
-                masked_ball[numbered_balls==i] = 255
-                masked = cv2.bitwise_and(img, img, mask=masked_ball)
-                contour_ball,_ = cv2.findContours(masked_ball, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
-                x, y, w, h = cv2.boundingRect(contour_ball[0])
-                masked=masked[y:y+h, x:x+w, :]
-                cv2.imwrite(f'./results/masked_{i}.png', masked)
+            # Find contours and determine contour area
+            cnts = cv2.findContours(mask.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+            cnts = cnts[0] if len(cnts) == 2 else cnts[1]
+            c = max(cnts, key=cv2.contourArea)
+            cv2.drawContours(blobs_3ch, [c], -1, (36,255,12), 4)
+        return blobs_3ch
 
     def classify_balls(self,img,numbered_balls,d_centroids,color_space='hsv'):
         """
@@ -476,6 +474,20 @@ class ClassicCV:
                 print(f'ball {i}= %white: {proportion_white_pixels}, color: {ball_color}, ball_type: {ball_type}, ball num: {ball_number}')
 
         return {old_to_new[k]: v for k, v in d_centroids.items()}
+
+    def tune_white_color(self,img,numbered_balls):
+        """
+
+        """
+        for i in np.unique(numbered_balls):
+            if i!=0:
+                masked_ball = np.zeros((img.shape[:-1]), dtype=np.uint8)#1 ch
+                masked_ball[numbered_balls==i] = 255
+                masked = cv2.bitwise_and(img, img, mask=masked_ball)
+                contour_ball,_ = cv2.findContours(masked_ball, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+                x, y, w, h = cv2.boundingRect(contour_ball[0])
+                masked=masked[y:y+h, x:x+w, :]
+                cv2.imwrite(f'./results/masked_{i}.png', masked)
 
     def tune_ball_color(self,img,numbered_balls,color_space='hsv'):
         """
@@ -571,41 +583,7 @@ class ClassicCV:
 
                 fig.suptitle(f'ball: {ball_number}') 
 
-                plt.show()
-
-    def _find_ball_blobs_opencv(self,warp,connected_centroids):
-        """
-        Maybe faster than find_ball_blobs method
-        """
-
-
-        # noise removal
-        #kernel = np.ones((3,3),np.uint8)
-        kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE,(3, 3))
-        opening = cv2.morphologyEx(connected_centroids,cv2.MORPH_OPEN,kernel, iterations = 2)
-
-        # sure background area
-        sure_bg = cv2.dilate(opening,kernel,iterations=3)
-
-        # Finding sure foreground area
-        dist_transform = cv2.distanceTransform(opening,cv2.DIST_L2,5)
-        ret, sure_fg = cv2.threshold(dist_transform,0.7*dist_transform.max(),255,0)
-
-        # Finding unknown region
-        sure_fg = np.uint8(sure_fg)
-        unknown = cv2.subtract(sure_bg,sure_fg)
-
-        # Marker labelling
-        ret, markers = cv2.connectedComponents(sure_fg)
-        # Add one to all labels so that sure background is not 0, but 1
-        markers = markers+1
-        # Now, mark the region of unknown with zero
-        markers[unknown==255] = 0
-
-        markers = cv2.watershed(warp,markers)
-
-        return markers
-
+                plt.savefig(f"./results/color_classification{i}.png")
 
 class Yolo:
     def __init__(self, data_path=None, model_path=None):
