@@ -38,7 +38,7 @@ class BilliardEnv(gym.Env):
     dict_spaces={ str(ball_num): spaces.Box(low=np.float32(self.min_xy), 
                                      high=np.float32(self.max_xy), 
                                      shape=(2,), 
-                                     dtype=np.float32) for ball_num in d_centroids}
+                                     dtype=np.float32) for ball_num in d_centroids} # TODO define observation space with something different than d_centroids !
     dict_spaces = {**{'turn': spaces.Discrete(2) }, **dict_spaces}
     self.observation_space = spaces.Dict(dict_spaces)
 

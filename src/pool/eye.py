@@ -334,7 +334,7 @@ class ClassicCV:
         return img[v_offset:-v_offset, h_offset:-h_offset]
 
     def substract_background(self, thresh, bg_mask):
-        thresh[bg_mask==255]=0
+        thresh[bg_mask==255]=0 # TODO crop bg image or image with balls so they have same dimensions 
         return thresh
 
     def remove_small_dots(self,thresh,connectivity):
@@ -487,7 +487,7 @@ class ClassicCV:
                 contour_ball,_ = cv2.findContours(masked_ball, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
                 x, y, w, h = cv2.boundingRect(contour_ball[0])
                 masked=masked[y:y+h, x:x+w, :]
-                cv2.imwrite(f'./results/masked_{i}.png', masked)
+                cv2.imwrite(f'./results/masked_{i}.png', masked) # TODO this relative path should not be here!
 
     def tune_ball_color(self,img,numbered_balls,color_space='hsv'):
         """
@@ -583,7 +583,7 @@ class ClassicCV:
 
                 fig.suptitle(f'ball: {ball_number}') 
 
-                plt.savefig(f"./results/color_classification{i}.png")
+                plt.savefig(f"./results/color_classification{i}.png") # TODO this relative path should not be here!
 
 class Yolo:
     def __init__(self, data_path=None, model_path=None):

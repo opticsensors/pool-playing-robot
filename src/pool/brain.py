@@ -160,7 +160,7 @@ class Brain:
         collision_configs=(arr_configs[None,:]==arr_collisions[:,None]).all(-1).any(0)
         return collision_configs
 
-    def find_X(self,T,P):
+    def find_X(self,T,P): # TODO X should be inside computational rectangle
 
         r=self.ball_radius
         b=np.linalg.norm(T-P, axis=1)
@@ -350,7 +350,7 @@ class CTP(Brain):
         df=df[~(collision_configs)]
         df = self.sort_df_by_difficulty(df)
         df = self.actuator_angle(df)
-
+        # TODO groupby to avoid repeating trajectories! (this groupby depends on shot type!)
         return df
 
 class CBTP(Brain):
@@ -587,7 +587,7 @@ class CTBP(Brain):
                                            df[['Px', 'Py']].values,)
         df['Bx']=B_comb[:,0]
         df['By']=B_comb[:,1]
-        df=df[((df['P_id']==6) & (df['T_reflect_sub_id']==1)) |
+        df=df[((df['P_id']==6) & (df['T_reflect_sub_id']==1)) | # TODO remove these wall of conditions if they are not necessary
         ((df['P_id']==6) & (df['T_reflect_sub_id']==2)) |
         ((df['P_id']==5) & (df['T_reflect_sub_id']==1)) |
         ((df['P_id']==5) & (df['T_reflect_sub_id']==2)) |
@@ -666,6 +666,6 @@ class ShotSelection:
             df=self.ctbp.selected_shots(d_centroids, turn)
             img=self.ctp.draw_all_trajectories(df, img)
 
-        img=self.ctp.draw_pool_balls(d_centroids,img) # TODO valid for self.ctp, self.cbtp ...
+        img=self.ctp.draw_pool_balls(d_centroids,img) # TODO valid for self.ctp, self.cbtp ... make this cleaner
 
         return img, df
