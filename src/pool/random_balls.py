@@ -1,12 +1,23 @@
 import random
 import math
+from pool.utils import Params
 
 class RandomBalls:
-    def __init__(self,ball_radius,
-                computation_rectangle,
+    def __init__(self,
+                 ball_radius=None,
+                 computation_rectangle=None,
                 ):
-        self.ball_radius=ball_radius
-        self.computation_rectangle=computation_rectangle
+        params=Params()
+        if ball_radius is None:
+            self.ball_radius = params.BALL_RADIUS
+        else:
+            self.ball_radius=ball_radius
+
+        if computation_rectangle is None:
+            self.computation_rectangle=params.COMPUTATIONAL_RECTANGLE
+        else:
+            self.computation_rectangle=computation_rectangle
+            
         self.minx=self.computation_rectangle.left_x
         self.maxx=self.computation_rectangle.right_x
         self.miny=self.computation_rectangle.top_y

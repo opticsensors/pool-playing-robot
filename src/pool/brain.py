@@ -2,21 +2,17 @@ import cv2
 import numpy as np
 import pandas as pd
 import pool.utils as utils
+from pool.pool_frame import PoolFrame
 
 
 class Brain: 
 
     def __init__(self,
                 pool_frame,
-                ball_radius = None,
+                ball_radius,
         ):
         
-        params = utils.Params()
-        if ball_radius is None:
-            self.ball_radius=params.BALL_RADIUS
-        else:
-            self.ball_radius=ball_radius
-        
+        self.ball_radius=ball_radius        
         self.pool_frame=pool_frame
     
     def get_all_detected_balls_except_cue(self,d_centroids):
@@ -361,7 +357,7 @@ class CBTP(Brain):
 
     def __init__(self,
                  pool_frame,
-                 ball_radius = None):
+                 ball_radius):
         super().__init__(pool_frame, ball_radius)
 
     def generate_combinations(self,param):
@@ -619,3 +615,57 @@ class CTBP(Brain):
         df = self.sort_df_by_difficulty(df)
         df = self.actuator_angle(df)
         return df
+
+class ShotSelection:
+    def __init__(self, pool_frame=None, ball_radius=None):
+        
+        params = utils.Params()
+        if ball_radius is None:
+            self.ball_radius=params.BALL_RADIUS
+        else:
+            self.ball_radius=ball_radius
+        if pool_frame is None:
+            self.pool_frame = PoolFrame()
+        else:
+            self.pool_frame = pool_frame
+        
+        self.ctp=CTP(self.pool_frame, self.ball_radius)
+        self.cbtp=CBTP(self.pool_frame, self.ball_radius)
+        self.cttp=CTTP(self.pool_frame, self.ball_radius)
+        self.ctbp=CTBP(self.pool_frame, self.ball_radius)
+    
+    def get_actuator_angle(self, d_centroids, turn):
+        df_ctp =self.ctp.selected_shots(d_centroids, turn)
+        df_cbtp=self.cbtp.selected_shots(d_centroids, turn)
+        df_cttp=self.cttp.selected_shots(d_centroids, turn)
+        df_ctbp=self.ctbp.selected_shots(d_centroids, turn)
+
+        if len(df_ctp)!=0:
+            angle = df_ctp.iloc[0]['angle']
+        elif len(df_cbtp)!=0:
+            angle = df_cbtp.iloc[0]['angle']
+        elif len(df_cttp)!=0:
+            angle = df_cttp.iloc[0]['angle']
+        elif len(df_ctbp)!=0:
+            angle = df_ctbp.iloc[0]['angle']
+            
+        return angle
+
+    def debug(self, img, d_centroids, turn, shot_type):
+        
+        if shot_type == 'CTP':
+            df =self.ctp.selected_shots(d_centroids, turn)   
+            img=self.ctp.draw_all_trajectories(df, img)
+        elif shot_type == 'CBTP':
+            df=self.cbtp.selected_shots(d_centroids, turn)
+            img=self.ctp.draw_all_trajectories(df, img)
+        elif shot_type == 'CTTP':
+            df=self.cttp.selected_shots(d_centroids, turn)
+            img=self.ctp.draw_all_trajectories(df, img)
+        elif shot_type == 'CTBP':
+            df=self.ctbp.selected_shots(d_centroids, turn)
+            img=self.ctp.draw_all_trajectories(df, img)
+
+        img=self.ctp.draw_pool_balls(d_centroids,img) # TODO valid for self.ctp, self.cbtp ...
+
+        return img, df

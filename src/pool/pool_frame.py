@@ -90,11 +90,23 @@ class Cushions:
 
 class PoolFrame:
     def __init__(self,
-                 pockets,
-                 cushions):
-        self.pockets=pockets
-        self.cushions=cushions
-        self.rectangle=pockets.computation_rectangle
+                 pockets = None,
+                 cushions = None):
+        
+        params=utils.Params()
+        self.rectangle = params.COMPUTATIONAL_RECTANGLE
+        if pockets is None:
+            self.pockets = pockets=Pockets(pockets = params.POCKETS,
+                                           computation_rectangle = self.rectangle,
+                                           precision=0)
+        else:
+            self.pockets=pockets
+
+        if cushions is None:
+            self.cushions = cushions=Cushions(computation_rectangle = self.rectangle,
+                                              cushion_ranges=params.CUSHION_RANGES)
+        else:
+            self.cushions=cushions
 
         self.top_y = self.rectangle.top_y
         self.right_x = self.rectangle.right_x
