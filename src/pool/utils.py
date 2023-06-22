@@ -3,7 +3,7 @@ import os
 
 class Params(object):
   """
-  Define all used parameters
+  Define all python like used parameters
   """
   def __init__(self):
     """
@@ -60,6 +60,12 @@ class Params(object):
     self.MAX_ENV_STEPS = 10
 
     ## EYE PARAMS
+    self.ARUCOS_POOL_FRAME = [[2,3],  #top                 
+                              [4,5],  #right            
+                              [6,7],  #bottom         
+                              [0,1]]  #left 
+    
+    ## CLASSIC CV PARAMS
     #we map each color with a number:
     self.NUM_TO_COLOR={
         0:'white' ,
@@ -108,11 +114,6 @@ class Params(object):
     self.RECTANGLE_AREA=self.DISPLAY_SIZE[0]*self.DISPLAY_SIZE[1] # W*H
     self.BALL_AREA=np.pi*self.BALL_RADIUS**2 #PI*RADI^2
     self.RATIO_BALL_RECTANGLE = self.BALL_AREA/self.RECTANGLE_AREA
-
-    self.ARUCOS_POOL_FRAME = [[2,3],  #top                 
-                              [4,5],  #right            
-                              [6,7],  #bottom         
-                              [0,1]]  #left 
 
 class Rectangle:
     def __init__(self, top_left, bottom_right):

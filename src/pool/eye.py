@@ -40,20 +40,20 @@ class Eye(object):
         t = (vy2*(x2-x1)-vx2*(y2-y1))/(vx1*vy2-vx2*vy1)
         return (x1+vx1*t,y1+vy1*t)
 
-    def undistort_image(self,img, cameraMatrix, dist, remapping=False):
+    def undistort_image(self,img, remapping=False):
         h,  w = img.shape[:2]
         # this new matrix is only for when you don't want to the black sides while undistorting an entire image
-        newCameraMatrix, roi = cv2.getOptimalNewCameraMatrix(cameraMatrix, dist, (w,h), 1, (w,h))
+        newCameraMatrix, roi = cv2.getOptimalNewCameraMatrix(self.cameraMatrix, self.dist, (w,h), 1, (w,h))
 
         if not remapping:
             # Undistort
-            dst = cv2.undistort(img, cameraMatrix, dist, None, newCameraMatrix)
+            dst = cv2.undistort(img, self.cameraMatrix, self.dist, None, newCameraMatrix)
             x, y, w, h = roi
             dst_cropped = dst[y:y+h, x:x+w]
 
         else:
             # Undistort with Remapping
-            mapx, mapy = cv2.initUndistortRectifyMap(cameraMatrix, dist, None, newCameraMatrix, (w,h), 5)
+            mapx, mapy = cv2.initUndistortRectifyMap(self.cameraMatrix, self.dist, None, newCameraMatrix, (w,h), 5)
             dst = cv2.remap(img, mapx, mapy, cv2.INTER_LINEAR)
 
             # crop the image
@@ -62,8 +62,8 @@ class Eye(object):
         
         return dst_cropped
 
-    def get_pool_corners(self, img, left_aruco_ids, right_aruco_ids, top_aruco_ids, bottom_aruco_ids):
-
+    def get_pool_corners(self, img):
+        top_aruco_ids, right_aruco_ids, bottom_aruco_ids, left_aruco_ids = self.arucos_pool_frame
         arucoDict=cv2.aruco.DICT_4X4_100
         arucoDict = cv2.aruco.getPredefinedDictionary(arucoDict)
         arucoParams = cv2.aruco.DetectorParameters()
