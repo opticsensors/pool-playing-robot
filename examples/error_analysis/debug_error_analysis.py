@@ -1,10 +1,15 @@
-from pool import error_analysis
+import os
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.image as mpimg
+from pool.utils import Params
+from pool import error_analysis
+
+params=Params()
+path_to_repo=params.PATH_REPO
 
 #pool table
-img = mpimg.imread('./data/pool_table.png')
+img = mpimg.imread(os.path.join(path_to_repo,'data','pool_table.png'))
 
 #radii pool balls
 r=38/2
@@ -49,7 +54,7 @@ for idxC, idxT in indices:
         ax.set_ylim((0, H))
         ax=error_analysis.draw_pool_table_with_pockets(ax,W,H,img,pockets)
 
-        slope1,slope2,intercept1,intercept2,reachable_pockets=error_analysis.pockets_inside_region_of_interest(pockets,C,T,d,2*r)
+        slope1,slope2,intercept1,intercept2,reachable_pockets=error_analysis.pockets_inside_region_of_interest_v2(pockets,C,T,d,2*r)
         ax=error_analysis.draw_region_of_interest(ax,W,C,T,slope1,slope2,intercept1,intercept2)
         
         print('num reachable pockets:',reachable_pockets.shape[0])
@@ -59,7 +64,7 @@ for idxC, idxT in indices:
             
             print(f'==========================pocket_{i}=========================')
             _,_,_,_,_, X = error_analysis.geometric_parameters(r,C,T,P)
-            print('C: ',C, 'T: ',T,'P: ',P, 'X', X)
+            print('C: ',C, 'T: ',T,'P: ',P, 'X: ', X)
             ax=error_analysis.draw_ideal_configuration(ax,r,C,T,P,X)
             
             #measured points

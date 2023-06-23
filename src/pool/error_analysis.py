@@ -273,13 +273,13 @@ def compute_Q(r,C,T,P,C_estimated,X_estimated):
 
     return X_calculated,Q, delta
 
-    
 def pockets_inside_region_of_interest(pockets,C,T,d,two_times_r):
 
     # two_times_r=2*r
-    X1,X2=intersection_two_circles(C,T,d,two_times_r)
-    M=(np.array(X1)+np.array(X2))/2    
-
+    M=(np.array(C)+np.array(T))/2    
+    X1,X2=intersection_two_circles(M,T,d/2,two_times_r)
+    X1=np.array(X1)
+    X2=np.array(X2)
     #now we need to compute the lines X1T and X2T
     #line X1T (1)
     slope1=(X1[1]-T[1])/(X1[0]-T[0])
@@ -289,24 +289,32 @@ def pockets_inside_region_of_interest(pockets,C,T,d,two_times_r):
     slope2=(X2[1]-T[1])/(X2[0]-T[0])
     intercept2=X2[1]-slope2*X2[0]
 
-    # M falls in the opposite region of the region of interest
-    # 
-    if M[1]>slope1*M[0]+intercept1:
-        if M[1]>slope2*M[0]+intercept2:
-            valid_pockets=(pockets[:,1]<slope1*pockets[:,0]+intercept1) & (pockets[:,1]<slope2*pockets[:,0]+intercept2)
-            #(1):<, (2):<
-        else:
-            valid_pockets=(pockets[:,1]<slope1*pockets[:,0]+intercept1) & (pockets[:,1]>slope2*pockets[:,0]+intercept2)
-            #(1):<, (2):>
-    else:
-        if M[1]>slope2*M[0]+intercept2:
-            valid_pockets=(pockets[:,1]>slope1*pockets[:,0]+intercept1) & (pockets[:,1]<slope2*pockets[:,0]+intercept2)
-            #(1):>, (2):<
-        else: 
-            valid_pockets=(pockets[:,1]>slope1*pockets[:,0]+intercept1) & (pockets[:,1]>slope2*pockets[:,0]+intercept2)
-            #(1):>, (2):>
-    return slope1,slope2,intercept1,intercept2,pockets[valid_pockets]
+    # we make everything have the same shape
+    T = np.broadcast_to(np.expand_dims(T,axis=0),pockets.shape)
+    X1 = np.broadcast_to(np.expand_dims(X1,axis=0),pockets.shape)
+    X2 = np.broadcast_to(np.expand_dims(X2,axis=0),pockets.shape)
 
+    TX1=X1-T
+    TX2=X2-T
+    rotation=np.cross(TX1, TX2) 
+    clockwise=(rotation<0)
+    counter_clockwise=(rotation>0)
+    
+    a = np.cross(pockets[clockwise] - X1[clockwise], T[clockwise] - X1[clockwise]) > 0
+    b = np.cross(pockets[clockwise] - X2[clockwise], T[clockwise] - X2[clockwise]) < 0
+    cw_cond=(a & b)
+
+    X1_counterclock=X2
+    X2_counterclock=X1
+    a = np.cross(pockets[counter_clockwise] - X1_counterclock[counter_clockwise], T[counter_clockwise] - X1_counterclock[counter_clockwise]) < 0
+    b = np.cross(pockets[counter_clockwise] - X2_counterclock[counter_clockwise], T[counter_clockwise] - X2_counterclock[counter_clockwise]) > 0
+    ccw_cond=(a & b)
+
+    cond=np.full((T.shape[0], ), True)
+    cond[clockwise]=cw_cond
+    cond[counter_clockwise]=ccw_cond
+
+    return slope1,slope2,intercept1,intercept2,pockets[cond]
 
 def draw_ideal_configuration(ax,r,C,T,P,X):
     #plot geometric situation
@@ -406,65 +414,3 @@ def draw_specific_configuration(ax,W,H,img,pockets,r,C,T,P,X,C_estimated,T_estim
     ax=draw_point(ax,C_estimated)
     ax=draw_point(ax,T_estimated)
     return ax
-
-
-#TODO
-# to add
-"""
-
-#X1 and X2 are calculated with a different circle than the one used here !!
-
-#Deprecated
-def find_X1_and_X2(self,C,T):
-
-    # distance from C to T    
-    d=np.linalg.norm(T-C, axis=1)
-    # distance from C to C2 (being C2 the point of intersection between lines CT and X1X2)
-    # (X1,X2 are the intersection points that we want to find)
-    a=(d**2+d**2-(2*self.ball_radius)**2)/(2*d)
-    # distance from T to C2
-    b=d-a
-    # distance from C2 to X1 = distance from C2 to X2
-    h=np.sqrt(d**2-a**2)
-
-    TC=T-C
-    auxiliar_points=(C.T * (b/d)).T+(T.T * (a/d)).T
-
-    intersec1_x=auxiliar_points[:,0]+(h/d)*TC[:,1]
-    intersec2_x=auxiliar_points[:,0]-(h/d)*TC[:,1]
-
-    intersec1_y=auxiliar_points[:,1]-(h/d)*TC[:,0]
-    intersec2_y=auxiliar_points[:,1]+(h/d)*TC[:,0]
-
-    X1=np.column_stack((intersec1_x,intersec1_y))
-    X2=np.column_stack((intersec2_x,intersec2_y))
-
-    return X1, X2
-
-#Deprecated
-def find_if_point_isreachable(self,T,P,X1,X2):
-
-    TX1=X1-T
-    TX2=X2-T
-    rotation=np.cross(TX1, TX2) 
-    clockwise=(rotation<0)
-    counter_clockwise=(rotation>0)
-    
-    a = np.cross(P[clockwise] - X1[clockwise], T[clockwise] - X1[clockwise]) > 0
-    b = np.cross(P[clockwise] - X2[clockwise], T[clockwise] - X2[clockwise]) < 0
-    cw_cond=(a & b)
-
-
-    X1_counterclock=X2
-    X2_counterclock=X1
-    a = np.cross(P[counter_clockwise] - X1_counterclock[counter_clockwise], T[counter_clockwise] - X1_counterclock[counter_clockwise]) < 0
-    b = np.cross(P[counter_clockwise] - X2_counterclock[counter_clockwise], T[counter_clockwise] - X2_counterclock[counter_clockwise]) > 0
-    ccw_cond=(a & b)
-
-    cond=np.full((T.shape[0], ), True)
-    cond[clockwise]=cw_cond
-    cond[counter_clockwise]=ccw_cond
-
-    return cond
-
-"""
