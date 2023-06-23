@@ -2,7 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib import collections  as mc
 
-def angle_abc(a,b,c):
+def angle_between_3_points(a,b,c):
     """
     Computes the angle between 3 points 
     (point b is the vertex)
@@ -166,7 +166,7 @@ def geometric_parameters(r,C,T,P):
     X_arr = np.array(X)
 
     #To compute a and alpha we need to use cos and sin rules
-    beta=np.pi-angle_abc(C_arr,T_arr,P_arr)
+    beta=np.pi-angle_between_3_points(C_arr,T_arr,P_arr)
     #beta=angle_abc(C_arr,T_arr,X_arr)
     #phi=angle_abc(T_arr,C_arr,np.array([1,0]))
     a=np.sqrt(d**2+(2*r)**2-2*d*(2*r)*np.cos(beta))

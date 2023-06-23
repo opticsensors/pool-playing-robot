@@ -13,7 +13,7 @@ r=38/2
 #pool table dimensions
 H=524
 W=924
-num_real_points=100
+num_real_points=130
 num_estimated_points=15
 safety_distance=3*r #so the balls dont touch the pool table walls
 maximum_error_vision_system=0.5 #units in mm
@@ -95,6 +95,6 @@ for real_point_id, (idxC, idxT) in enumerate(indices):
         
 #for convenience we convert the list of dict to a dataframe
 df = pd.DataFrame(list_of_dict, columns=list(list_of_dict[0].keys()))
-df.to_csv(path_or_buf=f'./error_data_{maximum_error_vision_system}mm.csv', sep=' ',index=False)
+df.to_csv(path_or_buf=f'./results/error_data_{maximum_error_vision_system}_mm.csv', sep=' ',index=False)
 
 
