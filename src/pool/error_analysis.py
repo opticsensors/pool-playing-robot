@@ -15,15 +15,15 @@ class ErrorAnalysis:
                  ):
         params=utils.Params()
         if pockets is None:
-            self.pockets=np.array(params.POCKETS_CM) 
+            self.pockets=np.array(params.POCKETS_MM) 
         else: 
             self.pockets=pockets
         if ball_radius is None:
-            self.ball_radius=params.BALL_RADIUS_CM
+            self.ball_radius=params.BALL_RADIUS_MM
         else:
             self.ball_radius=ball_radius
         if pool_table_size is None:
-            self.pool_table_size=params.DISPLAY_SIZE_CM
+            self.pool_table_size=params.DISPLAY_SIZE_MM
         else:
             self.pool_table_size=pool_table_size
 

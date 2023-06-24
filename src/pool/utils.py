@@ -17,7 +17,6 @@ class Params(object):
         )
     )
 
-
     ## POOL FRAME PARAMS
     self.DISPLAY_SIZE = (4822, 2719) # W x H 
     self.POCKET_CORNER_RADIUS = 210
@@ -117,14 +116,18 @@ class Params(object):
 
     ## ERROR ANALYSIS PARAMS
     # metrics in cm
-    self.BALL_RADIUS_CM=38/2
-    self.DISPLAY_SIZE_CM=(924,524)
-    self.POCKETS_CM=[[38.447187,38.39291465],
+    self.BALL_RADIUS_MM=38/2
+    self.DISPLAY_SIZE_MM=(924,524)
+    self.POCKETS_MM=[[38.447187,38.39291465],
                      [462.2112483,38.39291465],
                      [885.9753086,38.39291465],
                      [885.9753086,485.60708],
                      [462.2112483,485.60708],
                      [38.447187,485.60708]]
+    
+    ## PIXEL TO STEP CALIBRATION PARAMS
+    self.CM_TO_STEPS = 0.00794
+    self.GRID_SIZE_CM = (70.25, 38.5) # WxH
 
 class Rectangle:
     def __init__(self, top_left, bottom_right):

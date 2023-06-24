@@ -2,21 +2,21 @@ import cv2
 from pool.eye import Eye
 import numpy as np
 import pandas as pd
-import time
 import os 
+from pool import corners
+from pool.pixel_to_steps import PixelSteps
 
 #CV algorithms initialization
 eye=Eye()
 
-#load precalibrated data
-cameraMatrix=np.load('./data/cameraMatrix.npy')
-dist=np.load('./data/dist.npy')
+#helper functions for calibration
+ps = PixelSteps()
 
-#compute corners ---------------------- picture corners.jpg should be updated in another script or in here in case the structure moves
-img=cv2.imread(f'./data/corners_0.jpg')
-undist_img=eye.undistort_image(img, cameraMatrix, dist, remapping=False)
-dist_corners=eye.get_pool_corners(img, bottom_aruco_ids=[6,7],top_aruco_ids=[2,3],left_aruco_ids=[0,1],right_aruco_ids=[4,5])
-undist_corners=eye.get_pool_corners(undist_img, bottom_aruco_ids=[6,7],top_aruco_ids=[2,3],left_aruco_ids=[0,1],right_aruco_ids=[4,5])
+#compute corners 
+img=corners.load_img_corners()
+undist_img=eye.undistort_image(img, remapping=False)
+dist_corners=eye.get_pool_corners(img)
+undist_corners=eye.get_pool_corners(undist_img)
 
 #compute prespective transform matrix
 # the prespective trans matrix should be the same for all the captured images
@@ -24,22 +24,15 @@ dist_matrix=eye.calculate_perspective_matrix(dist_corners)
 undist_matrix=eye.calculate_perspective_matrix(undist_corners)
 
 #define needed variables
-points=np.load('./data/calibration_points.npy')
-home_point = [0,0]
-points = np.vstack([home_point,points]) # img_0 is when end effector is at home
-h_num_points=np.unique(points[:,0]).shape[0]
-v_num_points=np.unique(points[:,1]).shape[0]
-d_points={}
-for i,point in enumerate(points):
-    d_points[i]=point
+points=ps.load_calibration_points()
+points=ps.add_homing_position(points) #first image is in home pos
+d_points=ps.points_to_dict(points)
 dict_to_save = {}
 list_of_dict = []
-W = 70.25
-H = 38.5
 aruco_to_track=22
 
 # get data for every image
-for full_img_name in os.listdir('./stepper_calibration/'):
+for full_img_name in os.listdir('./results/'):
 
     img_name=os.path.splitext(full_img_name)[0]
     img_format=os.path.splitext(full_img_name)[1]
@@ -47,8 +40,8 @@ for full_img_name in os.listdir('./stepper_calibration/'):
     if img_format=='.jpg':
         print(full_img_name)
         img_number=int(img_name.split('_')[1])
-        img = cv2.imread(f'./stepper_calibration/{full_img_name}')
-        undistorted=eye.undistort_image(img, cameraMatrix, dist, remapping=False)
+        img = cv2.imread(f'./results/{full_img_name}')
+        undistorted=eye.undistort_image(img, remapping=False)
 
         x_dist,y_dist=eye.get_aruco_coordinates(img, aruco_to_track)
         x_undist,y_undist=eye.get_aruco_coordinates(undistorted, aruco_to_track)
@@ -80,7 +73,7 @@ for full_img_name in os.listdir('./stepper_calibration/'):
 # for convenience we convert the list of dict to a dataframe
 df = pd.DataFrame(list_of_dict, columns=list(list_of_dict[0].keys()))
 df=df.sort_values('img_num')
-df.to_csv(path_or_buf=f'./data/calibration_image_data.csv', sep=' ',index=False)
+df.to_csv(path_or_buf='./results/calibration_image_data.csv', sep=',',index=False)
 
 incr_df=df.drop(columns=['img_num', 'img_name'])
 incr_df = incr_df.rename(columns={'x_dist':        'incr_x_dist', 
@@ -95,28 +88,12 @@ incr_df = incr_df.rename(columns={'x_dist':        'incr_x_dist',
                                   'point_y':       'incr_point_y'})   
 incr_df=incr_df.diff()
 
-#functions to create new dataframe columns
-def cm_to_steps1(incr_x, incr_y, W, H):
-    scaler=0.00794
-    phi1 = 1/(2*scaler) * (-incr_x*W+incr_y*H)
-    return phi1
-
-def cm_to_steps2(incr_x, incr_y, W, H):
-    scaler=0.00794
-    phi2 = 1/(2*scaler) * (incr_x*W+incr_y*H)
-    return phi2
-
-def img_num_to_incr_id(img_num):
-    if img_num==0:
-        return np.nan
-    else:
-        return f'{img_num-1}-{img_num}'
-
-incr_df['incr_id'] = df.apply(lambda x: img_num_to_incr_id(x['img_num']), axis=1)
-incr_df['incr_steps1'] = incr_df.apply(lambda x: cm_to_steps1(x['incr_point_x'], x['incr_point_y'],W,H), axis=1)
-incr_df['incr_steps2'] = incr_df.apply(lambda x: cm_to_steps2(x['incr_point_x'], x['incr_point_y'],W,H), axis=1)
+incr_df['incr_id'] = df.apply(lambda x: ps.img_num_to_incr_id(x['img_num']), axis=1)
+incr_x = incr_df['incr_point_x'].values
+incr_y = incr_df['incr_point_y'].values
+incr_steps1, incr_steps2 = ps.cm_to_steps_vectorized(incr_x, incr_y)
 incr_df=incr_df.dropna()
-incr_df['incr_steps1_int'] = (incr_df['incr_steps1']).astype(int)
-incr_df['incr_steps2_int'] = (incr_df['incr_steps2']).astype(int)
-incr_df.to_csv(path_or_buf=f'./data/calibration_pixel_to_step.csv', sep=' ',index=False)
+incr_df['incr_steps1']=incr_steps1.astype(int)
+incr_df['incr_steps2']=incr_steps2.astype(int)
+incr_df.to_csv(path_or_buf=f'./results/calibration_pixel_to_step.csv', sep=',',index=False)
 
