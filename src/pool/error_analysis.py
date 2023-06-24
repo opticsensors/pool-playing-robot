@@ -146,7 +146,7 @@ class ErrorAnalysis:
         return slope,intercept
 
 
-    def compute_Q(self, df): #TODO vectorize
+    def compute_Q(self, df): 
 
         C=df[['C_x','C_y']].values
         T=df[['T_x','T_y']].values
