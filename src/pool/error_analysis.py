@@ -1,416 +1,380 @@
+import os
 import numpy as np
+import pandas as pd
 import matplotlib.pyplot as plt
 from matplotlib import collections  as mc
+import matplotlib.image as mpimg
+from pool import utils
 
-def angle_between_3_points(a,b,c):
-    """
-    Computes the angle between 3 points 
-    (point b is the vertex)
-
-    Parameters
-    ----------    
-        a,b,c: numpy array of shape (2,)
-            x, y coordinates of the point
-    Returns
-    -------
-        angle: numpy float64
-
-    """
-    ba = a - b
-    bc = c - b
-    cosine_angle = np.dot(ba, bc) / (np.linalg.norm(ba) * np.linalg.norm(bc))
-    angle = np.arccos(cosine_angle)
-    return angle
-
-def intersection_circle_line(slope,intercept, r,center):
-    """
-    Computes the points of intersection (if any) between a line 
-    and a circumference given a slope, an intercection, a radii 
-    and a center.
-
-    """
-    #intersection point between the above line and a cercle of center T and radii 2r
-    new_intercept=intercept+slope*center[0]-center[1]
-    _A=1+slope**2
-    _B=2*slope*new_intercept
-    _C=new_intercept**2-(2*r)**2
-
-    x1=(-_B+np.sqrt(_B**2-4*_A*_C))/(2*_A) + center[0]
-    x2=(-_B-np.sqrt(_B**2-4*_A*_C))/(2*_A) + center[0]
-    y1=slope*x1+intercept
-    y2=slope*x2+intercept
-
-    #we need to choose which one is the correct intersection point
-    X_calculated1=(x1,y1)
-    X_calculated2=(x2,y2)
-
-    return X_calculated1,X_calculated2
-
-def intersection_two_circles(P0,P1,r0,r1):
-    """
-    Computes the points of intersection (if any) between two
-    circles of radiis r0,r1 and centers P0,P1
+class ErrorAnalysis:
     
-    """
-    # distance from P0 to P1    
-    d=np.sqrt((P0[0]-P1[0])**2+(P0[1]-P1[1])**2)
-    # distance from P0 to P2 (being P2 the point of intersection between lines P0P1 and X1X2)
-    # (X1,X2 are the intersection points that we want to find)
-    a=(d**2+r0**2-r1**2)/(2*d)
-    # distance from P1 to P2
-    b=d-a
-    # distance from P2 to X1 = distance from P2 to X2
-    h=np.sqrt(r0**2-a**2)
-    # convert points to numpy array
-    P0_arr = np.array(P0)
-    P1_arr= np.array(P1)
-    P1P0_arr=P1-P0
-    auxiliar_point=(b/d)*P0_arr+(a/d)*P1_arr
-
-    intersec1_x=auxiliar_point[0]+(h/d)*P1P0_arr[1]
-    intersec2_x=auxiliar_point[0]-(h/d)*P1P0_arr[1]
-
-    intersec1_y=auxiliar_point[1]-(h/d)*P1P0_arr[0]
-    intersec2_y=auxiliar_point[1]+(h/d)*P1P0_arr[0]
-
-    X1=(intersec1_x,intersec1_y)
-    X2=(intersec2_x,intersec2_y)
-
-    return X1, X2
-
-def generate_random_numbers_inside_circle(center,R,num_points):
-    """
-    generates random numbers inside a circle of radii=R and center=center
-
-    Parameters
-    ----------    
-        center: tuple, list of len 2
-            x, y coordinates of the center
-        R: float
-            radii of circumference
-        num_points: int
-            number of random point generated
-    Returns
-    -------
-        numpy array of shape (num_points, 2)
-
-    """
-    theta = np.random.uniform(0,2*np.pi, num_points)
-    radius = np.random.uniform(0,R, num_points) ** 0.5
-    x = radius * np.cos(theta)
-    y = radius * np.sin(theta)
-    x=center[0]+x
-    y=center[1]+y
-
-    return np.concatenate((x.reshape(-1,1),y.reshape(-1,1)), axis=1)
-
-def generate_random_numbers_inside_rectangle(W,H,num_points,safety_distance):
-    """
-    generates random numbers inside a rectangle of left bottom vertex (0,0)
-    and right top vertex (W,H). We also consider a safety distance from 
-    the sides of the rectangle so there are less collisions.
-
-    Parameters
-    ----------    
-        W,H: float
-            width and height of the rectangle
-        num_points: 
-            number of random point generated
-        safety_distance: float
-            We shrink the rectangle a safety distance 
-    Returns
-    -------
-        numpy array of shape (num_points, 2)
-
-    """
-    xlist = np.random.uniform(0+safety_distance, W-safety_distance, num_points)
-    ylist = np.random.uniform(0+safety_distance, H-safety_distance, num_points)
-    real_points=np.concatenate((xlist.reshape(-1,1),ylist.reshape(-1,1)), axis=1)
-    return real_points
-
-
-def geometric_parameters(r,C,T,P):
-    """
-    Using r, C,T,P we compute the:
-        d,b,a distances
-        beta, alpha angles
-        X point
-
-    Parameters
-    ----------    
-        r: float
-            radii of pool balls
-        C,T,P: tuples
-            x, y coordinates of rellevant points
-    Returns
-    -------
-        d,b,a,alpha,beta, X: miscellanous
-    """
-
-    #virtual point X (see fig 4.1 adelaide university thesis)
-    # we parametrize the line PT equation and compute the point 
-    # that is 2*r distance from T
-    t=1+2*r*(1/np.sqrt((T[0]-P[0])**2+(T[1]-P[1])**2))
-    x_x=P[0]+(T[0]-P[0])*t
-    y_x=P[1]+(T[1]-P[1])*t
-    X=(x_x,y_x)
-
-    # we calculate d and b using T and C points
-    d=np.sqrt((T[0]-C[0])**2+(T[1]-C[1])**2)
-    b=np.sqrt((T[0]-P[0])**2+(T[1]-P[1])**2)
-
-    #we convert all rellevant points to numpy array:
-    C_arr = np.array(C)
-    T_arr = np.array(T)
-    P_arr = np.array(P)
-    X_arr = np.array(X)
-
-    #To compute a and alpha we need to use cos and sin rules
-    beta=np.pi-angle_between_3_points(C_arr,T_arr,P_arr)
-    #beta=angle_abc(C_arr,T_arr,X_arr)
-    #phi=angle_abc(T_arr,C_arr,np.array([1,0]))
-    a=np.sqrt(d**2+(2*r)**2-2*d*(2*r)*np.cos(beta))
-    alpha=np.arcsin(2*r*np.sin(beta)/a)
-    #alpha=angle_abc(X_arr,C_arr,T_arr)
-
-    return d,b,a,alpha, beta, X
-
-#incr_theta=incr_alpha is a random value
-#we need to define it in order to analyze the error
-def incr_beta(r,d,alpha,beta,incr_alpha):
-    """
-    Computes the variation of beta for a given variation of alpha
-    (it can be vectorized).
-
-    Parameters
-    ----------    
-        r: float
-            radii of pool balls
-        d: float
-            CT distance
-        alpha: float
-            angle between XCT
-        beta: float
-            aangle between XTC or 180 - angle between CTP
-        incr_alpha: float or array
-
-    Returns
-    -------
-        incr_beta: float or array
-
-    """
-    A=np.sin(alpha+incr_alpha)/(2*r)#f(incr_alpha)
-    B=d**2+(2*r)**2
-    C=-2*d*(2*r)
-    #cos_x=cos(beta+incr_beta)
-    cos_x=(-C*A**2+np.sqrt(C**2*A**4-4*(-1+B*A**2)))/2 
-    incr_beta=np.arccos(cos_x)-beta
-    return incr_beta
-
-def cue_ball_trajectory(r,C,C_estimated,X_estimated, end_effector='piston'):
-    """
-    
-    """
-
-    if end_effector=='piston':
-        #line parallel to C'X' that goes trough C
-        slope=(X_estimated[1]-C_estimated[1])/(X_estimated[0]-C_estimated[0])
-        intercept=C[1]-slope*C[0]
-
-    elif end_effector=='cue':
-        #line C'X'
-        slope_estimated=(X_estimated[1]-C_estimated[1])/(X_estimated[0]-C_estimated[0])
-        intercept_estimated=C_estimated[1]-slope_estimated*C_estimated[0]
-        contact_point1,contact_point2=intersection_circle_line(slope_estimated, intercept_estimated,r,C)
-
-        dist1=np.sqrt((contact_point1[0]-X_estimated[0])**2+(contact_point1[1]-X_estimated[1])**2)
-        dist2=np.sqrt((contact_point2[0]-X_estimated[0])**2+(contact_point2[1]-X_estimated[1])**2)
-
-        if dist1<dist2:
-            contact_point=contact_point1
+    def __init__(self, 
+                 pockets=None,
+                 ball_radius=None,
+                 pool_table_size=None
+                 ):
+        params=utils.Params()
+        if pockets is None:
+            self.pockets=np.array(params.POCKETS_CM) 
+        else: 
+            self.pockets=pockets
+        if ball_radius is None:
+            self.ball_radius=params.BALL_RADIUS_CM
         else:
-            contact_point=contact_point2
+            self.ball_radius=ball_radius
+        if pool_table_size is None:
+            self.pool_table_size=params.DISPLAY_SIZE_CM
+        else:
+            self.pool_table_size=pool_table_size
 
-        slope=(C[1]-contact_point[1])/(C[0]-contact_point[0])
-        intercept=C[1]-slope*C[0]
+    def generate_combinations(self, num_real_points, num_estimated_points, maximum_error_vision_system):
+        safety_distance=3*self.ball_radius #so the balls dont touch the pool table walls
+        #real points configs
+        C=utils.generate_random_numbers_inside_rectangle(num_real_points,self.pool_table_size,safety_distance)
+        T=utils.generate_random_numbers_inside_rectangle(num_real_points,self.pool_table_size,safety_distance)
+        index_real = np.arange(num_real_points)
+        CT = np.c_[index_real, C, T]
+        #estimated points configs
+        index_estimated = np.arange(num_estimated_points).reshape(-1,1)
+        CT_extended=utils.get_row_combinations_of_two_arrays(CT, index_estimated)
+        C_extended = CT_extended[:,1:3]
+        T_extended = CT_extended[:,3:5]
+        C_estimated=utils.generate_random_number_inside_circle(C_extended,maximum_error_vision_system)
+        T_estimated=utils.generate_random_number_inside_circle(T_extended,maximum_error_vision_system)
+        CT_real_and_estimated = np.c_[CT_extended, C_estimated, T_estimated]
+        #pockets configs
+        index_pocket = np.arange(1,7)
+        pockets = np.c_[index_pocket,self.pockets]
+        comb = utils.get_row_combinations_of_two_arrays(CT_real_and_estimated, pockets)
+        df=pd.DataFrame({'real_point_id':comb[:,0],
+                        'C_x':comb[:,1],
+                        'C_y':comb[:,2],
+                        'T_x':comb[:,3],
+                        'T_y':comb[:,4],
+                        'estimated_point_id':comb[:,5],
+                        'C_estimated_x':comb[:,6],
+                        'C_estimated_y':comb[:,7],
+                        'T_estimated_x':comb[:,8],
+                        'T_estimated_y':comb[:,9],
+                        'pocket_id':comb[:,10],
+                        'P_x':comb[:,11],
+                        'P_y':comb[:,12]})
+        return df
 
-    return slope,intercept
+    def compute_geometric_parameters(self, df):
+        """
 
+        """
+        C=df[['C_x','C_y']].values
+        T=df[['T_x','T_y']].values
+        P=df[['P_x','P_y']].values
+        r=self.ball_radius
 
-def compute_Q(r,C,T,P,C_estimated,X_estimated):
+        # we calculate d and b using T and C points
+        d=np.linalg.norm(T-C, axis=1)
+        b=np.linalg.norm(T-P, axis=1)
 
+        #To compute a and alpha we need to use cos and sin rules
+        beta=np.pi-utils.angle_between_3_points(C,T,P)
+        #beta=angle_abc(C_arr,T_arr,X_arr)
+        #phi=angle_abc(T_arr,C_arr,np.array([1,0]))
+        a=np.sqrt(d**2+(2*r)**2-2*d*(2*r)*np.cos(beta))
+        alpha=np.arcsin(2*r*np.sin(beta)/a)
+        #alpha=angle_abc(X_arr,C_arr,T_arr)
 
-    slope, intercept = cue_ball_trajectory(r,C,C_estimated,X_estimated, end_effector='piston')
+        df['b']=b
+        df['a']=a
+        df['d']=d
+        df['beta']=beta
+        df['alpha']=alpha
 
-    X_calculated1,X_calculated2=intersection_circle_line(slope, intercept,r,T)
-
-    distCX_calculated1=np.sqrt((C[0]-X_calculated1[0])**2+(C[1]-X_calculated1[1])**2)
-    distCX_calculated2=np.sqrt((C[0]-X_calculated2[0])**2+(C[1]-X_calculated2[1])**2)
-
-    # we choose the point of intersection that is closest to C
-    if distCX_calculated1<distCX_calculated2:
-        X_calculated=X_calculated1
-    else:
-        X_calculated=X_calculated2
-
-    #line X''T (1)
-    slope1=(X_calculated[1]-T[1])/(X_calculated[0]-T[0])
-    intercept1=X_calculated[1]-slope1*X_calculated[0]
-
-    #line TP (=line XT) (2)
-    slope2=(P[1]-T[1])/(P[0]-T[0])
-    intercept2=T[1]-slope2*T[0]
-
-    #line perpendicular to TP (3)
-    slope3=-1/slope2
-    intercept3=P[1]-slope3*P[0]
-
-    #intersection between line X''T and line perpendicular to TP
-    Qx=(intercept1-intercept3)/(slope3-slope1)
-    Qy=slope1*Qx+intercept1
-    Q=(Qx,Qy)
-    delta=np.sqrt((Qy-P[1])**2+(Qx-P[0])**2)
-
-    return X_calculated,Q, delta
-
-def pockets_inside_region_of_interest(pockets,C,T,d,two_times_r):
-
-    # two_times_r=2*r
-    M=(np.array(C)+np.array(T))/2    
-    X1,X2=intersection_two_circles(M,T,d/2,two_times_r)
-    X1=np.array(X1)
-    X2=np.array(X2)
-    #now we need to compute the lines X1T and X2T
-    #line X1T (1)
-    slope1=(X1[1]-T[1])/(X1[0]-T[0])
-    intercept1=X1[1]-slope1*X1[0]
-
-    #line X2T (2)
-    slope2=(X2[1]-T[1])/(X2[0]-T[0])
-    intercept2=X2[1]-slope2*X2[0]
-
-    # we make everything have the same shape
-    T = np.broadcast_to(np.expand_dims(T,axis=0),pockets.shape)
-    X1 = np.broadcast_to(np.expand_dims(X1,axis=0),pockets.shape)
-    X2 = np.broadcast_to(np.expand_dims(X2,axis=0),pockets.shape)
-
-    TX1=X1-T
-    TX2=X2-T
-    rotation=np.cross(TX1, TX2) 
-    clockwise=(rotation<0)
-    counter_clockwise=(rotation>0)
+        return df
     
-    a = np.cross(pockets[clockwise] - X1[clockwise], T[clockwise] - X1[clockwise]) > 0
-    b = np.cross(pockets[clockwise] - X2[clockwise], T[clockwise] - X2[clockwise]) < 0
-    cw_cond=(a & b)
+    def compute_X(self, df):
 
-    X1_counterclock=X2
-    X2_counterclock=X1
-    a = np.cross(pockets[counter_clockwise] - X1_counterclock[counter_clockwise], T[counter_clockwise] - X1_counterclock[counter_clockwise]) < 0
-    b = np.cross(pockets[counter_clockwise] - X2_counterclock[counter_clockwise], T[counter_clockwise] - X2_counterclock[counter_clockwise]) > 0
-    ccw_cond=(a & b)
+        T=df[['T_x','T_y']].values
+        P=df[['P_x','P_y']].values
+        b=np.linalg.norm(T-P, axis=1)
+        r=self.ball_radius
 
-    cond=np.full((T.shape[0], ), True)
-    cond[clockwise]=cw_cond
-    cond[counter_clockwise]=ccw_cond
-
-    return slope1,slope2,intercept1,intercept2,pockets[cond]
-
-def draw_ideal_configuration(ax,r,C,T,P,X):
-    #plot geometric situation
-    ax.add_patch(plt.Circle(C, r, color='b',fill=False, clip_on=False,linewidth=0.5))
-    ax.add_patch(plt.Circle(T, r, color='r',fill=False, clip_on=False,linewidth=0.5))
-    ax.add_patch(plt.Circle(X, r, color='b',fill=False, clip_on=False,linewidth=0.5))
-    ax.add_artist(plt.Circle(P, 0.5, color='b',fill=True, clip_on=False,linewidth=0.5))
-    ax.add_artist(plt.Circle(C, 0.1, color='b',fill=True, clip_on=False,linewidth=0.5))
-    ax.add_artist(plt.Circle(T, 0.1, color='r',fill=True, clip_on=False,linewidth=0.5))
-    ax.add_patch(plt.Circle(T, 2*r, color='r',fill=False, clip_on=False,linewidth=0.5,linestyle='--'))
-    ax.add_artist(plt.Circle(X, 0.1, color='b',fill=True, clip_on=False,linewidth=0.5))
-
-    lines = [[C, X], [X, T], [T, P]]
-    lc = mc.LineCollection(lines, colors='b', linewidths=0.5)
-    ax.add_collection(lc)
-
-    #Use adjustable='box-forced' to make the plot area square-shaped as well.
-    ax.set_aspect('equal', adjustable='box')
+        # virtual point X 
+        # we parametrize the line PT equation and compute the point 
+        # that is 2*r distance from T
+        t=1+2*r*(1/b)
+        x_x=P[:,0]+(T[:,0]-P[:,0])*t
+        y_x=P[:,1]+(T[:,1]-P[:,1])*t
+        X=np.column_stack([x_x,y_x])        
+        df['X_x']=X[:,0]
+        df['X_y']=X[:,1]
+        return df
     
-    return ax
+    def compute_X_estimated(self, df):
 
-def draw_real_configuration(ax,r,C,X_calculated,Q):
-    #plot geometric situation
-    ax.add_patch(plt.Circle(X_calculated, r, color='orange',fill=False, clip_on=False,linewidth=0.5,linestyle='--'))
-    ax.add_artist(plt.Circle(X_calculated, 0.1, color='orange',fill=True, clip_on=False,linewidth=0.5,linestyle='--'))
-    ax.add_artist(plt.Circle(Q, 0.5, color='orange',fill=True, clip_on=False,linewidth=0.5))
+        T_estimated=df[['T_estimated_x','T_estimated_y']].values
+        P=df[['P_x','P_y']].values
+        b=np.linalg.norm(T_estimated-P, axis=1)
+        r=self.ball_radius
 
-    lines = [[C, X_calculated], [X_calculated, Q]]
-    lc = mc.LineCollection(lines, colors='orange', linewidths=0.5)
-    ax.add_collection(lc)
+        # virtual point X 
+        # we parametrize the line PT equation and compute the point 
+        # that is 2*r distance from T
+        t=1+2*r*(1/b)
+        x_x=P[:,0]+(T_estimated[:,0]-P[:,0])*t
+        y_x=P[:,1]+(T_estimated[:,1]-P[:,1])*t
+        X_estimated=np.column_stack([x_x,y_x])        
+        df['X_estimated_x']=X_estimated[:,0]
+        df['X_estimated_y']=X_estimated[:,1]
+        return df
 
-    #Use adjustable='box-forced' to make the plot area square-shaped as well.
-    ax.set_aspect('equal', adjustable='box')
+    def valid_CT_points(self, df):
+        df[df['d']>2.5*self.ball_radius]
+        return df
+
+    def cue_ball_trajectory(self, df):
+        """
+        
+        """
+        C=df[['C_x','C_y']].values
+        C_estimated=df[['C_estimated_x','C_estimated_y']].values
+        X_estimated=df[['X_estimated_x','X_estimated_y']].values
+        r=self.ball_radius
+        
+        #line parallel to C'X' that goes trough C
+        slope=(X_estimated[:,1]-C_estimated[:,1])/(X_estimated[:,0]-C_estimated[:,0])
+        intercept=C[:,1]-slope*C[:,0]
+
+        return slope,intercept
+
+
+    def compute_Q(self, df): #TODO vectorize
+
+        C=df[['C_x','C_y']].values
+        T=df[['T_x','T_y']].values
+        P=df[['P_x','P_y']].values
+        r=self.ball_radius
+
+        slope, intercept = self.cue_ball_trajectory(df)
+
+        X_calculated1,X_calculated2=utils.intersection_circle_line(slope, intercept,r,T)
+
+        distCX_calculated1 = np.linalg.norm(C-X_calculated1, axis=1)
+        distCX_calculated2 = np.linalg.norm(C-X_calculated2, axis=1)
+
+        # we choose the point of intersection that is closest to C
+        Cond1 = (distCX_calculated1<distCX_calculated2)
+        Cond2 = ~Cond1 # distCX_calculated2<distCX_calculated1
+        X_calculated = np.zeros_like(C)
+        X_calculated[Cond1] = X_calculated1[Cond1]
+        X_calculated[Cond2] = X_calculated2[Cond2]
+        df['X_calculated_x'] = X_calculated[:,0]
+        df['X_calculated_y'] = X_calculated[:,1]
+
+        #line X''T (1)
+        slope1=(X_calculated[:,1]-T[:,1])/(X_calculated[:,0]-T[:,0])
+        intercept1=X_calculated[:,1]-slope1*X_calculated[:,0]
+
+        #line TP (=line XT) (2)
+        slope2=(P[:,1]-T[:,1])/(P[:,0]-T[:,0])
+        intercept2=T[:,1]-slope2*T[:,0]
+
+        #line perpendicular to TP (3)
+        slope3=-1/slope2
+        intercept3=P[:,1]-slope3*P[:,0]
+
+        #intersection between line X''T and line perpendicular to TP
+        Qx=(intercept1-intercept3)/(slope3-slope1)
+        Qy=slope1*Qx+intercept1
+        df['Q_x']=Qx
+        df['Q_y']=Qy
+        Q=np.c_[Qx,Qy]
+        delta=np.linalg.norm(Q-P, axis=1)
+        df['delta']=delta
+
+        return df
+
+    def pockets_inside_region_of_interest(self,df):
+
+        C=df[['C_x','C_y']].values
+        T=df[['T_x','T_y']].values
+        P=df[['P_x','P_y']].values
+        two_times_r=2*self.ball_radius
+        d=df['d'].values
+
+        # two_times_r=2*r
+        M=(C+T)/2    
+        X1,X2=utils.intersection_two_circles(M,T,d/2,two_times_r)
+
+        #now we need to compute the lines X1T and X2T
+        #line X1T (1)
+        slope1=(X1[:,1]-T[:,1])/(X1[:,0]-T[:,0])
+        intercept1=X1[:,1]-slope1*X1[:,0]
+        df['slope_X1T']=slope1
+        df['intercept_X1T']=intercept1
+
+        #line X2T (2)
+        slope2=(X2[:,1]-T[:,1])/(X2[:,0]-T[:,0])
+        intercept2=X2[:,1]-slope2*X2[:,0]
+        df['slope_X2T']=slope2
+        df['intercept_X2T']=intercept2
+
+        TX1=X1-T
+        TX2=X2-T
+        rotation=np.cross(TX1, TX2) 
+        clockwise=(rotation<0)
+        counter_clockwise=(rotation>0)
+        
+        a = np.cross(P[clockwise] - X1[clockwise], T[clockwise] - X1[clockwise]) > 0
+        b = np.cross(P[clockwise] - X2[clockwise], T[clockwise] - X2[clockwise]) < 0
+        cw_cond=(a & b)
+
+        X1_counterclock=X2
+        X2_counterclock=X1
+        a = np.cross(P[counter_clockwise] - X1_counterclock[counter_clockwise], T[counter_clockwise] - X1_counterclock[counter_clockwise]) < 0
+        b = np.cross(P[counter_clockwise] - X2_counterclock[counter_clockwise], T[counter_clockwise] - X2_counterclock[counter_clockwise]) > 0
+        ccw_cond=(a & b)
+
+        cond=np.full((T.shape[0], ), True)
+        cond[clockwise]=cw_cond
+        cond[counter_clockwise]=ccw_cond
+
+        return df[cond]
     
-    return ax
+    def get_error_data(self,
+                       num_real_points,
+                       num_estimated_points,
+                       maximum_error_vision_system):
 
-def draw_pool_table_with_pockets(ax,W,H,img,pockets):
-    #ax.add_patch(plt.Rectangle((0, 0), W, H,color='k',fill=False, clip_on=False,linewidth=0.5))
+        df=self.generate_combinations(num_real_points, 
+                                    num_estimated_points, 
+                                    maximum_error_vision_system)
+        df=self.compute_geometric_parameters(df)
+        df=self.compute_X(df)
+        df=self.compute_X_estimated(df)
+        df=self.pockets_inside_region_of_interest(df)
+        df=self.valid_CT_points(df)
+        df=self.compute_Q(df)
 
-    for P in pockets:
-        ax.add_artist(plt.Circle(P, 6, color='k',fill=True, clip_on=False,linewidth=0.5,alpha=0.5))
+        return df
 
-    ax.imshow(img, extent=[0, W, 0, H], cmap='gray')
+class DebugErrorAnalysis(ErrorAnalysis):
 
-    #Use adjustable='box-forced' to make the plot area square-shaped as well.
-    ax.set_aspect('equal', adjustable='box')
+    def __init__(self,
+                 pockets=None,
+                 ball_radius=None,
+                 pool_table_size=None):
+        super().__init__(pockets, ball_radius,pool_table_size)
 
-    return ax
+        params=utils.Params()
+        path_to_repo=params.PATH_REPO
+        self.img = mpimg.imread(os.path.join(path_to_repo,'data','pool_table.png'))
 
-def draw_region_of_interest(ax,W,C,T,slope1,slope2,intercept1,intercept2):
-    #x = np.arange(0,W,0.5)
-    #y1 = slope1*x+intercept1
-    #y2 = slope2*x+intercept2
+    def draw_ideal_configuration(self,ax,row_df):
+        C=(row_df['C_x'], row_df['C_y'])
+        T=(row_df['T_x'], row_df['T_y'])
+        P=(row_df['P_x'], row_df['P_y'])
+        X=(row_df['X_x'], row_df['X_y'])
+        r=self.ball_radius
 
-    #ax.plot(x, y1, color='r', linewidth=0.5,alpha=0.25)
-    #ax.plot(x, y2,color='r', linewidth=0.5,alpha=0.25)
+        #plot geometric situation
+        ax.add_patch(plt.Circle(C, r, color='b',fill=False, clip_on=False,linewidth=0.5))
+        ax.add_patch(plt.Circle(T, r, color='r',fill=False, clip_on=False,linewidth=0.5))
+        ax.add_patch(plt.Circle(X, r, color='b',fill=False, clip_on=False,linewidth=0.5))
+        ax.add_artist(plt.Circle(P, 0.5, color='b',fill=True, clip_on=False,linewidth=0.5))
+        ax.add_artist(plt.Circle(C, 0.1, color='b',fill=True, clip_on=False,linewidth=0.5))
+        ax.add_artist(plt.Circle(T, 0.1, color='r',fill=True, clip_on=False,linewidth=0.5))
+        ax.add_patch(plt.Circle(T, 2*r, color='r',fill=False, clip_on=False,linewidth=0.5,linestyle='--'))
+        ax.add_artist(plt.Circle(X, 0.1, color='b',fill=True, clip_on=False,linewidth=0.5))
 
-    # we parametrize the line CT equation and compute the point 
-    # that is 1000 distance from T
-    t=1000
-    far_away_point_x=C[0]+(T[0]-C[0])*t
-    far_away_point_y=C[1]+(T[1]-C[1])*t
-    far_away_point=(far_away_point_x,far_away_point_y)
+        lines = [[C, X], [X, T], [T, P]]
+        lc = mc.LineCollection(lines, colors='b', linewidths=0.5)
+        ax.add_collection(lc)
 
-    #line CT 
-    slope=(C[1]-T[1])/(C[0]-T[0])
-    intercept=T[1]-slope*T[0]
+        #Use adjustable='box-forced' to make the plot area square-shaped as well.
+        ax.set_aspect('equal', adjustable='box')
+        
+        return ax
 
-    #line perpendicular to CT that contains far_away_point
-    slope_perpendicular=-1/slope
-    intercept_perpendicular=far_away_point[1]-slope_perpendicular*far_away_point[0]
+    def draw_real_configuration(self,ax,row_df):
+        C=(row_df['C_x'], row_df['C_y'])
+        X_calculated=(row_df['X_calculated_x'], row_df['X_calculated_y'])
+        Q=(row_df['Q_x'], row_df['Q_y'])
+        r=self.ball_radius
 
-    #intersection between two lines
-    x1=(-intercept1+intercept_perpendicular)/(-slope_perpendicular+slope1)
-    x2=(-intercept2+intercept_perpendicular)/(-slope_perpendicular+slope2)
-    y1=(slope1*intercept_perpendicular-slope_perpendicular*intercept1)/(-slope_perpendicular+slope1)
-    y2=(slope2*intercept_perpendicular-slope_perpendicular*intercept2)/(-slope_perpendicular+slope2)
-    
-    points = np.array([[T[0],T[1]], [x1,y1], [x2,y2]])
+        #plot geometric situation
+        ax.add_patch(plt.Circle(X_calculated, r, color='orange',fill=False, clip_on=False,linewidth=0.5,linestyle='--'))
+        ax.add_artist(plt.Circle(X_calculated, 0.1, color='orange',fill=True, clip_on=False,linewidth=0.5,linestyle='--'))
+        ax.add_artist(plt.Circle(Q, 0.5, color='orange',fill=True, clip_on=False,linewidth=0.5))
 
-    ax.add_patch(plt.Polygon(points, color='g',fill=True, clip_on=True,alpha=0.2))
+        lines = [[C, X_calculated], [X_calculated, Q]]
+        lc = mc.LineCollection(lines, colors='orange', linewidths=0.5)
+        ax.add_collection(lc)
 
-    return ax
+        #Use adjustable='box-forced' to make the plot area square-shaped as well.
+        ax.set_aspect('equal', adjustable='box')
+        
+        return ax
 
-def draw_point(ax,point):
-    ax.add_artist(plt.Circle(point, 0.1, color='orange',fill=True, clip_on=False,linewidth=0.5))
+    def draw_pool_table_with_pockets(self,ax):
+        #ax.add_patch(plt.Rectangle((0, 0), W, H,color='k',fill=False, clip_on=False,linewidth=0.5))
 
-    #Use adjustable='box-forced' to make the plot area square-shaped as well.
-    ax.set_aspect('equal', adjustable='box')
+        for P in self.pockets:
+            ax.add_artist(plt.Circle(P, 6, color='k', fill=True, clip_on=False,linewidth=0.5,alpha=0.5))
 
-    return ax
+        ax.imshow(self.img, extent=[0, self.pool_table_size[0], 0, self.pool_table_size[1]], cmap='gray')
 
-def draw_specific_configuration(ax,W,H,img,pockets,r,C,T,P,X,C_estimated,T_estimated,X_calculated,Q):
-    ax=draw_pool_table_with_pockets(ax,W,H,img,pockets)
-    ax=draw_ideal_configuration(ax,r,C,T,P,X)
-    ax=draw_real_configuration(ax,r,C,X_calculated,Q)
-    ax=draw_point(ax,C_estimated)
-    ax=draw_point(ax,T_estimated)
-    return ax
+        #Use adjustable='box-forced' to make the plot area square-shaped as well.
+        ax.set_aspect('equal', adjustable='box')
+
+        return ax
+
+    def draw_region_of_interest(self,ax,row_df):
+        C=(row_df['C_x'], row_df['C_y'])
+        T=(row_df['T_x'], row_df['T_y'])
+        slope1=row_df['slope_X1T']
+        slope2=row_df['slope_X2T']
+        intercept1=row_df['intercept_X1T']
+        intercept2=row_df['intercept_X2T']
+
+        # we parametrize the line CT equation and compute the point 
+        # that is 1000 distance from T
+        t=1000
+        far_away_point_x=C[0]+(T[0]-C[0])*t
+        far_away_point_y=C[1]+(T[1]-C[1])*t
+        far_away_point=(far_away_point_x,far_away_point_y)
+
+        #line CT 
+        slope=(C[1]-T[1])/(C[0]-T[0])
+        intercept=T[1]-slope*T[0]
+
+        #line perpendicular to CT that contains far_away_point
+        slope_perpendicular=-1/slope
+        intercept_perpendicular=far_away_point[1]-slope_perpendicular*far_away_point[0]
+
+        #intersection between two lines
+        x1=(-intercept1+intercept_perpendicular)/(-slope_perpendicular+slope1)
+        x2=(-intercept2+intercept_perpendicular)/(-slope_perpendicular+slope2)
+        y1=(slope1*intercept_perpendicular-slope_perpendicular*intercept1)/(-slope_perpendicular+slope1)
+        y2=(slope2*intercept_perpendicular-slope_perpendicular*intercept2)/(-slope_perpendicular+slope2)
+        
+        points = np.array([[T[0],T[1]], [x1,y1], [x2,y2]])
+
+        ax.add_patch(plt.Polygon(points, color='g',fill=True, clip_on=True,alpha=0.2))
+
+        return ax
+
+    def draw_point(ax,point):
+        ax.add_artist(plt.Circle(point, 0.1, color='orange',fill=True, clip_on=False,linewidth=0.5))
+        #Use adjustable='box-forced' to make the plot area square-shaped as well.
+        ax.set_aspect('equal', adjustable='box')
+
+        return ax
+
+    def draw_specific_configuration(self,ax,row_df):
+        C_estimated=(row_df['C_estimated_x'], row_df['C_estimated_y'])
+        T_estimated=(row_df['T_estimated_x'], row_df['T_estimated_y'])
+        ax=self.draw_pool_table_with_pockets(ax)
+        ax=self.draw_ideal_configuration(ax,row_df)
+        ax=self.draw_real_configuration(ax,row_df)
+        ax=self.draw_point(ax,C_estimated)
+        ax=self.draw_point(ax,T_estimated)
+        return ax

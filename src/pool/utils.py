@@ -115,6 +115,17 @@ class Params(object):
     self.BALL_AREA=np.pi*self.BALL_RADIUS**2 #PI*RADI^2
     self.RATIO_BALL_RECTANGLE = self.BALL_AREA/self.RECTANGLE_AREA
 
+    ## ERROR ANALYSIS PARAMS
+    # metrics in cm
+    self.BALL_RADIUS_CM=38/2
+    self.DISPLAY_SIZE_CM=(924,524)
+    self.POCKETS_CM=[[38.447187,38.39291465],
+                     [462.2112483,38.39291465],
+                     [885.9753086,38.39291465],
+                     [885.9753086,485.60708],
+                     [462.2112483,485.60708],
+                     [38.447187,485.60708]]
+
 class Rectangle:
     def __init__(self, top_left, bottom_right):
 
@@ -198,7 +209,12 @@ def angle_between_two_vectors(u,v):
     angle = np.arccos(cosine_angle)
     return angle #in radians
 
-def line_intersect(a1, a2, b1, b2):
+def angle_between_3_points( a,b,c):
+    ba = a - b
+    bc = c - b
+    return angle_between_two_vectors(ba,bc)
+
+def line_intersect(a1, a2, b1, b2): # TODO change name to line_intersect_given_points
     T = np.array([[0, -1], [1, 0]])
     da = np.atleast_2d(a2 - a1)
     db = np.atleast_2d(b2 - b1)
@@ -207,3 +223,83 @@ def line_intersect(a1, a2, b1, b2):
     denom = np.sum(dap * db, axis=1)
     num = np.sum(dap * dp, axis=1)
     return np.atleast_2d(num / denom).T * db + b1
+
+
+def intersection_circle_line(slope,intercept, r,center):
+    """
+    Computes the points of intersection (if any) between a line 
+    and a circumference given a slope, an intercection, a radii 
+    and a center.
+    """
+    #intersection point between the above line and a cercle of center T and radii 2r
+    new_intercept=intercept+slope*center[:,0]-center[:,1]
+    _A=1+slope**2
+    _B=2*slope*new_intercept
+    _C=new_intercept**2-(2*r)**2
+
+    x1=(-_B+np.sqrt(_B**2-4*_A*_C))/(2*_A) + center[:,0]
+    x2=(-_B-np.sqrt(_B**2-4*_A*_C))/(2*_A) + center[:,0]
+    y1=slope*x1+intercept
+    y2=slope*x2+intercept
+
+    #we need to choose which one is the correct intersection point
+    X_calculated1=np.c_[x1,y1]
+    X_calculated2=np.c_[x2,y2]
+
+    return X_calculated1,X_calculated2
+
+def intersection_two_circles(P0,P1,r0,r1):
+    """
+    Computes the points of intersection (if any) between two
+    circles of radiis r0,r1 and centers P0,P1
+    """
+
+    # distance from P0 to P1  
+    P0P1 = P1-P0  
+    d=np.sqrt((P0P1[:,0])**2+(P0P1[:,1])**2)
+    # distance from P0 to P2 (being P2 the point of intersection between lines P0P1 and X1X2)
+    # (X1,X2 are the intersection points that we want to find)
+    a=(d**2+r0**2-r1**2)/(2*d)
+    # distance from P1 to P2
+    b=d-a
+    # distance from P2 to X1 = distance from P2 to X2
+    h=np.sqrt(r0**2-a**2)
+    # convert points to numpy array
+
+    auxiliar_point=(P0.T * (b/d)).T+(P1.T * (a/d)).T
+
+    intersec1_x=auxiliar_point[:,0]+(h/d)*P0P1[:,1]
+    intersec2_x=auxiliar_point[:,0]-(h/d)*P0P1[:,1]
+
+    intersec1_y=auxiliar_point[:,1]-(h/d)*P0P1[:,0]
+    intersec2_y=auxiliar_point[:,1]+(h/d)*P0P1[:,0]
+
+    X1=np.column_stack((intersec1_x,intersec1_y))
+    X2=np.column_stack((intersec2_x,intersec2_y))
+
+    return X1, X2
+
+def generate_random_number_inside_circle(center,R):
+    """
+    generates random numbers inside a circle of radii=R and center=center
+    """
+    theta = np.random.uniform(0,2*np.pi, center.shape[0])
+    radius = np.random.uniform(0,R, center.shape[0]) ** 0.5
+    x = radius * np.cos(theta)
+    y = radius * np.sin(theta)
+    x=center[:,0]+x
+    y=center[:,1]+y
+
+    return np.concatenate((x.reshape(-1,1),y.reshape(-1,1)), axis=1)
+
+def generate_random_numbers_inside_rectangle(num_points,size,safety_distance):
+    """
+    generates random numbers inside a rectangle of left bottom vertex (0,0)
+    and right top vertex (W,H). We also consider a safety distance from 
+    the sides of the rectangle.
+    """
+    W,H=size
+    xlist = np.random.uniform(0+safety_distance, W-safety_distance, num_points)
+    ylist = np.random.uniform(0+safety_distance, H-safety_distance, num_points)
+    real_points=np.concatenate((xlist.reshape(-1,1),ylist.reshape(-1,1)), axis=1)
+    return real_points
