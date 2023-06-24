@@ -1,21 +1,20 @@
 import numpy as np
-import matplotlib.pyplot as plt
-import math
 import pandas as pd
+from pool import utils
 
 # mechanism constants
-l1_min=14
-l1_max=30
+l1_min=20
+l1_max=26
 l2_min=23.6
 l2_max=24.6
-x_min=-5
-x_max=37
-a_min=30
-a_max=63
+x_min=0
+x_max=30
+a_min=35
+a_max=60
 b_min=20
 b_max=21
-d_min=12
-d_max=30
+d_min=16
+d_max=28
 
 a_arr=np.arange(a_min,a_max,1)
 b_arr=np.arange(b_min,b_max,1)
@@ -30,6 +29,7 @@ dict_to_save={}
 
 combinations=np.array(np.meshgrid(-x_arr, d_arr, l1_arr,l2_arr, a_arr, b_arr)).T.reshape(-1,6)
 A=combinations[:,:2]
+C= np.zeros_like(A)
 l1_comb=combinations[:,2]
 l2_comb=combinations[:,3]
 a_comb=combinations[:,4]
@@ -44,28 +44,7 @@ def new_b(a,flipper_dist):
 new_b=new_b(a_comb, flipper_dist)
 b_comb=new_b.copy()
 
-# distance from P0 to P1    
-d=np.sqrt((A[:,0])**2+(A[:,1])**2)
-# distance from P0 to P2 (being P2 the point of intersection between lines P0P1 and X1X2)
-# (X1,X2 are the intersection points that we want to find)
-a=(d**2+l1_comb**2-l2_comb**2)/(2*d)
-# distance from P1 to P2
-b=d-a
-# distance from P2 to X1 = distance from P2 to X2
-h=np.sqrt(l1_comb**2-a**2)
-# convert points to numpy array
-C= np.zeros_like(A)
-CA=C-A
-auxiliar_points=(A.T * (b/d)).T+(C.T * (a/d)).T
-
-intersec1_x=auxiliar_points[:,0]+(h/d)*CA[:,1]
-intersec2_x=auxiliar_points[:,0]-(h/d)*CA[:,1]
-
-intersec1_y=auxiliar_points[:,1]-(h/d)*CA[:,0]
-intersec2_y=auxiliar_points[:,1]+(h/d)*CA[:,0]
-
-#B=np.column_stack((intersec1_x,intersec1_y))
-B=np.column_stack((intersec2_x,intersec2_y))
+_,B=utils.intersection_two_circles(A,C,l1_comb,l2_comb)
 
 norm_BC_vector=l2_comb
 BC_vector=(-B.T * (1/norm_BC_vector)).T
@@ -87,32 +66,11 @@ df=pd.DataFrame({'Ax': combinations[:, 0], # == -x
                  })
 
 df['config_id'] = df.groupby(['Ay', 'l1', 'l2', 'a', 'b',]).ngroup()
-df.to_csv(path_or_buf='./all_mechanisms.csv', sep=' ',index=False)
+#df.to_csv(path_or_buf='./all_mechanisms.csv', sep=' ',index=False)
 
 print('total configs',np.unique(df['config_id']).max())
 
-def angle_abc(a,b,c):
-    """
-    Computes the angle between 3 points 
-    (point b is the vertex)
-
-    Parameters
-    ----------    
-        a,b,c: numpy array of shape (2,)
-            x, y coordinates of the point
-    Returns
-    -------
-        angle: numpy float64
-
-    """
-    ba = a - b
-    bc = c - b
-    dot = ba[:,0]*bc[:,0] + ba[:,1]*bc[:,1]
-    cosine_angle = dot / (l1_comb * l2_comb)
-    angle = np.arccos(cosine_angle)
-    return np.degrees(angle)
-
-angle=angle_abc(A,B,C)
+angle=utils.angle_between_3_points(A,B,C)
 df['angle']=angle
 
 list_of_dict=[]
@@ -146,10 +104,11 @@ for config in np.unique(df['config_id']):
             print(config,df_xmax.shape, desired_x_max_row.shape, df_xmin.shape, desired_x_min_row.shape )
 
 df1 = pd.DataFrame(list_of_dict, columns=list(list_of_dict[0].keys()))
-df1.to_csv(path_or_buf='./valid_mechanisms.csv', sep=' ',index=False)
 
 print('total rows',df1.shape[0])
 
 valid_configs=df1[df1['x_stroke']<=19]
 valid_configs=valid_configs[valid_configs['angle']<140]
-valid_configs
+df1.to_csv(path_or_buf='./results/valid_mechanisms.csv', sep=',',index=False)
+
+print(valid_configs)
