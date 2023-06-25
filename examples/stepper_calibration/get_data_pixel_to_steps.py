@@ -83,10 +83,10 @@ incr_df = incr_df.rename(columns={'x_dist':        'incr_x_dist',
 incr_df=incr_df.diff()
 
 incr_df['incr_id'] = df.apply(lambda x: ps.img_num_to_incr_id(x['img_num']), axis=1)
+incr_df=incr_df.dropna()
 incr_x = incr_df['incr_point_x'].values
 incr_y = incr_df['incr_point_y'].values
 incr_steps1, incr_steps2 = ps.cm_to_steps_vectorized(incr_x, incr_y)
-incr_df=incr_df.dropna()
 incr_df['incr_steps1']=incr_steps1.astype(int)
 incr_df['incr_steps2']=incr_steps2.astype(int)
 incr_df.to_csv(path_or_buf=f'./results/calibration_pixel_to_step.csv', sep=',',index=False)

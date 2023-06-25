@@ -8,8 +8,10 @@ dxl=Dynamixel(baudRate=115200,
 dxl.setupDynamixel()
 dxl.setupPID(P=640,I=800,D=0)
 
-while True:
-    goal_position = randrange(dxl.min_position,dxl.max_position)
+angles=[25,90,135,270]
+
+for angle in angles:
+    goal_position = dxl.angle_to_dynamixel_position(angle)
     dxl.sendToDynamixel(goal_position,50, 1)
 
     while True:
@@ -19,4 +21,4 @@ while True:
 
         if not abs(goal_position - present_position) > dxl.moving_status_threshold:
             break
-    time.sleep(10)
+    time.sleep(7)

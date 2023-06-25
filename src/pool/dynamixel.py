@@ -136,3 +136,6 @@ class Dynamixel(object):
             print("%s" % self.packetHandler.getRxPacketError(dxl_error))
 
         return dxl_present_position
+    
+    def angle_to_dynamixel_position(self, angle): # angle in degrees!
+        return (angle/360)*(self.max_position-self.min_position)+self.min_position

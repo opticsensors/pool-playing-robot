@@ -1,5 +1,4 @@
 from pool.controller_actuators import Controller_actuators
-from random import randrange
 import time
 
 stp=Controller_actuators(baudRate=9600,
@@ -7,26 +6,20 @@ stp=Controller_actuators(baudRate=9600,
 
 stp.setupSerial()
 
-data = [(-1,0,0),(0,0,700)]
-count=0
+data = [(-1,0,0),(0,0,700),(0,0,500)]
 
-data_to_send=data[count]
-mode,pos1,pos2=data_to_send
-stp.sendToArduino(f"{mode},{pos1},{pos2}")
+stp.sendToArduino("-1,0,0")
 
-while True:
+for data_to_send in data:
 
     # check for a reply
     arduinoReply = stp.recvLikeArduino()
     if not (arduinoReply == 'XXX'):
         print ("Reply: ", arduinoReply)
         
-        # when we recieve the data from arduino, we assume the motors have stopped?
+        # when we recieve the data from arduino, we assume the motors have stopped
         # send a message at intervals
-        time.sleep(6)
-        count+=1
-        data_to_send=data[count]
-        #print(count, data,data_to_send)
+        time.sleep(4)
         mode,pos1,pos2=data_to_send
         print('Send to arduino:', mode, pos1, pos2)
         stp.sendToArduino(f"{mode},{pos1},{pos2}")
