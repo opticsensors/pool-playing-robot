@@ -46,15 +46,9 @@ for full_img_name in os.listdir('./results/'):
         x_dist,y_dist=eye.get_aruco_coordinates(img, aruco_to_track)
         x_undist,y_undist=eye.get_aruco_coordinates(undistorted, aruco_to_track)
 
-        point_to_transform = np.array([[x_dist,y_dist]], dtype='float32')
-        point_to_transform = np.array([point_to_transform])
-        transformed_point = cv2.perspectiveTransform(point_to_transform, dist_matrix)
-        x_dist_warp, y_dist_warp = transformed_point[0][0]
+        x_dist_warp, y_dist_warp = eye.transform_point_given_a_matrix((x_dist,y_dist),dist_matrix)
+        x_undist_warp, y_undist_warp = eye.transform_point_given_a_matrix((x_undist,y_undist),undist_matrix)
 
-        point_to_transform = np.array([[x_undist,y_undist]], dtype='float32')
-        point_to_transform = np.array([point_to_transform])
-        transformed_point = cv2.perspectiveTransform(point_to_transform, undist_matrix)
-        x_undist_warp, y_undist_warp = transformed_point[0][0]
         dict_to_save['img_num']=img_number
         dict_to_save['img_name']=img_name
         dict_to_save['x_dist']=x_dist

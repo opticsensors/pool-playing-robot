@@ -205,6 +205,13 @@ class Eye(object):
         
         return cv2.warpPerspective(image, matrix, (width, height))
 
+    def transform_point_given_a_matrix(self, point, matrix):
+        x,y = point
+        point_to_transform = np.array([[x,y]], dtype='float32')
+        point_to_transform = np.array([point_to_transform])
+        transformed_point = cv2.perspectiveTransform(point_to_transform, matrix)
+        x_transformed, y_transformed = transformed_point[0][0]
+        return x_transformed, y_transformed
     
 class ClassicCV:
     def __init__(self, **kwargs):
