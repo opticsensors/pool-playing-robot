@@ -1,6 +1,6 @@
 import cv2
 import numpy as np
-from pool.eye import ClassicCV
+from pool.ball_detection import ClassicCV
 
 #read image with random ball config and background
 warp = cv2.imread('./results/warp.jpg')

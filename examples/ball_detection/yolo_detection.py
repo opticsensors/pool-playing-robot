@@ -1,6 +1,6 @@
 import cv2
 import numpy as np
-from pool.eye import Yolo
+from pool.ball_detection import Yolo
 
 #read image with random ball config and background
 img = cv2.imread('./results/warp.jpg')

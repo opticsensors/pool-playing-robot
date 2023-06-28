@@ -1,6 +1,6 @@
 import cv2
 import json
-from pool.eye import Yolo
+from pool.ball_detection import Yolo
 
 yolo=Yolo()
 #read image with random ball config and background
