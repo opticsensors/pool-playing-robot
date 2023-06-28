@@ -1,10 +1,8 @@
 import cv2
 from pool.eye import Eye
-import numpy as np
 import pandas as pd
 import os 
-from pool import corners
-from pool.pixel_to_steps import PixelSteps
+from pool.calibration import PixelSteps
 
 #CV algorithms initialization
 eye=Eye()
@@ -13,7 +11,7 @@ eye=Eye()
 ps = PixelSteps()
 
 #compute corners 
-img=corners.load_img_corners()
+img=cv2.imread('./results/corners_0.jpg')
 undist_img=eye.undistort_image(img, remapping=False)
 dist_corners=eye.get_pool_corners(img)
 undist_corners=eye.get_pool_corners(undist_img)
@@ -43,8 +41,8 @@ for full_img_name in os.listdir('./results/'):
         img = cv2.imread(f'./results/{full_img_name}')
         undistorted=eye.undistort_image(img, remapping=False)
 
-        x_dist,y_dist=eye.get_aruco_coordinates(img, aruco_to_track)
-        x_undist,y_undist=eye.get_aruco_coordinates(undistorted, aruco_to_track)
+        x_dist,y_dist=eye.get_aruco_coordinates_given_aruco_id(img, aruco_to_track)
+        x_undist,y_undist=eye.get_aruco_coordinates_given_aruco_id(undistorted, aruco_to_track)
 
         x_dist_warp, y_dist_warp = eye.transform_point_given_a_matrix((x_dist,y_dist),dist_matrix)
         x_undist_warp, y_undist_warp = eye.transform_point_given_a_matrix((x_undist,y_undist),undist_matrix)
@@ -86,7 +84,7 @@ incr_df['incr_id'] = df.apply(lambda x: ps.img_num_to_incr_id(x['img_num']), axi
 incr_df=incr_df.dropna()
 incr_x = incr_df['incr_point_x'].values
 incr_y = incr_df['incr_point_y'].values
-incr_steps1, incr_steps2 = ps.cm_to_steps_vectorized(incr_x, incr_y)
+incr_steps1, incr_steps2 = ps.cm_to_steps(incr_x, incr_y)
 incr_df['incr_steps1']=incr_steps1.astype(int)
 incr_df['incr_steps2']=incr_steps2.astype(int)
 incr_df.to_csv(path_or_buf=f'./results/calibration_pixel_to_step.csv', sep=',',index=False)

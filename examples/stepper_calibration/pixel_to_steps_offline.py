@@ -1,8 +1,7 @@
 import time
-import numpy as np
 from pool.controller_actuators import Controller_actuators
 from pool.cam import Camera_DLSR, Camera_DLSR_settings
-from pool.pixel_to_steps import PixelSteps
+from pool.calibration import PixelSteps
 import time
 
 

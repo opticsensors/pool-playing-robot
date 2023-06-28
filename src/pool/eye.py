@@ -34,7 +34,7 @@ class Eye(object):
             self.arucos_pool_frame = arucos_pool_frame
         
     @staticmethod
-    def _intersect(line1,line2):
+    def _intersect(line1,line2): # TODO move to utils?
         vx1,vy1,x1,y1=line1
         vx2,vy2,x2,y2=line2
         t = (vy2*(x2-x1)-vx2*(y2-y1))/(vx1*vy2-vx2*vy1)
@@ -116,8 +116,7 @@ class Eye(object):
 
         return pool_corners
     
-    def get_aruco_coordinates(self, img, aruco_to_track):
-
+    def find_all_aruco_coordinates(self, img):
         arucoDict=cv2.aruco.DICT_4X4_100
         arucoDict = cv2.aruco.getPredefinedDictionary(arucoDict)
         arucoParams = cv2.aruco.DetectorParameters()
@@ -142,11 +141,18 @@ class Eye(object):
                 cX = (topLeft[0] + bottomRight[0]) / 2.0
                 cY = (topLeft[1] + bottomRight[1]) / 2.0
                 id_to_centroids[markerID]=(cX,cY)
-        
-        if aruco_to_track in id_to_centroids: #TODO make more aruco ids trackable
+        return id_to_centroids
+    
+    def get_aruco_coordinates_given_aruco_id(self, img, aruco_to_track):
+        id_to_centroids=self.find_all_aruco_coordinates(img)
+        if aruco_to_track in id_to_centroids: 
             return id_to_centroids[aruco_to_track]
         else:   
             raise ValueError('the aruco specified is not found in the img')
+    
+    def get_aruco_coordinates_given_several_aruco_ids(self, img, arucos_to_track):
+        id_to_centroids=self.find_all_aruco_coordinates(img)
+        return {k: v for k, v in id_to_centroids.items() if k in arucos_to_track}
 
     def calculate_perspective_matrix(self, corners) -> np.ndarray:
 
@@ -212,7 +218,7 @@ class Eye(object):
         transformed_point = cv2.perspectiveTransform(point_to_transform, matrix)
         x_transformed, y_transformed = transformed_point[0][0]
         return x_transformed, y_transformed
-    
+
 class ClassicCV:
     def __init__(self, **kwargs):
         self.params = Params()
