@@ -1,25 +1,13 @@
 import cv2
-from pool.eye import Eye
 import pandas as pd
 import os 
-from pool.calibration import PixelSteps
-
-#CV algorithms initialization
-eye=Eye()
+from pool.calibration import DataExtractor, PixelSteps
 
 #helper functions for calibration
 ps = PixelSteps()
 
-#compute corners 
-img=cv2.imread('./results/corners_0.jpg')
-undist_img=eye.undistort_image(img, remapping=False)
-dist_corners=eye.get_pool_corners(img)
-undist_corners=eye.get_pool_corners(undist_img)
-
-#compute prespective transform matrix
-# the prespective trans matrix should be the same for all the captured images
-dist_matrix=eye.calculate_perspective_matrix(dist_corners)
-undist_matrix=eye.calculate_perspective_matrix(undist_corners)
+img_corners=cv2.imread('./results/corners_0.jpg')
+de = DataExtractor(img_corners)
 
 #define needed variables
 points=ps.load_calibration_points()
@@ -27,7 +15,7 @@ points=ps.add_homing_position(points) #first image is in home pos
 d_points=ps.points_to_dict(points)
 dict_to_save = {}
 list_of_dict = []
-aruco_to_track=22
+aruco_to_track = 22
 
 # get data for every image
 for full_img_name in os.listdir('./results/'):
@@ -39,24 +27,18 @@ for full_img_name in os.listdir('./results/'):
         print(full_img_name)
         img_number=int(img_name.split('_')[1])
         img = cv2.imread(f'./results/{full_img_name}')
-        undistorted=eye.undistort_image(img, remapping=False)
-
-        x_dist,y_dist=eye.get_aruco_coordinates_given_aruco_id(img, aruco_to_track)
-        x_undist,y_undist=eye.get_aruco_coordinates_given_aruco_id(undistorted, aruco_to_track)
-
-        x_dist_warp, y_dist_warp = eye.transform_point_given_a_matrix((x_dist,y_dist),dist_matrix)
-        x_undist_warp, y_undist_warp = eye.transform_point_given_a_matrix((x_undist,y_undist),undist_matrix)
+        d_aruco=de.get_single_aruco_data(img, aruco_to_track)
 
         dict_to_save['img_num']=img_number
         dict_to_save['img_name']=img_name
-        dict_to_save['x_dist']=x_dist
-        dict_to_save['y_dist']=y_dist
-        dict_to_save['x_undist']=x_undist
-        dict_to_save['y_undist']=y_undist
-        dict_to_save['x_dist_warp']=x_dist_warp
-        dict_to_save['y_dist_warp']=y_dist_warp    
-        dict_to_save['x_undist_warp']=x_undist_warp
-        dict_to_save['y_undist_warp']=y_undist_warp             
+        dict_to_save['x_dist']=d_aruco['dist'][0]
+        dict_to_save['y_dist']=d_aruco['dist'][1]
+        dict_to_save['x_undist']=d_aruco['undist'][0]
+        dict_to_save['y_undist']=d_aruco['undist'][1]
+        dict_to_save['x_dist_warp']=d_aruco['dist_warp'][0]
+        dict_to_save['y_dist_warp']=d_aruco['dist_warp'][1]    
+        dict_to_save['x_undist_warp']=d_aruco['undist_warp'][0]
+        dict_to_save['y_undist_warp']=d_aruco['undist_warp'][1]           
         dict_to_save['point_x']=d_points[img_number][0]            
         dict_to_save['point_y']=d_points[img_number][1]  
 
