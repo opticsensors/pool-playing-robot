@@ -40,7 +40,7 @@ for count in [0,1,2,3,5,6,9,10,11,12,13,14,15,16,17,18,19,21,23,24,25]:
         # Draw and display the corners
         cv.drawChessboardCorners(img, chessboardSize, corners2, ret)
         cv.imshow('img', cv.resize(img, (0,0), fx=0.25, fy=0.25))
-        cv.waitKey(2000)
+        cv.waitKey(500)
 
 cv.destroyAllWindows()
 

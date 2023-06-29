@@ -43,6 +43,7 @@ for target_aruco, img_numbers in target_arucos_to_img_number.items():
         img = cv2.imread(f'./results/{full_img_name}')
         d_carriage_aruco=de.get_single_aruco_data(img, carriage_aruco)
         d_angle_flipper=de.get_angle_given_line_of_arucos(img, flipper_arucos)
+        d_coord_flipper=de.get_coord_given_line_of_arucos(img, flipper_arucos)
 
         dict_to_save['img_num']=img_number
         dict_to_save['target_aruco']=target_aruco
@@ -71,10 +72,19 @@ for target_aruco, img_numbers in target_arucos_to_img_number.items():
         dict_to_save['angle_dist_warp']=d_angle_flipper['angle_dist_warp']
         dict_to_save['angle_undist_warp']=d_angle_flipper['angle_undist_warp']
 
+        dict_to_save['extra']=d_coord_flipper['flipper_undist']
+
         list_of_dict.append(dict_to_save.copy())
 
 # for convenience we convert the list of dict to a dataframe
 df = pd.DataFrame(list_of_dict, columns=list(list_of_dict[0].keys()))
 df=df.sort_values('img_num')
+a=df['extra'].str[0]
+df['aruco_flipper_76_x']=a.str[0]
+df['aruco_flipper_76_y']=a.str[1]
+df['aruco_flipper_77_x']=a.str[2]
+df['aruco_flipper_77_y']=a.str[3]
+
+df = df.drop('extra', axis=1)
 df=df.dropna() #remove images where at least 2 flipper arucos are not detected
 df.to_csv(path_or_buf='./results/calibration_image_data.csv', sep=',',index=False)

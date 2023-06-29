@@ -107,9 +107,15 @@ class DataExtractor:
     def get_angle_given_dict_of_aruco_coord(self,d_aruco_coord):
         line_points=np.array(list(d_aruco_coord.values()))
         if len(line_points)>1:
-            [vx,vy,x,y] = cv2.fitLine(line_points,cv2.DIST_L2,0,0.01,0.01)
-            angle=np.arctan2(vy,vx)* 180 / np.pi
-            angle=angle[0]
+            #average vector angles
+            degrees=[]
+            indices=np.transpose(np.triu_indices(line_points.shape[0],1))
+            for (strat_id, end_id) in (indices):
+                start=line_points[strat_id,:]
+                end=line_points[end_id,:]
+                vector=end-start
+                degrees.append(np.degrees(np.arctan2(vector[1],vector[0])))
+            angle=np.mean(degrees)
         else:
             angle=np.nan
         return angle
@@ -117,9 +123,31 @@ class DataExtractor:
     def get_angle_given_line_of_arucos(self, img, line_of_arucos):
         d_coord=self.get_several_aruco_data(img,line_of_arucos)
         d_angles={
-            'angle_dist':self.get_angle_given_dict_of_aruco_coord(d_coord['d_dist']),
+            'angle_dist': self.get_angle_given_dict_of_aruco_coord(d_coord['d_dist']),
             'angle_undist': self.get_angle_given_dict_of_aruco_coord(d_coord['d_undist']),
-            'angle_dist_warp':self.get_angle_given_dict_of_aruco_coord(d_coord['d_dist_warp']),
-            'angle_undist_warp':self.get_angle_given_dict_of_aruco_coord(d_coord['d_undist_warp']),
+            'angle_dist_warp': self.get_angle_given_dict_of_aruco_coord(d_coord['d_dist_warp']),
+            'angle_undist_warp': self.get_angle_given_dict_of_aruco_coord(d_coord['d_undist_warp']),
         }
         return d_angles
+    
+    def get_coord_given_line_of_arucos(self, img, line_of_arucos):
+        d_coord=self.get_several_aruco_data(img,line_of_arucos)
+        d_flipper={
+            'flipper_dist': np.array(list(d_coord['d_dist'].values())).reshape(1,-1),
+            'flipper_undist': np.array(list(d_coord['d_undist'].values())).reshape(1,-1),
+            'flipper_dist_warp': np.array(list(d_coord['d_dist_warp'].values())).reshape(1,-1),
+            'flipper_undist_warp': np.array(list(d_coord['d_undist_warp'].values())).reshape(1,-1),
+        }
+        return d_flipper
+    
+    def debug_flipper_line(self, img, arucos):
+        d_dist=self.eye.get_aruco_coordinates_given_several_aruco_ids(img,arucos)
+        line_points=np.array(list(d_dist.values()))
+        [vx,vy,x,y] = cv2.fitLine(line_points,cv2.DIST_L2,0,0.01,0.01)
+        print(vx,vy,x,y)
+        # Now find two extreme points on the line to draw line
+        lefty = int((-x*vy/vx) + y)
+        righty = int(((img.shape[1]-x)*vy/vx)+y)
+        #Finally draw the line
+        cv2.line(img,(img.shape[1]-1,righty),(0,lefty),(0,255,0),3)
+        return img
