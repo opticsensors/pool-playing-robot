@@ -105,7 +105,8 @@ class DataExtractor:
         return d_coord
     
     def get_angle_given_dict_of_aruco_coord(self,d_aruco_coord):
-        line_points=np.array(list(d_aruco_coord.values()))
+        sorted_aruco_coord = dict(sorted(d_aruco_coord.items()))
+        line_points=np.array(list(sorted_aruco_coord.values()))
         if len(line_points)>1:
             #average vector angles
             degrees=[]
@@ -140,14 +141,20 @@ class DataExtractor:
         }
         return d_flipper
     
-    def debug_flipper_line(self, img, arucos):
-        d_dist=self.eye.get_aruco_coordinates_given_several_aruco_ids(img,arucos)
-        line_points=np.array(list(d_dist.values()))
+    def debug_carriage_and_flipper(self, img, carriage_aruco, flipper_arucos):
+        flipper_dist=self.eye.get_aruco_coordinates_given_several_aruco_ids(img,flipper_arucos)
+        print('flipper', flipper_dist)
+        carriage_dist=self.eye.get_aruco_coordinates_given_aruco_id(img,carriage_aruco)
+        print('carriage', carriage_dist)
+        line_points=np.array(list(flipper_dist.values()))
         [vx,vy,x,y] = cv2.fitLine(line_points,cv2.DIST_L2,0,0.01,0.01)
-        print(vx,vy,x,y)
+        print('line coefs',vx,vy,x,y)
+        angle=self.get_angle_given_dict_of_aruco_coord(flipper_dist)
+        print('angle',angle)
         # Now find two extreme points on the line to draw line
         lefty = int((-x*vy/vx) + y)
         righty = int(((img.shape[1]-x)*vy/vx)+y)
         #Finally draw the line
         cv2.line(img,(img.shape[1]-1,righty),(0,lefty),(0,255,0),3)
+        cv2.circle(img, (int(carriage_dist[0]), int(carriage_dist[1])), 8, (0, 0, 255), -1)
         return img
