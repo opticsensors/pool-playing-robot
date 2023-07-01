@@ -9,9 +9,6 @@ class PixelSteps:
     def __init__(self):
         self.params=Params()
 
-    def load_calibration_points(self):
-        return np.load(os.path.join(self.params.PATH_REPO, 'data', 'calibration_points.npy')) #TODO change name to stepper_calibration_points
-
     def generate_and_save_calibration_points(self, size):
         num_horizontal_points, num_vertical_points = size
         alpha = 1/(num_horizontal_points+1)
@@ -23,8 +20,11 @@ class PixelSteps:
         rescaled_points[:,1] = beta*points[:,1]
         np.random.shuffle(rescaled_points) 
         np.save(os.path.join(self.params.PATH_REPO, 'data', 'calibration_points.npy'), points) #TODO change name to stepper_calibration_points
-
         return rescaled_points
+
+    def load_calibration_points(self):
+        return np.load(os.path.join(self.params.PATH_REPO, 'data', 'calibration_points.npy')) #TODO change name to stepper_calibration_points
+
     
     def add_homing_position(self,points):
         home_point = [0,0]
@@ -50,16 +50,22 @@ class PixelSteps:
         else:
             return f'{img_num-1}-{img_num}'
     
-class CameraCalibration(Eye):
+class CameraCalibration:
     
     def __init__(self,
                  cameraMatrix = None,
-                 dist = None,
-                 arucos_pool_frame = None
                  ):
-        super().__init__(cameraMatrix, dist, arucos_pool_frame)
+        self.eye = Eye()
+        self.params = Params()
+        if cameraMatrix is None:
+            self.cameraMatrix = self.eye.cameraMatrix
+        else:
+            self.cameraMatrix = cameraMatrix
+        self.dist = np.array([[0.0, 0.0, 0.0, 0.0, 0.0]]) #input images should always be undistorted, so pinhole camera model can be applied !
 
-    def find_chessboard_corners(self, img, chessboardSize):
+    def find_chessboard_corners(self, img, chessboardSize, distorted=False):
+        if distorted:
+            img = self.eye.undistort_image(img, remapping=False)
         gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
         # termination criteria
         criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 30, 0.001)
@@ -76,20 +82,37 @@ class CameraCalibration(Eye):
         else:
             raise ValueError('the chessboard is not found in the img')
     
-    def draw_chess_board_corners(self, img, chessboardSize):
+    def draw_chess_board_corners(self, img, chessboardSize, distorted=False):
+        if distorted:
+            img = self.eye.undistort_image(img, remapping=False)
         img_to_draw=img.copy()
         objp, imgp = self.find_chessboard_corners( img, chessboardSize)
         # Draw and display the corners
         img_to_draw=cv2.drawChessboardCorners(img_to_draw, chessboardSize, imgp.reshape(-1,1,2), True)
         return img_to_draw
-        
-    def transform_image_point_to_world_point(self, uvPoint, z_plane ,objp, imgp, distorted=False):
+    
+    def generate_and_save_world_frame(self, img, chessboardSize):
+        objp, imgp = self.find_chessboard_corners( img, chessboardSize)
+        found,rvec,tvec = cv2.solvePnP(objp, imgp, self.cameraMatrix, self.dist)
+        np.save(os.path.join(self.params.PATH_REPO,'data','rvec.npy'), rvec)
+        np.save(os.path.join(self.params.PATH_REPO,'data','tvec.npy'), tvec)
+        return rvec,tvec
+    
+    def load_world_frame(self):
+        rvec = np.load(os.path.join(self.params.PATH_REPO, 'data', 'rvec.npy'))
+        tvec = np.load(os.path.join(self.params.PATH_REPO, 'data', 'tvec.npy'))
+        return rvec, tvec
+
+    def transform_image_point_to_world_point(self, uvPoint, z_plane ,rvec=None, tvec=None, distorted=False):
+        """
+        Find 3D coordinates expressed in the world frame that are located
+        in a known plane (ball centroid plane) using 2D coordinates from image plane
+        """
         assert uvPoint.shape == (3,1) and uvPoint[2,0] == 1
         if distorted:
-            dist=self.dist
-        else:
-            dist=np.array([[0.0, 0.0, 0.0, 0.0, 0.0]]) 
-        found,rvec,tvec = cv2.solvePnP(objp, imgp, self.cameraMatrix, dist)
+            img = self.eye.undistort_image(img, remapping=False)
+        if rvec is None and tvec is None:
+            rvec,tvec=self.load_world_frame()
         rotMatrix = cv2.Rodrigues(rvec)[0]
         rotMatrix_inv = np.linalg.inv(rotMatrix)
         cameraMatrix_inv = np.linalg.inv(self.cameraMatrix) 
@@ -97,16 +120,37 @@ class CameraCalibration(Eye):
         right_vector=rotMatrix_inv@tvec
         s=(z_plane+right_vector[2,0])/(left_vector[2,0])
         xyzPoint=rotMatrix_inv@(s*cameraMatrix_inv@uvPoint-tvec)
-        return xyzPoint
+        return xyzPoint.ravel()
     
-    def transform_world_point_to_img_point(self, xyzPoint ,objp, imgp, distorted=False):
+    def transform_world_point_to_img_point(self, xyzPoint, rvec=None, tvec=None, distorted=False):
+        """
+        Find 2D coordinates in image plane given 3D coordinates 
+        expressed in the world frame using opencv function
+        """
         if distorted:
-            dist=self.dist
-        else:
-            dist=np.array([[0.0, 0.0, 0.0, 0.0, 0.0]]) 
-        found,rvec,tvec = cv2.solvePnP(objp, imgp, self.cameraMatrix, dist)
-        uvPoint=cv2.projectPoints(xyzPoint, rvec, tvec, self.cameraMatrix, dist)[0]
-        return uvPoint
+            img = self.eye.undistort_image(img, remapping=False)
+        if rvec is None and tvec is None:
+            rvec,tvec=self.load_world_frame()
+        uvPoint=cv2.projectPoints(xyzPoint, rvec, tvec, self.cameraMatrix, self.dist)[0]
+        return uvPoint.ravel()
+    
+    def predict_carriage_position_in_image_plane(self, ball_centroid, angle, offset, rvec=None, tvec=None):
+        if rvec is None and tvec is None:
+            rvec,tvec=self.load_world_frame()
+        uvBallCentroid=np.pad(ball_centroid, (0, 1), constant_values=1).reshape(-1,1)
+        trans=self.transform_image_point_to_world_point(uvBallCentroid, 0, rvec, tvec) #translation vector from world frame to auxiliar frame 
+        angle=angle-90 # conversion angle uv frame to angle auxiliar frame (the frame with x axis with the same direction as flipper)
+        angle=np.radians(angle)
+        Rt=np.array([[np.cos(angle), -np.sin(angle), 0, trans[0]],
+                    [np.sin(angle), np.cos(angle), 0, trans[1]],
+                    [0, 0, 1, trans[2]],
+                    [0, 0, 0, 1]])
+        a,b,d,h=offset
+        offset_point_of_contact=np.array([-b,-a,-h,1]).reshape(-1,1)
+        offset_rotation_axis=np.array([d,0,0,1]).reshape(-1,1)
+        carriage_aruco_point3D = (Rt@offset_point_of_contact)[:3,0] + offset_rotation_axis[:3,0]
+        carriage_aruco_point2D = self.transform_world_point_to_img_point(carriage_aruco_point3D ,rvec, tvec)
+        return carriage_aruco_point2D
 
 class DataExtractor:
     def __init__(self,
@@ -154,7 +198,7 @@ class DataExtractor:
         return d_coord
     
     def get_angle_given_dict_of_aruco_coord(self,d_aruco_coord):
-        sorted_aruco_coord = dict(sorted(d_aruco_coord.items()))
+        sorted_aruco_coord = dict(sorted(d_aruco_coord.items(), reverse=True)) # flipper direction goes from higher aruco values to lower 
         line_points=np.array(list(sorted_aruco_coord.values()))
         if len(line_points)>1:
             #average vector angles
