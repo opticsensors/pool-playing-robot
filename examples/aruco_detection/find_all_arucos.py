@@ -1,6 +1,6 @@
 import cv2
 
-img = cv2.imread('./results/calibration_sys3.jpg')
+img = cv2.imread('./results/calibration_sys4.jpg')
 
 arucoDict=cv2.aruco.DICT_4X4_100
 arucoDict = cv2.aruco.getPredefinedDictionary(arucoDict)

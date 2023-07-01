@@ -50,14 +50,63 @@ class PixelSteps:
         else:
             return f'{img_num-1}-{img_num}'
     
-class BallCarriage:
+class CameraCalibration(Eye):
     
-    def __init__(self):
-        self.params=Params()
+    def __init__(self,
+                 cameraMatrix = None,
+                 dist = None,
+                 arucos_pool_frame = None
+                 ):
+        super().__init__(cameraMatrix, dist, arucos_pool_frame)
 
-    def load_calibration_points(self):
-        return np.load(os.path.join(self.params.PATH_REPO, 'data', 'system_calibration_points.npy'))
+    def find_chessboard_corners(self, img, chessboardSize):
+        gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+        # termination criteria
+        criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 30, 0.001)
+        # prepare object points, like (0,0,0), (1,0,0), (2,0,0) ....,(6,5,0) -> 3d points in real world space
+        objp = np.zeros((chessboardSize[0] * chessboardSize[1], 3), np.float32)
+        objp[:,:2] = np.mgrid[0:chessboardSize[0],0:chessboardSize[1]].T.reshape(-1,2)
+        # Find the chess board corners
+        ret, corners = cv2.findChessboardCorners(gray, chessboardSize, None)
+        # If found, add object points, image points (after refining them)
+        if ret == True:
+            corners2 = cv2.cornerSubPix(gray, corners, (11,11), (-1,-1), criteria)
+            imgp=corners2.reshape(-1,2) # 2d points in image plane (same shape as objp)
+            return objp, imgp
+        else:
+            raise ValueError('the chessboard is not found in the img')
     
+    def draw_chess_board_corners(self, img, chessboardSize):
+        img_to_draw=img.copy()
+        objp, imgp = self.find_chessboard_corners( img, chessboardSize)
+        # Draw and display the corners
+        img_to_draw=cv2.drawChessboardCorners(img_to_draw, chessboardSize, imgp.reshape(-1,1,2), True)
+        return img_to_draw
+        
+    def transform_image_point_to_world_point(self, uvPoint, z_plane ,objp, imgp, distorted=False):
+        assert uvPoint.shape == (3,1) and uvPoint[2,0] == 1
+        if distorted:
+            dist=self.dist
+        else:
+            dist=np.array([[0.0, 0.0, 0.0, 0.0, 0.0]]) 
+        found,rvec,tvec = cv2.solvePnP(objp, imgp, self.cameraMatrix, dist)
+        rotMatrix = cv2.Rodrigues(rvec)[0]
+        rotMatrix_inv = np.linalg.inv(rotMatrix)
+        cameraMatrix_inv = np.linalg.inv(self.cameraMatrix) 
+        left_vector=rotMatrix_inv@cameraMatrix_inv@uvPoint
+        right_vector=rotMatrix_inv@tvec
+        s=(z_plane+right_vector[2,0])/(left_vector[2,0])
+        xyzPoint=rotMatrix_inv@(s*cameraMatrix_inv@uvPoint-tvec)
+        return xyzPoint
+    
+    def transform_world_point_to_img_point(self, xyzPoint ,objp, imgp, distorted=False):
+        if distorted:
+            dist=self.dist
+        else:
+            dist=np.array([[0.0, 0.0, 0.0, 0.0, 0.0]]) 
+        found,rvec,tvec = cv2.solvePnP(objp, imgp, self.cameraMatrix, dist)
+        uvPoint=cv2.projectPoints(xyzPoint, rvec, tvec, self.cameraMatrix, dist)[0]
+        return uvPoint
 
 class DataExtractor:
     def __init__(self,
@@ -141,20 +190,19 @@ class DataExtractor:
         }
         return d_flipper
     
-    def debug_carriage_and_flipper(self, img, carriage_aruco, flipper_arucos):
+    def get_flipper_angle(self, img, flipper_arucos):
         flipper_dist=self.eye.get_aruco_coordinates_given_several_aruco_ids(img,flipper_arucos)
-        print('flipper', flipper_dist)
-        carriage_dist=self.eye.get_aruco_coordinates_given_aruco_id(img,carriage_aruco)
-        print('carriage', carriage_dist)
+        angle=self.get_angle_given_dict_of_aruco_coord(flipper_dist)
+        return angle
+    
+    def draw_flipper_angle(self, img, flipper_arucos):
+        flipper_dist=self.eye.get_aruco_coordinates_given_several_aruco_ids(img,flipper_arucos)
         line_points=np.array(list(flipper_dist.values()))
         [vx,vy,x,y] = cv2.fitLine(line_points,cv2.DIST_L2,0,0.01,0.01)
-        print('line coefs',vx,vy,x,y)
-        angle=self.get_angle_given_dict_of_aruco_coord(flipper_dist)
-        print('angle',angle)
         # Now find two extreme points on the line to draw line
         lefty = int((-x*vy/vx) + y)
         righty = int(((img.shape[1]-x)*vy/vx)+y)
         #Finally draw the line
-        cv2.line(img,(img.shape[1]-1,righty),(0,lefty),(0,255,0),3)
-        cv2.circle(img, (int(carriage_dist[0]), int(carriage_dist[1])), 8, (0, 0, 255), -1)
-        return img
+        img_to_draw=img.copy()
+        cv2.line(img_to_draw,(img_to_draw.shape[1]-1,righty),(0,lefty),(0,255,0),3)
+        return img_to_draw
