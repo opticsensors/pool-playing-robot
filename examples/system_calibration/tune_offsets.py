@@ -1,8 +1,7 @@
 import numpy as np
-import cv2
 import pandas as pd
 from pool.eye import Eye
-from pool.calibration import DataExtractor, CameraCalibration
+from pool.calibration import CameraCalibration
 from sklearn.metrics import r2_score, mean_squared_error
 
 eye=Eye()
