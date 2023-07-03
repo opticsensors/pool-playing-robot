@@ -21,9 +21,10 @@ objpoints = [] # 3d point in real world space
 imgpoints = [] # 2d points in image plane.
 
 # bad images are not considered (manually removed)
-for count in [0,1,2,3,5,6,9,10,11,12,13,14,15,16,17,18,19,21,23,24,25]:
-
-    img = cv.imread(f"./results/img_{count}.jpg")
+#for count in [0,1,2,3,5,6,9,10,11,12,13,14,15,16,17,18,19,21,23,24,25]:
+#for count in [1,2,3,4,5,6,7,8,9,11,13,16,17,19,20,21,23,24,27,28,30,34,35,36,37,39,40,42,43,46,47,48,49,50,51,52,53,54,56,57,60,61,62]:
+for count in [0, 1, 2, 4, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 25, 26, 28, 29, 30, 31, 32, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 67, 68, 70, 71, 72, 73, 74, 75, 76, 77, 78]:
+    img = cv.imread(f"./results/data3/img_{count}.jpg")
     gray = cv.cvtColor(img, cv.COLOR_BGR2GRAY)
 
     # Find the chess board corners
@@ -35,14 +36,12 @@ for count in [0,1,2,3,5,6,9,10,11,12,13,14,15,16,17,18,19,21,23,24,25]:
 
         objpoints.append(objp)
         corners2 = cv.cornerSubPix(gray, corners, (11,11), (-1,-1), criteria)
-        imgpoints.append(corners)
+        imgpoints.append(corners2)
 
         # Draw and display the corners
         cv.drawChessboardCorners(img, chessboardSize, corners2, ret)
-        cv.imshow('img', cv.resize(img, (0,0), fx=0.25, fy=0.25))
-        cv.waitKey(500)
-
-cv.destroyAllWindows()
+        cv.imshow('img', cv.resize(img, (0,0), fx=0.15, fy=0.15))
+        cv.waitKey(300)
 
 ############## CALIBRATION #######################################################
 
@@ -50,37 +49,10 @@ ret, cameraMatrix, dist, rvecs, tvecs = cv.calibrateCamera(objpoints, imgpoints,
 print('Camera calibrated:', ret)
 print("\nCamera Matrix:\n", cameraMatrix)
 print("\nDistortion params:\n", dist)
-print("\nRotation vetors:\n", rvecs)
-print("\nTranslation Vectors:\n", tvecs)
 
 path_to_repo=Params().PATH_REPO
 np.save(os.path.join(path_to_repo,'data','cameraMatrix.npy'), cameraMatrix)
 np.save(os.path.join(path_to_repo,'data','dist.npy'), dist)
-
-############## UNDISTORTION #####################################################
-
-img = cv.imread('./results/corners_0.jpg')
-h,  w = img.shape[:2]
-newCameraMatrix, roi = cv.getOptimalNewCameraMatrix(cameraMatrix, dist, (w,h), 1, (w,h))
-
-# Undistort
-dst = cv.undistort(img, cameraMatrix, dist, None, newCameraMatrix)
-cv.imwrite('./results/calibrated.jpg', dst)
-
-# crop the image
-x, y, w, h = roi
-dst = dst[y:y+h, x:x+w]
-cv.imwrite('./results/calibrated_cropped.jpg', dst)
-
-# Undistort with Remapping
-mapx, mapy = cv.initUndistortRectifyMap(cameraMatrix, dist, None, newCameraMatrix, (w,h), 5)
-dst = cv.remap(img, mapx, mapy, cv.INTER_LINEAR)
-cv.imwrite('./results/calibrated_with_remapping_cropped.jpg', dst)
-
-# crop the image
-x, y, w, h = roi
-dst = dst[y:y+h, x:x+w]
-cv.imwrite('./results/calibrated_with_remapping.jpg', dst)
 
 # Reprojection Error
 mean_error = 0
