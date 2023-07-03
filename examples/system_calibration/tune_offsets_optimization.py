@@ -13,12 +13,12 @@ y = df[['carriage_x_undist','carriage_y_undist']]
 def model(params, X):
     # here you need to implement your real model
     # for Predicted_Installation
-    a,b,d,h= params
+    a,b,d1,d2,h= params
     l_carriage_pred=[]
     for row in X:
         target=row[:2]
         angle=row[2]
-        carriage_pred = calib.predict_carriage_position_in_image_plane(target, angle, (a,b,d,h))
+        carriage_pred = calib.predict_carriage_position_in_image_plane(target, angle, (a,b,d1,d2,h))
         l_carriage_pred.append(carriage_pred)
     y_pred=np.array(l_carriage_pred)
     return y_pred
@@ -32,5 +32,5 @@ def sum_of_squares(params, X, Y):
 X = x.values
 Y = y.values
 
-res = minimize(sum_of_squares, [0.910591,3.442596,1.118040,9.291113], args=(X, Y), tol=1e-3, method="Powell")
+res = minimize(sum_of_squares, [0.910591,3.442596,0,1.118040,9.291113], args=(X, Y), tol=1e-3, method="Powell")
 print(res)
