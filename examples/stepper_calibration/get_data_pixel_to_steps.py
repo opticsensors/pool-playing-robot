@@ -10,9 +10,8 @@ img_corners=cv2.imread('./results/corners_0.jpg')
 de = DataExtractor(img_corners)
 
 #define needed variables
-points=ik.load_calibration_points(name='stepper_calibration_points')
-points=ik.add_homing_position(points) #first image is in home pos
-d_points=ik.points_to_dict(points)
+points=pd.read_csv('./results/calibration_points.csv', sep=',',decimal='.')
+
 dict_to_save = {}
 list_of_dict = []
 aruco_to_track = 22
@@ -39,8 +38,6 @@ for full_img_name in os.listdir('./results/'):
         dict_to_save['y_dist_warp']=d_aruco['dist_warp'][1]    
         dict_to_save['x_undist_warp']=d_aruco['undist_warp'][0]
         dict_to_save['y_undist_warp']=d_aruco['undist_warp'][1]           
-        dict_to_save['point_x']=d_points[img_number][0]            
-        dict_to_save['point_y']=d_points[img_number][1]  
 
         list_of_dict.append(dict_to_save.copy())
 
@@ -49,25 +46,14 @@ df = pd.DataFrame(list_of_dict, columns=list(list_of_dict[0].keys()))
 df=df.sort_values('img_num')
 df.to_csv(path_or_buf='./results/calibration_image_data.csv', sep=',',index=False)
 
-incr_df=df.drop(columns=['img_num', 'img_name'])
-incr_df = incr_df.rename(columns={'x_dist':        'incr_x_dist', 
-                                  'y_dist':        'incr_y_dist',
-                                  'x_undist':      'incr_x_undist',
-                                  'y_undist':      'incr_y_undist',
-                                  'x_dist_warp':   'incr_x_dist_warp',
-                                  'y_dist_warp':   'incr_y_dist_warp',
-                                  'x_undist_warp': 'incr_x_undist_warp',
-                                  'y_undist_warp': 'incr_y_undist_warp',
-                                  'point_x':       'incr_point_x',
-                                  'point_y':       'incr_point_y'})   
-incr_df=incr_df.diff()
+df_merged=pd.merge(df, points, on='img_num')
 
-incr_df['incr_id'] = df.apply(lambda x: ik.img_num_to_incr_id(x['img_num']), axis=1)
-incr_df=incr_df.dropna()
-incr_x = incr_df['incr_point_x'].values
-incr_y = incr_df['incr_point_y'].values
-incr_steps1, incr_steps2 = ik.cm_to_steps(incr_x, incr_y)
-incr_df['incr_steps1']=incr_steps1.astype(int)
-incr_df['incr_steps2']=incr_steps2.astype(int)
-incr_df.to_csv(path_or_buf=f'./results/calibration_pixel_to_step.csv', sep=',',index=False)
+incr_df=df.drop(columns=['img_num', 'img_name'])    
+columns_to_diff=['x_dist','y_dist','x_undist', 'y_undist', 'x_dist_warp','y_dist_warp','x_undist_warp','y_undist_warp']
+columns_to_save=['incr_x_dist', 'incr_y_dist','incr_x_undist','incr_y_undist','incr_x_dist_warp','incr_y_dist_warp','incr_x_undist_warp','incr_y_undist_warp',]
+df_merged[columns_to_save]=df_merged[columns_to_diff].diff()
+
+df_merged['incr_id'] = df_merged.apply(lambda x: ik.img_num_to_incr_id(x['img_num']), axis=1) #info about the images where the increment took place
+df_merged=df_merged.iloc[1:] # drop first row 
+df_merged.to_csv(path_or_buf=f'./results/calibration_pixel_to_step.csv', sep=',',index=False)
 

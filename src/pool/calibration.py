@@ -9,7 +9,7 @@ class InverseKinematics:
     def __init__(self):
         self.params=Params()
 
-    def generate_and_save_calibration_points(self, size, name, reduce=(1,1), random_order=True):
+    def generate_calibration_points(self, size, reduce=(1,1), random_order=True):
         num_horizontal_points, num_vertical_points = size
         alpha = 1/(num_horizontal_points+1)
         beta = 1/(num_vertical_points+1)
@@ -26,15 +26,6 @@ class InverseKinematics:
         points[:,1]=(points[:,1]-midy)*reduy+midy
         if random_order:
             np.random.shuffle(points) 
-        np.save(os.path.join(self.params.PATH_REPO, 'data', f'{name}.npy'), points) #TODO change name to stepper_calibration_points
-        return points
-
-    def load_calibration_points(self, name):
-        return np.load(os.path.join(self.params.PATH_REPO, 'data', f'{name}.npy')) #TODO change name to stepper_calibration_points
-    
-    def add_homing_position(self,points):
-        home_point = [0,0]
-        points = np.vstack([home_point,points]) 
         return points
 
     def cm_to_steps(self, incr_x, incr_y):
@@ -43,12 +34,6 @@ class InverseKinematics:
         phi1 = 1/(2*scaler) * (-incr_x*W+incr_y*H)
         phi2 = 1/(2*scaler) * (incr_x*W+incr_y*H)
         return phi1,phi2
-    
-    def points_to_dict(self,points):
-        d_points={}
-        for i,point in enumerate(points):
-            d_points[i]=point
-        return d_points
     
     def img_num_to_incr_id(self,img_num):
         if img_num==0:

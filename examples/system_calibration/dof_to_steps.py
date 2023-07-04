@@ -1,6 +1,7 @@
 import time
 import keyboard
 import random
+import pandas as pd
 from pool.controller_actuators import Controller_actuators
 from pool.cam import Camera_DLSR, Camera_DLSR_settings
 from pool.calibration import InverseKinematics
@@ -35,6 +36,8 @@ mode = 0
 prev_point_x=0
 prev_point_y=0
 rotated=False
+dict_to_save = {}
+list_of_dict = []
 
 #go home
 stp.sendToArduino(f"-1,0,0")
@@ -49,16 +52,17 @@ for point in points:
 
         while True:
             time.sleep(0.15)
-            if keyboard.is_pressed("i"):
+            if keyboard.is_pressed("i") and rotated:
                 print("i pressed, taking photo")
                 camera.capture_single_image() 
                 time.sleep(0.5)
                 break
             if keyboard.is_pressed("r") and not rotated:
                 print("r pressed, rotating end effector")
-                goal_position = dxl.angle_to_dynamixel_position(round(random.uniform(0,360), 4))
+                angle=round(random.uniform(0,360), 4)
+                goal_position = dxl.angle_to_dynamixel_position(angle)
                 dxl.sendToDynamixel(goal_position,50, 1)
-                time.sleep(10) # after 10 seconds we will have reached goal pos
+                time.sleep(7) # after 7 seconds we will have reached goal pos
                 present_position = dxl.readDynamixel()
                 rotated=True
             
@@ -72,3 +76,15 @@ for point in points:
         prev_point_x = new_point_x
         prev_point_y = new_point_y
         rotated=False
+
+        dict_to_save['point_x']=new_point_x
+        dict_to_save['point_y']=new_point_y
+        dict_to_save['incr_x']=incr_x
+        dict_to_save['incr_y']=incr_y
+        dict_to_save['steps1']=steps1
+        dict_to_save['steps2']=steps2
+        dict_to_save['angle']=angle
+        list_of_dict.append(dict_to_save.copy())
+
+df = pd.DataFrame(list_of_dict, columns=list(list_of_dict[0].keys()))
+df.to_csv(path_or_buf='./results/calibration_image_data.csv', sep=',',index=False)
