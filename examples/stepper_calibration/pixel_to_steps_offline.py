@@ -29,15 +29,15 @@ prev_point_y=0
 dict_to_save = {}
 list_of_dict = []
 img_num=1
+count_iter=0
 
 #go home
 stp.sendToArduino(f"-1,0,0")
-dict_to_save={'point_x':0,'point_y':0,'incr_x':0, 'incr_y':0,'steps1':0,'steps2':0,'img_num':0, 'img_name':'img_0'}
+dict_to_save={'point_x':0,'point_y':0,'incr_x':0, 'incr_y':0,'steps1':0,'steps2':0,'img_num':0}
 list_of_dict.append(dict_to_save.copy())
 
 for point in points:
     new_point_x,new_point_y=point
-    print(point)
     while True:
         # check for a reply
         arduinoReply = stp.recvLikeArduino()
@@ -46,6 +46,7 @@ for point in points:
             time.sleep(1)
             camera.capture_single_image() # image is taken when carriage is in prev_point (not new_point) -> first image is in home position!
             time.sleep(1)
+            new_point_x,new_point_y=points[count_iter,:]
             incr_x=new_point_x-prev_point_x
             incr_y=new_point_y-prev_point_y
             steps1,steps2=ik.cm_to_steps(incr_x,incr_y)
@@ -67,9 +68,6 @@ for point in points:
             prev_point_x = new_point_x
             prev_point_y = new_point_y
             img_num+=1
-            break
-time.sleep(1)
-camera.capture_single_image() # capture last image
-time.sleep(1)
+
 df = pd.DataFrame(list_of_dict, columns=list(list_of_dict[0].keys()))
 df.to_csv(path_or_buf='./results/calibration_points.csv', sep=',',index=False)

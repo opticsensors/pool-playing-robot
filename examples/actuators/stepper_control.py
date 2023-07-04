@@ -6,7 +6,7 @@ stp=Controller_actuators(baudRate=9600,
 
 stp.setupSerial()
 
-data = [(-1,0,0),(0,0,700),(0,0,500)]
+data = [(0,0,700),(0,0,500)]
 
 stp.sendToArduino("-1,0,0")
 print('home yet?')

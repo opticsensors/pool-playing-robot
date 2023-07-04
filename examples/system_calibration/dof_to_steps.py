@@ -28,7 +28,7 @@ camera.collection_name = 'img'
 ik = InverseKinematics()
 
 #define calibration points
-points=ik.generate_calibration_points((4,3), reduce=(0.9,0.5), random_order=False)
+points=ik.generate_calibration_points((3,2), reduce=(1,1), random_order=False)
 print(points)
 
 #init position and stepper mode
@@ -37,60 +37,62 @@ prev_point_x=0
 prev_point_y=0
 rotated=False
 img_num=1
+count_iter=0
 dict_to_save = {}
 list_of_dict = []
 
 #go home
 stp.sendToArduino(f"-1,0,0")
+dict_to_save={'point_x':0,'point_y':0,'incr_x':0, 'incr_y':0,'steps1':0,'steps2':0, 'angle':None, 'img_num':0}
+list_of_dict.append(dict_to_save.copy())
 
-for point in points:
-    new_point_x,new_point_y=point
-
-    while True:
-        # check for a reply
-        arduinoReply = stp.recvLikeArduino()
-        if not (arduinoReply == 'XXX'):
-            print ("Reply: ", arduinoReply)
-
+while True:
+    # check for a reply
+    arduinoReply = stp.recvLikeArduino()
+    if not (arduinoReply == 'XXX'):
+        print ("Reply: ", arduinoReply)
+        if count_iter!=0:
             while True:
                 time.sleep(0.15)
                 if keyboard.is_pressed("i") and rotated:
                     print("i pressed, taking photo")
                     camera.capture_single_image() 
                     time.sleep(0.5)
+                    dict_to_save['point_x']=new_point_x
+                    dict_to_save['point_y']=new_point_y
+                    dict_to_save['incr_x']=incr_x
+                    dict_to_save['incr_y']=incr_y
+                    dict_to_save['steps1']=steps1
+                    dict_to_save['steps2']=steps2
+                    dict_to_save['angle']=angle
+                    dict_to_save['img_num']=img_num
+                    list_of_dict.append(dict_to_save.copy())
                     break
                 if keyboard.is_pressed("r") and not rotated:
                     print("r pressed, rotating end effector")
                     angle=round(random.uniform(0,360), 4)
                     goal_position = dxl.angle_to_dynamixel_position(angle)
-                    dxl.sendToDynamixel(goal_position,50, 1)
-                    time.sleep(7) # after 7 seconds we will have reached goal pos
+                    dxl.sendToDynamixel(int(goal_position),50, 1)
+                    time.sleep(10) # after 10 seconds we will have reached goal pos
                     present_position = dxl.readDynamixel()
                     rotated=True
-                
-            incr_x=new_point_x-prev_point_x
-            incr_y=new_point_y-prev_point_y
-            steps1,steps2=ik.cm_to_steps(incr_x,incr_y)
-            steps1=int(steps1)
-            steps2=int(steps2)
-            print('Send to arduino:', mode, steps1, steps2)
-            stp.sendToArduino(f"{mode},{steps1},{steps2}")
-
-            dict_to_save['point_x']=new_point_x
-            dict_to_save['point_y']=new_point_y
-            dict_to_save['incr_x']=incr_x
-            dict_to_save['incr_y']=incr_y
-            dict_to_save['steps1']=steps1
-            dict_to_save['steps2']=steps2
-            dict_to_save['angle']=angle
-            dict_to_save['img_num']=img_num
-            list_of_dict.append(dict_to_save.copy())
-
-            prev_point_x = new_point_x
-            prev_point_y = new_point_y
-            rotated=False
-            img_num+=1
+        try:
+            new_point_x,new_point_y=points[count_iter,:]
+        except IndexError:
             break
+        incr_x=new_point_x-prev_point_x
+        incr_y=new_point_y-prev_point_y
+        steps1,steps2=ik.cm_to_steps(incr_x,incr_y)
+        steps1=int(steps1)
+        steps2=int(steps2)
+        print('Send to arduino:', mode, steps1, steps2)
+        stp.sendToArduino(f"{mode},{steps1},{steps2}")
+
+        prev_point_x = new_point_x
+        prev_point_y = new_point_y
+        rotated=False
+        img_num+=1
+        count_iter+=1
 
 df = pd.DataFrame(list_of_dict, columns=list(list_of_dict[0].keys()))
 df.to_csv(path_or_buf='./results/calibration_image_data.csv', sep=',',index=False)
