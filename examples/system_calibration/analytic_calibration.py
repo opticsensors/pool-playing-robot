@@ -35,6 +35,5 @@ ball_centroid_arucos=[8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 23]
 ball_centroids=eye.get_aruco_coordinates_given_several_aruco_ids(img_arucos,ball_centroid_arucos)
 carriage_centroid=eye.get_aruco_coordinates_given_aruco_id(img_pose, carriage_aruco)
 angle=de.get_flipper_angle(img_pose,flipper_arucos)
-uvCarriage=calib.predict_carriage_position_in_image_plane(ball_centroids[14], angle, (9.081e-01,  3.440e+00,  2.902e-02,  1.117e+00,  9.292e+00), rvec, tvec)
-print(f'real: {carriage_centroid}, pred: {uvCarriage}')
-
+uvCarriage=calib.predict_carriage_position_in_image_plane(ball_centroids[14], angle, (9.073e-01,  3.439e+00 ,-1.693e-02 , 1.123e+00 , 9.282e+00), rvec, tvec)
+print(f'real: {carriage_centroid}, pred: {uvCarriage}, angle: {angle}, target: {ball_centroids[14]}')
