@@ -5,7 +5,7 @@ from pool.cam import Camera_DLSR, Camera_DLSR_settings
 from pool.calibration import InverseKinematics
 
 #stepper motor initialization
-stp=Controller_actuators(baudRate=9600,serialPortName='COM3' )
+stp=Controller_actuators(baudRate=9600, serialPortName='COM3')
 stp.setupSerial()
 
 #camera initialization
@@ -19,7 +19,7 @@ camera.collection_name = 'img'
 ik = InverseKinematics()
 
 #define calibration points
-points=ik.generate_calibration_points((6,4))
+points=ik.generate_calibration_points((3,2))
 print(points)
 
 #init position and stepper mode
@@ -37,34 +37,39 @@ list_of_dict.append(dict_to_save.copy())
 
 for point in points:
     new_point_x,new_point_y=point
+    print(point)
+    while True:
+        # check for a reply
+        arduinoReply = stp.recvLikeArduino()
+        if not (arduinoReply == 'XXX'):
+            print ("Reply: ", arduinoReply)
+            time.sleep(1)
+            camera.capture_single_image() # image is taken when carriage is in prev_point (not new_point) -> first image is in home position!
+            time.sleep(1)
+            incr_x=new_point_x-prev_point_x
+            incr_y=new_point_y-prev_point_y
+            steps1,steps2=ik.cm_to_steps(incr_x,incr_y)
+            steps1=int(steps1)
+            steps2=int(steps2)
+            print('Send to arduino:', mode, steps1, steps2)
+            stp.sendToArduino(f"{mode},{steps1},{steps2}")
 
-    # check for a reply
-    arduinoReply = stp.recvLikeArduino()
-    if not (arduinoReply == 'XXX'):
-        print ("Reply: ", arduinoReply)
-        time.sleep(1)
-        camera.capture_single_image() # image is taken when carriage is in prev_point (not new_point) -> first image is in home position!
-        time.sleep(1)
-        incr_x=new_point_x-prev_point_x
-        incr_y=new_point_y-prev_point_y
-        steps1,steps2=ik.cm_to_steps(incr_x,incr_y)
-        steps1=int(steps1)
-        steps2=int(steps2)
-        print('Send to arduino:', mode, steps1, steps2)
-        stp.sendToArduino(f"{mode},{steps1},{steps2}")
-
-        dict_to_save['point_x']=new_point_x
-        dict_to_save['point_y']=new_point_y
-        dict_to_save['incr_x']=incr_x
-        dict_to_save['incr_y']=incr_y
-        dict_to_save['steps1']=steps1
-        dict_to_save['steps2']=steps2
-        dict_to_save['img_num']=img_num
-        list_of_dict.append(dict_to_save.copy())
-        
-        prev_point_x = new_point_x
-        prev_point_y = new_point_y
-        img_num+=1
-
+            # save data of new_point (before picture is taken)
+            dict_to_save['point_x']=new_point_x
+            dict_to_save['point_y']=new_point_y
+            dict_to_save['incr_x']=incr_x
+            dict_to_save['incr_y']=incr_y
+            dict_to_save['steps1']=steps1
+            dict_to_save['steps2']=steps2
+            dict_to_save['img_num']=img_num
+            list_of_dict.append(dict_to_save.copy())
+            
+            prev_point_x = new_point_x
+            prev_point_y = new_point_y
+            img_num+=1
+            break
+time.sleep(1)
+camera.capture_single_image() # capture last image
+time.sleep(1)
 df = pd.DataFrame(list_of_dict, columns=list(list_of_dict[0].keys()))
-df.to_csv(path_or_buf='./results/calibration_image_data.csv', sep=',',index=False)
+df.to_csv(path_or_buf='./results/calibration_points.csv', sep=',',index=False)

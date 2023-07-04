@@ -56,7 +56,7 @@ class Dynamixel(object):
         else:
             print("Failed to change the baudrate")
             print("Press any key to terminate...")
-
+        
         # Enable Dynamixel Torque
         dxl_comm_result, dxl_error = self.packetHandler.write1ByteTxRx(self.portHandler, self.dynamixel_id,
                                                                   self.addr_torque_enable, self.torque_enable)
@@ -82,15 +82,15 @@ class Dynamixel(object):
         self.portHandler.closePort()
 
     def setupPID(self, P,I,D):
-        dxl_comm_result, dxl_error = self.packetHandler.write4ByteTxRx(self.portHandler, 
+        dxl_comm_result, dxl_error = self.packetHandler.write2ByteTxRx(self.portHandler, 
                                                                        self.dynamixel_id, 
                                                                        self.addr_P, 
                                                                        P)
-        dxl_comm_result, dxl_error = self.packetHandler.write4ByteTxRx(self.portHandler, 
+        dxl_comm_result, dxl_error = self.packetHandler.write2ByteTxRx(self.portHandler, 
                                                                        self.dynamixel_id, 
                                                                        self.addr_I, 
                                                                        I)
-        dxl_comm_result, dxl_error = self.packetHandler.write4ByteTxRx(self.portHandler, 
+        dxl_comm_result, dxl_error = self.packetHandler.write2ByteTxRx(self.portHandler, 
                                                                        self.dynamixel_id, 
                                                                        self.addr_D, 
                                                                        D)

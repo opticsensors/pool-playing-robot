@@ -127,7 +127,7 @@ class Params(object):
     
     ## PIXEL TO STEP CALIBRATION PARAMS
     self.CM_TO_STEPS = 0.00794
-    self.GRID_SIZE_CM = (70.25, 38.5) # WxH
+    self.GRID_SIZE_CM = (70.25, 42.5) # WxH
 
 class Rectangle:
     def __init__(self, top_left, bottom_right):
