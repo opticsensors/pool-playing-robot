@@ -1,18 +1,18 @@
 import cv2
 import pandas as pd
 import os 
-from pool.calibration import DataExtractor, PixelSteps
+from pool.calibration import DataExtractor, InverseKinematics
 
 #helper functions for calibration
-ps = PixelSteps()
+ik = InverseKinematics()
 
 img_corners=cv2.imread('./results/corners_0.jpg')
 de = DataExtractor(img_corners)
 
 #define needed variables
-points=ps.load_calibration_points()
-points=ps.add_homing_position(points) #first image is in home pos
-d_points=ps.points_to_dict(points)
+points=ik.load_calibration_points(name='stepper_calibration_points')
+points=ik.add_homing_position(points) #first image is in home pos
+d_points=ik.points_to_dict(points)
 dict_to_save = {}
 list_of_dict = []
 aruco_to_track = 22
@@ -62,11 +62,11 @@ incr_df = incr_df.rename(columns={'x_dist':        'incr_x_dist',
                                   'point_y':       'incr_point_y'})   
 incr_df=incr_df.diff()
 
-incr_df['incr_id'] = df.apply(lambda x: ps.img_num_to_incr_id(x['img_num']), axis=1)
+incr_df['incr_id'] = df.apply(lambda x: ik.img_num_to_incr_id(x['img_num']), axis=1)
 incr_df=incr_df.dropna()
 incr_x = incr_df['incr_point_x'].values
 incr_y = incr_df['incr_point_y'].values
-incr_steps1, incr_steps2 = ps.cm_to_steps(incr_x, incr_y)
+incr_steps1, incr_steps2 = ik.cm_to_steps(incr_x, incr_y)
 incr_df['incr_steps1']=incr_steps1.astype(int)
 incr_df['incr_steps2']=incr_steps2.astype(int)
 incr_df.to_csv(path_or_buf=f'./results/calibration_pixel_to_step.csv', sep=',',index=False)

@@ -4,27 +4,33 @@ import numpy as np
 from pool.utils import Params
 from pool.eye import Eye
 
-class PixelSteps:
+class InverseKinematics:
 
     def __init__(self):
         self.params=Params()
 
-    def generate_and_save_calibration_points(self, size):
+    def generate_and_save_calibration_points(self, size, name, reduce=(1,1), random_order=True):
         num_horizontal_points, num_vertical_points = size
         alpha = 1/(num_horizontal_points+1)
         beta = 1/(num_vertical_points+1)
         points = np.mgrid[1:num_horizontal_points+1,1:num_vertical_points+1].T.reshape(-1,2)
         points = points.astype(np.float32)
-        rescaled_points = np.zeros_like(points)
-        rescaled_points[:,0] = alpha*points[:,0]
-        rescaled_points[:,1] = beta*points[:,1]
-        np.random.shuffle(rescaled_points) 
-        np.save(os.path.join(self.params.PATH_REPO, 'data', 'calibration_points.npy'), points) #TODO change name to stepper_calibration_points
-        return rescaled_points
+        points[:,0] = alpha*points[:,0]
+        points[:,1] = beta*points[:,1]
+        minx,miny=points[0,:]
+        maxx,maxy=points[-1,:]
+        midx=(minx+maxx)/2
+        midy=(miny+maxy)/2
+        redux, reduy = reduce
+        points[:,0]=(points[:,0]-midx)*redux+midx
+        points[:,1]=(points[:,1]-midy)*reduy+midy
+        if random_order:
+            np.random.shuffle(points) 
+        np.save(os.path.join(self.params.PATH_REPO, 'data', f'{name}.npy'), points) #TODO change name to stepper_calibration_points
+        return points
 
-    def load_calibration_points(self):
-        return np.load(os.path.join(self.params.PATH_REPO, 'data', 'calibration_points.npy')) #TODO change name to stepper_calibration_points
-
+    def load_calibration_points(self, name):
+        return np.load(os.path.join(self.params.PATH_REPO, 'data', f'{name}.npy')) #TODO change name to stepper_calibration_points
     
     def add_homing_position(self,points):
         home_point = [0,0]
