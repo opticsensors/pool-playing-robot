@@ -7,18 +7,18 @@ from sklearn.metrics import r2_score, mean_squared_error
 eye=Eye()
 calib=CameraCalibration()
 rvec,tvec=calib.load_world_frame()
-df = pd.read_csv('./results/calibration_image_data.csv', sep=',',decimal='.')
+df = pd.read_csv('./results/auto_data1/calibration_dof_to_step.csv', sep=',',decimal='.')
 l_carriage_pred=[]
 
-a=26.4/25
-b=74.1/25
-d=22/25
-h=220/25 - 19/25
+a= 8.906e-01 
+b= 3.539e+00  
+d=1.160e+00  
+h=8.054e+00   
 
 for index, row in df.iterrows():
 
     target=row[['target_x_undist','target_y_undist']].values
-    angle=row[['angle_undist']].values[0]
+    angle=row[['angle']].values[0]-90
     carriage_pred = calib.predict_carriage_position_in_image_plane(target, angle, (a,b,d,h) ,rvec, tvec)
     l_carriage_pred.append(carriage_pred)
 

@@ -136,9 +136,9 @@ class CameraCalibration:
                     [np.sin(angle), np.cos(angle), 0, trans[1]],
                     [0, 0, 1, trans[2]],
                     [0, 0, 0, 1]])
-        a,b,d1,d2,h=offset
+        a,b,d,h=offset
         offset_point_of_contact=np.array([-b,-a,-h,1]).reshape(-1,1)
-        offset_rotation_axis=np.array([d1,-d2,0,1]).reshape(-1,1)
+        offset_rotation_axis=np.array([0,-d,0,1]).reshape(-1,1)
         carriage_aruco_point3D = (Rt@offset_point_of_contact)[:3,0] + offset_rotation_axis[:3,0]
         carriage_aruco_point2D = self.transform_world_point_to_img_point(carriage_aruco_point3D ,rvec, tvec)
         return carriage_aruco_point2D

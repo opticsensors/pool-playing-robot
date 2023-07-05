@@ -3,6 +3,8 @@ import pandas as pd
 from pool.calibration import DataExtractor
 
 img_corners=cv2.imread('./results/manual_data1/corners_0.jpg')
+img_arucos=cv2.imread('./results/auto_data1/corners_0.jpg')
+
 de = DataExtractor(img_corners)
 
 #define needed variables
@@ -31,7 +33,7 @@ dict_to_save = {}
 list_of_dict = []
 
 target_arucos=target_arucos_to_img_number.keys()
-d_targets=de.get_several_aruco_data(img_corners, target_arucos)
+d_targets=de.get_several_aruco_data(img_arucos, target_arucos)
 
 # get data for every image
 for target_aruco, img_numbers in target_arucos_to_img_number.items():
