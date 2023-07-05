@@ -1,6 +1,7 @@
 import os
 import cv2
 import numpy as np
+import joblib
 from pool.utils import Params
 from pool.eye import Eye
 
@@ -35,6 +36,15 @@ class InverseKinematics:
         phi2 = 1/(2*scaler) * (incr_x*W+incr_y*H)
         return phi1,phi2
     
+    def img_data_to_steps(self, uvBallCentroid, angle):
+        model = joblib.load(os.path.join(self.params.PATH_REPO, 'data', "inverse_kinematics.pkl"))
+        x = np.array([[uvBallCentroid[0],uvBallCentroid[1], np.cos(angle*np.pi/180), np.sin(angle*np.pi/180)]])
+        y = model.predict(x)
+        point_x = y[0,0]
+        point_y = y[0,1]
+        step1, step2 = self.cm_to_steps(point_x, point_y)
+        return step1, step2
+
     def img_num_to_incr_id(self,img_num):
         if img_num==0:
             return np.nan

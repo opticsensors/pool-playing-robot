@@ -1,6 +1,4 @@
-// This is very similar to Example 3 - Receive with start- and end-markers
-//    in Serial Input Basics   http://forum.arduino.cc/index.php?topic=396450.0
-
+//Libraries to include
 #include <AccelStepper.h>
 
 //stepper control outputs
