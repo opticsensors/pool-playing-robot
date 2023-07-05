@@ -46,7 +46,10 @@ for point in points:
             time.sleep(1)
             camera.capture_single_image() # image is taken when carriage is in prev_point (not new_point) -> first image is in home position!
             time.sleep(1)
-            new_point_x,new_point_y=points[count_iter,:]
+            try:
+                new_point_x,new_point_y=points[count_iter,:]
+            except IndexError:
+                break
             incr_x=new_point_x-prev_point_x
             incr_y=new_point_y-prev_point_y
             steps1,steps2=ik.cm_to_steps(incr_x,incr_y)

@@ -3,29 +3,33 @@ import pandas as pd
 import os 
 from pool.calibration import DataExtractor, InverseKinematics
 
+# folder data to analyze:
+data_folder='data1'
+
 #helper functions for calibration
 ik = InverseKinematics()
 
-img_corners=cv2.imread('./results/data2/img_1.jpg')
+img_corners=cv2.imread(f'./results/{data_folder}/corners_0.jpg') # TODO in img in home position (img_0) corners are occluded -> tune home position so that dosent happen
 de = DataExtractor(img_corners)
 
 #define needed variables
-points=pd.read_csv('./results/data2/calibration_points.csv', sep=',',decimal='.')
+points=pd.read_csv(f'./results/{data_folder}/calibration_points.csv', sep=',',decimal='.')
 
 dict_to_save = {}
 list_of_dict = []
 aruco_to_track = 22
 
 # get data for every image
-for full_img_name in os.listdir('./results/data2/'):
+for full_img_name in os.listdir(f'./results/{data_folder}/'):
 
     img_name=os.path.splitext(full_img_name)[0]
+    img_name_start=img_name.split('_')[0]
     img_format=os.path.splitext(full_img_name)[1]
 
-    if img_format=='.jpg':
+    if img_name_start=='img' and img_format=='.jpg':
         print(full_img_name)
         img_number=int(img_name.split('_')[1])
-        img = cv2.imread(f'./results/data2/{full_img_name}')
+        img = cv2.imread(f'./results/{data_folder}/{full_img_name}')
         d_aruco=de.get_single_aruco_data(img, aruco_to_track)
 
         dict_to_save['img_num']=img_number
@@ -44,7 +48,7 @@ for full_img_name in os.listdir('./results/data2/'):
 # for convenience we convert the list of dict to a dataframe
 df = pd.DataFrame(list_of_dict, columns=list(list_of_dict[0].keys()))
 df=df.sort_values('img_num')
-df.to_csv(path_or_buf='./results/data2/calibration_image_data.csv', sep=',',index=False)
+df.to_csv(path_or_buf=f'./results/{data_folder}/calibration_image_data.csv', sep=',',index=False)
 
 df_merged=pd.merge(df, points, on='img_num')
 
@@ -55,4 +59,4 @@ df_merged[columns_to_save]=df_merged[columns_to_diff].diff()
 
 df_merged['incr_id'] = df_merged.apply(lambda x: ik.img_num_to_incr_id(x['img_num']), axis=1) #info about the images where the increment took place
 df_merged=df_merged.iloc[1:] # drop first row 
-df_merged.to_csv(path_or_buf=f'./results/data2/calibration_pixel_to_step.csv', sep=',',index=False)
+df_merged.to_csv(path_or_buf=f'./results/{data_folder}/calibration_pixel_to_step.csv', sep=',',index=False)

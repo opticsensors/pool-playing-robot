@@ -22,9 +22,9 @@ uvPoint=calib.transform_world_point_to_img_point(xyzOrigin ,rvec, tvec)
 print(f'xyz to uv: {xyzOrigin}->{uvPoint}')
 
 # predict uv carriage given uv ball centroid and angle
-img_arucos = cv2.imread('./results/arucos_to_test_3.jpg')
+img_arucos = cv2.imread('./results/test_img_arucos.jpg')
 img_arucos = eye.undistort_image(img_arucos, remapping=False)
-img_pose=cv2.imread('./results/arucos_to_test_4.jpg')
+img_pose=cv2.imread('./results/test_target_aruco_14.jpg')
 img_pose = eye.undistort_image(img_pose, remapping=False)
 img_corners=cv2.imread('./results/corners_0.jpg')
 img_corners = eye.undistort_image(img_corners, remapping=False)

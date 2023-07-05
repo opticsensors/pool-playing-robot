@@ -36,14 +36,13 @@ mode = 0
 prev_point_x=0
 prev_point_y=0
 rotated=False
-img_num=1
 count_iter=0
 dict_to_save = {}
 list_of_dict = []
 
 #go home
 stp.sendToArduino(f"-1,0,0")
-dict_to_save={'point_x':0,'point_y':0,'incr_x':0, 'incr_y':0,'steps1':0,'steps2':0, 'angle':None, 'img_num':0}
+dict_to_save={'point_x':0,'point_y':0,'incr_x':0, 'incr_y':0,'steps1':0,'steps2':0, 'angle':None, 'img_num':None} # no image of home is taken here
 list_of_dict.append(dict_to_save.copy())
 
 while True:
@@ -65,7 +64,7 @@ while True:
                     dict_to_save['steps1']=steps1
                     dict_to_save['steps2']=steps2
                     dict_to_save['angle']=angle
-                    dict_to_save['img_num']=img_num
+                    dict_to_save['img_num']=count_iter-1
                     list_of_dict.append(dict_to_save.copy())
                     break
                 if keyboard.is_pressed("r") and not rotated:
@@ -91,8 +90,7 @@ while True:
         prev_point_x = new_point_x
         prev_point_y = new_point_y
         rotated=False
-        img_num+=1
         count_iter+=1
 
 df = pd.DataFrame(list_of_dict, columns=list(list_of_dict[0].keys()))
-df.to_csv(path_or_buf='./results/calibration_image_data.csv', sep=',',index=False)
+df.to_csv(path_or_buf='./results/calibration_points.csv', sep=',',index=False)
