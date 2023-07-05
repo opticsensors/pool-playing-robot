@@ -1,6 +1,6 @@
 import cv2
 
-img = cv2.imread('./results/img_arucos.jpg')
+img = cv2.imread('./results/proof_of_concept.png')
 
 arucoDict=cv2.aruco.DICT_4X4_100
 arucoDict = cv2.aruco.getPredefinedDictionary(arucoDict)

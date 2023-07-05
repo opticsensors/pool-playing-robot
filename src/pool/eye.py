@@ -85,8 +85,8 @@ class Eye(object):
                 #print(f"[INFO] ArUco marker ID: {markerID}, ({cX},{cY})")
         bottomLine=np.array([id_to_centroids[aruco_id] for aruco_id in bottom_aruco_ids])
         topLine=   np.array([id_to_centroids[aruco_id] for aruco_id in top_aruco_ids])
-        rightLine= np.array([id_to_centroids[aruco_id] for aruco_id in left_aruco_ids])
-        leftLine=  np.array([id_to_centroids[aruco_id] for aruco_id in right_aruco_ids])
+        leftLine= np.array([id_to_centroids[aruco_id] for aruco_id in left_aruco_ids])
+        rightLine=  np.array([id_to_centroids[aruco_id] for aruco_id in right_aruco_ids])
         lines={}
 
         for edge,position in zip([bottomLine,topLine,rightLine,leftLine], ['bottom', 'top', 'right', 'left']):
@@ -95,12 +95,12 @@ class Eye(object):
             lines[position]=[vx,vy,x,y] 
         
         #save corner in the following order
-        #0 - top-right
-        #1 - top-left
-        #2 - bottom-left
-        #3 - bottom-right
+        #0 - top-left
+        #1 - top-right
+        #2 - bottom-right
+        #3 - bottom-left
         pool_corners=[]
-        for pair_of_lines in [('top','right'),('top','left'),('bottom','left'), ('bottom','right')]:
+        for pair_of_lines in [('top','left'),('top','right'),('bottom','right'), ('bottom','left')]:
             horizontal,vertical=pair_of_lines
             hline=lines[horizontal]
             vline=lines[vertical]
@@ -152,11 +152,11 @@ class Eye(object):
 
         # Order points in clockwise order:
         # First, we separate corners into individual points
-        # Index 0 - top-right
-        #       1 - top-left
-        #       2 - bottom-left
-        #       3 - bottom-right
-        top_r, top_l, bottom_l, bottom_r = corners[0], corners[1], corners[2], corners[3]
+        # Index 0 - top-left
+        #       1 - top-right
+        #       2 - bottom-right
+        #       3 - bottom-left
+        top_l, top_r, bottom_r, bottom_l = corners[0], corners[1], corners[2], corners[3]
 
         # Determine width of new image which is the max distance between 
         # (bottom right and bottom left) or (top right and top left) x-coordinates
