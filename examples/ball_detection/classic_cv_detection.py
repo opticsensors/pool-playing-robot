@@ -1,11 +1,19 @@
+import os
 import cv2
 import numpy as np
 from pool.ball_detection import ClassicCV
+from pool.eye import Eye
+from pool.utils import Params
+
+classic_cv=ClassicCV()
+eye = Eye()
 
 #read image with random ball config and background
-warp = cv2.imread('./results/warp.jpg')
-warp_bg = cv2.imread('./results/warp_bg.jpg')
-classic_cv=ClassicCV()
+img = cv2.imread('./results/img_0.jpg')
+img_corners = cv2.imread(os.path.join(Params().PATH_REPO, 'data', 'corners_0.jpg'))
+
+warp = eye.undistort_and_warp_image(img, img_corners)
+warp_bg = eye.undistort_and_warp_image(img_corners, img_corners)
 
 #get a more accurate hsv color of the pool table cloth using only the pool table pixels (wrap img)
 hsv=cv2.cvtColor(warp.copy(), cv2.COLOR_BGR2HSV)

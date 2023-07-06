@@ -6,7 +6,7 @@ from matplotlib import collections  as mc
 import matplotlib.image as mpimg
 from pool import utils
 
-class ErrorAnalysis:
+class VisionErrorAnalysis:
     
     def __init__(self, 
                  pockets=None,
@@ -27,7 +27,7 @@ class ErrorAnalysis:
         else:
             self.pool_table_size=pool_table_size
 
-    def generate_combinations(self, num_real_points, num_estimated_points, maximum_error_vision_system):
+    def generate_combinations_vision_system(self, num_real_points, num_estimated_points, maximum_error_vision_system):
         safety_distance=3*self.ball_radius #so the balls dont touch the pool table walls
         #real points configs
         C=utils.generate_random_numbers_inside_rectangle(num_real_points,self.pool_table_size,safety_distance)
@@ -63,7 +63,6 @@ class ErrorAnalysis:
 
     def compute_geometric_parameters(self, df):
         """
-
         """
         C=df[['C_x','C_y']].values
         T=df[['T_x','T_y']].values
@@ -146,7 +145,7 @@ class ErrorAnalysis:
         return slope,intercept
 
 
-    def compute_Q(self, df): 
+    def compute_Q_vision_system(self, df): 
 
         C=df[['C_x','C_y']].values
         T=df[['T_x','T_y']].values
@@ -239,12 +238,12 @@ class ErrorAnalysis:
 
         return df[cond]
     
-    def get_error_data(self,
+    def get_error_data_vision_system(self,
                        num_real_points,
                        num_estimated_points,
                        maximum_error_vision_system):
 
-        df=self.generate_combinations(num_real_points, 
+        df=self.generate_combinations_vision_system(num_real_points, 
                                     num_estimated_points, 
                                     maximum_error_vision_system)
         df=self.compute_geometric_parameters(df)
@@ -252,11 +251,121 @@ class ErrorAnalysis:
         df=self.compute_X_estimated(df)
         df=self.pockets_inside_region_of_interest(df)
         df=self.valid_CT_points(df)
-        df=self.compute_Q(df)
+        df=self.compute_Q_vision_system(df)
+
+        return df
+    
+class ActuatorErrorAnalysis(VisionErrorAnalysis):
+    def __init__(self,
+                pockets=None,
+                ball_radius=None,
+                pool_table_size=None):
+        super().__init__(pockets, ball_radius,pool_table_size)
+
+    def generate_combinations_actuator(self, num_real_points, deviation_angle, number_of_angles):
+        safety_distance=3*self.ball_radius #so the balls dont touch the pool table walls
+        #real points configs
+        C=utils.generate_random_numbers_inside_rectangle(num_real_points,self.pool_table_size,safety_distance)
+        T=utils.generate_random_numbers_inside_rectangle(num_real_points,self.pool_table_size,safety_distance)
+        index_real = np.arange(num_real_points)
+        CT = np.c_[index_real, C, T]
+        #pockets configs
+        index_pocket = np.arange(1,7)
+        pockets = np.c_[index_pocket,self.pockets]
+        comb = utils.get_row_combinations_of_two_arrays(CT, pockets)
+        deviation_angles=np.random.uniform(-deviation_angle,deviation_angle,size=(number_of_angles,1))#.reshape(-1,1)
+        comb = utils.get_row_combinations_of_two_arrays(comb, deviation_angles)
+        df=pd.DataFrame({'real_point_id':comb[:,0],
+                        'C_x':comb[:,1],
+                        'C_y':comb[:,2],
+                        'T_x':comb[:,3],
+                        'T_y':comb[:,4],
+                        'pocket_id':comb[:,5],
+                        'P_x':comb[:,6],
+                        'P_y':comb[:,7],
+                        'deviation_angle':comb[:,8],
+                        })
+        return df
+
+    def generate_cue_ball_trajectories(self, df):
+
+        C=df[['C_x','C_y']].values
+        T=df[['T_x','T_y']].values
+        P=df[['P_x','P_y']].values
+        X=df[['X_x','X_y']].values
+
+        slope=(X[:,1]-C[:,1])/(X[:,0]-C[:,0])
+        slope_angle=np.degrees(np.arctan(slope))
+        deviated_slope_angle=slope_angle+df['deviation_angle']
+        deviated_slope=np.tan(np.radians(deviated_slope_angle))
+        deviated_intercept=C[:,1]-deviated_slope*C[:,0]
+        df['slope']=deviated_slope
+        df['intercept']=deviated_intercept
 
         return df
 
-class DebugErrorAnalysis(ErrorAnalysis):
+    def compute_Q_actuator(self, df): 
+
+        C=df[['C_x','C_y']].values
+        T=df[['T_x','T_y']].values
+        P=df[['P_x','P_y']].values
+        slope=df[['slope']].values.ravel()
+        intercept=df[['intercept']].values.ravel()
+        r=self.ball_radius
+
+        X_calculated1,X_calculated2=utils.intersection_circle_line(slope, intercept,r,T)
+
+        distCX_calculated1 = np.linalg.norm(C-X_calculated1, axis=1)
+        distCX_calculated2 = np.linalg.norm(C-X_calculated2, axis=1)
+
+        # we choose the point of intersection that is closest to C
+        Cond1 = (distCX_calculated1<distCX_calculated2)
+        Cond2 = ~Cond1 # distCX_calculated2<distCX_calculated1
+        X_calculated = np.zeros_like(C)
+        X_calculated[Cond1] = X_calculated1[Cond1]
+        X_calculated[Cond2] = X_calculated2[Cond2]
+        df['X_calculated_x'] = X_calculated[:,0]
+        df['X_calculated_y'] = X_calculated[:,1]
+
+        #line X''T (1)
+        slope1=(X_calculated[:,1]-T[:,1])/(X_calculated[:,0]-T[:,0])
+        intercept1=X_calculated[:,1]-slope1*X_calculated[:,0]
+
+        #line TP (=line XT) (2)
+        slope2=(P[:,1]-T[:,1])/(P[:,0]-T[:,0])
+        intercept2=T[:,1]-slope2*T[:,0]
+
+        #line perpendicular to TP (3)
+        slope3=-1/slope2
+        intercept3=P[:,1]-slope3*P[:,0]
+
+        #intersection between line X''T and line perpendicular to TP
+        Qx=(intercept1-intercept3)/(slope3-slope1)
+        Qy=slope1*Qx+intercept1
+        df['Q_x']=Qx
+        df['Q_y']=Qy
+        Q=np.c_[Qx,Qy]
+        delta=np.linalg.norm(Q-P, axis=1)
+        df['delta']=delta
+
+        return df
+
+    def get_error_data_actuator(self,
+                       num_real_points,
+                       deviation_angle,
+                       incr):
+
+        df=self.generate_combinations_actuator(num_real_points,deviation_angle,incr)
+        df=self.compute_geometric_parameters(df)
+        df=self.compute_X(df)
+        df=self.generate_cue_ball_trajectories(df)
+        df=self.pockets_inside_region_of_interest(df)
+        df=self.valid_CT_points(df)
+        df=self.compute_Q_actuator(df)
+
+        return df
+    
+class DebugErrorAnalysis(VisionErrorAnalysis):
 
     def __init__(self,
                  pockets=None,
