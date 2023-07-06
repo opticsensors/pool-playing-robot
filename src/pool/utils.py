@@ -94,21 +94,21 @@ class Params(object):
     #lab calibration results of ball colors
     #sorted by rows like: white, yellow, blue, red,... (same order as pool balls)
     self.COLOR_TO_LAB={
-        'white'   : [227, 127, 163],
-        'yellow'  : [216, 132, 189],
-        'blue'    : [89, 134, 103],
-        'red'     : [147, 181, 181],
-        'purple'  : [78, 137, 119],
-        'orange'  : [180, 165 , 175],
-        'green'   : [110, 106, 132],
-        'burgundy': [121, 154, 154],
-        'black'   : [58, 128, 130]
+        'white'   : [196, 127, 147],
+        'yellow'  : [186, 124, 184],
+        'blue'    : [46, 146, 93],
+        'red'     : [98, 176, 169],
+        'purple'  : [37, 143, 108],
+        'orange'  : [154, 163 , 186],
+        'green'   : [96, 101, 133],
+        'burgundy': [60, 155, 146],
+        'black'   : [23, 127, 129]
     }
     
-    self.WHITE_LOWER_LAB=[175, 0, 0]
-    self.WHITE_UPPER_LAB=[255, 147, 164]
-    self.WHITE_LOWER_HSV=[0, 0, 120]
-    self.WHITE_UPPER_HSV=[56, 147, 255]
+    self.WHITE_LOWER_LAB=[154, 0, 0]
+    self.WHITE_UPPER_LAB=[255, 149, 163]
+    self.WHITE_LOWER_HSV=[0, 0, 101]
+    self.WHITE_UPPER_HSV=[42, 114, 255]
     
     self.RECTANGLE_AREA=self.DISPLAY_SIZE[0]*self.DISPLAY_SIZE[1] # W*H
     self.BALL_AREA=np.pi*self.BALL_RADIUS**2 #PI*RADI^2

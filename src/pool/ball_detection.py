@@ -278,10 +278,38 @@ class ClassicCV:
 
         return {old_to_new[k]: v for k, v in d_centroids.items()}
 
+    def display_images_of_same_size_in_a_grid(self, l_images, grid_size, titles, margin=50, spacing =35, dpi=100.):
+
+        rows, cols= grid_size
+        max_h, max_w = l_images[0].shape[:2]
+        width = (cols*max_w+cols*margin+spacing)/dpi # inches
+        height= (rows*max_h+rows*margin+spacing)/dpi
+
+        left = margin/dpi/width #axes ratio
+        bottom = margin/dpi/height
+        wspace = spacing/float(max_w)
+
+        fig, axes  = plt.subplots(rows,cols, figsize=(width,height), dpi=dpi)
+        fig.subplots_adjust(left=left, bottom=bottom, right=1.-left, top=1.-bottom, 
+                            wspace=wspace, hspace=wspace)
+
+        for ax, im, name in zip(axes.flatten(),l_images, titles):
+            ax.axis('off')
+            ax.set_title(name)
+            ax.imshow(im)
+        # save figure to numpy array
+        fig.canvas.draw()
+        data = np.frombuffer(fig.canvas.tostring_rgb(), dtype=np.uint8)
+        data = data.reshape(fig.canvas.get_width_height()[::-1] + (3,))
+        plt.close('all')
+        return cv2.cvtColor(data, cv2.COLOR_RGB2BGR)
+
     def tune_white_color(self,img,numbered_balls):
         """
-
         """
+        max_h=0
+        max_w=0
+        l_images=[]
         for i in np.unique(numbered_balls):
             if i!=0:
                 masked_ball = np.zeros((img.shape[:-1]), dtype=np.uint8)#1 ch
@@ -290,12 +318,36 @@ class ClassicCV:
                 contour_ball,_ = cv2.findContours(masked_ball, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
                 x, y, w, h = cv2.boundingRect(contour_ball[0])
                 masked=masked[y:y+h, x:x+w, :]
-                cv2.imwrite(f'./results/masked_{i}.png', masked) # TODO this relative path should not be here!
+                masked=cv2.cvtColor(masked, cv2.COLOR_BGR2RGB)
+                h,w=masked.shape[:2]
+                if max_h<h:
+                    max_h=h
+                if max_w<w:
+                    max_w=w
+                l_images.append(masked)
+        # make image the same size
+        titles=[]
+        for i,img in enumerate(l_images):
+            size=img.shape[:2]
+            delta_w = max_w - size[1]
+            delta_h = max_h - size[0]
+            top, bottom = delta_h//2, delta_h-(delta_h//2)
+            left, right = delta_w//2, delta_w-(delta_w//2)
+            color = [0, 0, 0]
+            new_img = cv2.copyMakeBorder(img, top, bottom, 
+                                         left, right, 
+                                         cv2.BORDER_CONSTANT,
+                                         value=color)
+            l_images[i] = new_img
+            titles.append(f'ball_id: {i+1}')
 
+        return self.display_images_of_same_size_in_a_grid(l_images, (4,4), titles)
+    
     def tune_ball_color(self,img,numbered_balls,color_space='hsv'):
         """
         """
-
+        l_images=[]
+        titles=[]
         for i in np.unique(numbered_balls):
             if i!=0:
                 masked_ball = np.zeros((img.shape[:-1]), dtype=np.uint8)#1 ch
@@ -319,7 +371,6 @@ class ClassicCV:
                     upper = self.upper_lab
                     thresholded_ball = cv2.inRange(masked_lab, lower, upper)
                     
-                
                 num_pixels_ball=np.count_nonzero((numbered_balls==i))
                 num_white_pixels_ball=np.count_nonzero(thresholded_ball)
                 proportion_white_pixels=num_white_pixels_ball/num_pixels_ball
@@ -350,43 +401,14 @@ class ClassicCV:
                 ball_color=self.params.NUM_TO_COLOR[row_with_min_error]
                 ball_number=self.params.COLOR_AND_TYPE_TO_NUM[ball_color][ball_type]
 
-                
-                fig = plt.figure()
-                # show original image
-                fig.add_subplot(151)
-                fig.set_figwidth(10)
-                fig.set_figheight(3)
-                plt.title('lab histogram')
-                color = ('k','r','yellow')
-                for ch,col in enumerate(color):
-                    histr = cv2.calcHist([masked_lab],[ch],None,[256],[1,256])
-                    plt.plot(histr,color = col)
-                    plt.xlim([0,256])
-                    plt.title(f'ball {i+1}', fontsize=9)
+                thresholded_ball_3ch=cv2.merge((thresholded_ball,thresholded_ball,thresholded_ball))
+                masked_ball_color_3ch=cv2.merge((masked_ball_color,masked_ball_color,masked_ball_color))
+                l_sub_images=[masked,thresholded_ball_3ch,masked_ball_color_3ch,palette]
+                sub_titles=[f'total ball pixels: {num_pixels_ball}', f'white pixels: {num_white_pixels_ball}', f'colored pixels', f'avg_lab: {int(avg_lab[0])}, {int(avg_lab[1])}, {int(avg_lab[2])}']
+                l_images.append(self.display_images_of_same_size_in_a_grid(l_sub_images, (1,4), sub_titles))
+                titles.append(f'ball_id: {i} | ball_prediction: {ball_number}')
 
-                fig.add_subplot(152)
-                plt.title(f'total ball pixels: {num_pixels_ball}', fontsize=9)
-                plt.imshow(cv2.cvtColor(masked,cv2.COLOR_BGR2RGB))
-                plt.axis('off')
-
-                fig.add_subplot(153)
-                plt.title(f'white pixels: {num_white_pixels_ball}', fontsize=9)
-                plt.imshow(thresholded_ball,cmap=plt.cm.gray)
-                plt.axis('off')
-                
-                fig.add_subplot(154)
-                plt.title(f'colored pixels', fontsize=9)
-                plt.imshow(masked_ball_color,cmap=plt.cm.gray)
-                plt.axis('off')
-
-                fig.add_subplot(155)
-                plt.title(f'avg_lab: {int(avg_lab[0])}, {int(avg_lab[1])}, {int(avg_lab[2])}', fontsize=9)
-                plt.imshow(cv2.cvtColor(palette,cv2.COLOR_BGR2RGB))
-                plt.axis('off')
-
-                fig.suptitle(f'ball: {ball_number}') 
-
-                plt.savefig(f"./results/color_classification{i}.png") # TODO this relative path should not be here!
+        return self.display_images_of_same_size_in_a_grid(l_images, (4,4), titles)
 
 class Yolo:
     def __init__(self, data_path=None, model_path=None):

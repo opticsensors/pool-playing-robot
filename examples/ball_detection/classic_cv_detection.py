@@ -40,14 +40,13 @@ numbered_blobs,d_centroids = classic_cv.find_ball_blobs(blobs)
 blobs_with_contours_drawn = classic_cv.debug_find_ball_blobs(blobs, numbered_blobs)
 cv2.imwrite('./results/blobs_with_contours_drawn.png', blobs_with_contours_drawn)
 
-
 #tune white color
-classic_cv.tune_white_color(warp, numbered_blobs)
-
+results_tune_white=classic_cv.tune_white_color(warp, numbered_blobs)
+cv2.imwrite('./results/results_tune_white.png', results_tune_white)
 
 # tune ball color
-classic_cv.tune_ball_color(warp,numbered_blobs,color_space='hsv')
-
+results_tune_color=classic_cv.tune_ball_color(warp,numbered_blobs,color_space='hsv')
+cv2.imwrite('./results/results_tune_color.png', results_tune_color)
 
 labeled_balls=warp.copy()
 if cv2.countNonZero(blobs)!=0:
