@@ -13,17 +13,17 @@ class Eye(object):
                  cameraMatrix = None,
                  dist = None,
                  arucos_pool_frame = None):
-        params=Params()
+        self.params=Params()
         if cameraMatrix is None:
-            self.cameraMatrix = np.load(os.path.join(params.PATH_REPO, 'data', 'cameraMatrix.npy'))
+            self.cameraMatrix = np.load(os.path.join(self.params.PATH_REPO, 'data', 'cameraMatrix.npy'))
         else:
             self.cameraMatrix = cameraMatrix
         if dist is None:
-            self.dist = np.load(os.path.join(params.PATH_REPO, 'data', 'dist.npy'))
+            self.dist = np.load(os.path.join(self.params.PATH_REPO, 'data', 'dist.npy'))
         else:
             self.dist = dist
         if arucos_pool_frame is None:
-            self.arucos_pool_frame = params.ARUCOS_POOL_FRAME
+            self.arucos_pool_frame = self.params.ARUCOS_POOL_FRAME
         else:
             self.arucos_pool_frame = arucos_pool_frame
         
@@ -55,6 +55,16 @@ class Eye(object):
             dst_cropped = dst[y:y+h, x:x+w]
         
         return dst_cropped
+
+    def undistort_and_warp_image(self, img, img_corners=None):
+        if img_corners is None:
+            img_corners=cv2.imread(os.path.join(self.params.PATH_REPO, 'data', 'corners_0.jpg'))
+        img_corners_undist=self.undistort_image(img_corners, remapping=False)
+        undist_corners=self.get_pool_corners(img_corners_undist)
+        undist_matrix=self.calculate_perspective_matrix(undist_corners)
+        img_undist=self.undistort_image(img, remapping=False)
+        img_undist_warp=self.transform_image_given_a_matrix(img_undist, undist_corners, undist_matrix)
+        return img_undist_warp
 
     def get_pool_corners(self, img):
         top_aruco_ids, right_aruco_ids, bottom_aruco_ids, left_aruco_ids = self.arucos_pool_frame

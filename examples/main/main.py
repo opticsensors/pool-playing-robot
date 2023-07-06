@@ -7,6 +7,9 @@ from pool.calibration import InverseKinematics
 from pool.dynamixel import Dynamixel
 from pool.ball_detection import Yolo
 from pool.brain import ShotSelection
+from pool.eye import Eye
+
+print("Done importing!")
 
 #stepper motor initialization
 stp=Controller_actuators(baudRate=9600,serialPortName='COM3')
@@ -28,6 +31,7 @@ camera.collection_name = 'img'
 ik = InverseKinematics()
 yolo = Yolo()
 ss = ShotSelection()
+eye = Eye()
 
 
 #init position and stepper mode
@@ -55,8 +59,9 @@ while activated:
                 if keyboard.is_pressed("c"):
                     print("c pressed, taking photo and calculating ...")
                     camera.capture_single_image() 
+                    time.sleep(0.5)
                     img = cv2.imread('img_0.jpg')
-                    img_undist_warp = ################################################################################### TODO
+                    img_undist_warp = eye.undistort_and_warp_image(img)
                     d_centroids, _ = yolo.detect_balls(img_undist_warp,conf=0.25, overlap_threshold=100)
                     uvBallCentroid = d_centroids[0]
                     angle = ss.get_actuator_angle(d_centroids, turn)
