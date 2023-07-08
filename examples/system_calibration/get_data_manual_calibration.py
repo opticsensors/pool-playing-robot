@@ -3,7 +3,7 @@ import pandas as pd
 from pool.calibration import DataExtractor
 
 img_corners=cv2.imread('./results/manual_data1/corners_0.jpg')
-img_arucos=cv2.imread('./results/auto_data1/corners_0.jpg')
+img_arucos=cv2.imread('./results/manual_data1/corners_0.jpg')
 
 de = DataExtractor(img_corners)
 

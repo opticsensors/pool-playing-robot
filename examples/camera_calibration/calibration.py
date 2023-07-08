@@ -3,9 +3,17 @@ import cv2 as cv
 import os
 from pool.utils import Params
 
+data_folder='data3'
+#valid_images=[0,1,2,3,5,6,9,10,11,12,13,14,15,16,17,18,19,21,23,24,25]
+#valid_images=[1,2,3,4,5,6,7,8,9,11,13,16,17,19,20,21,23,24,27,28,30,34,35,36,37,39,40,42,43,46,47,48,49,50,51,52,53,54,56,57,60,61,62]
+valid_images=[0, 1, 2, 4, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 25, 26, 28, 29, 30, 31, 32, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 67, 68, 70, 71, 72, 73, 74, 75, 76, 77, 78]
+
+f = open(f"./results/{data_folder}/calibration_results.txt", 'w')
+
 ################ FIND CHESSBOARD CORNERS - OBJECT POINTS AND IMAGE POINTS #############################
 
 chessboardSize = (6,9)
+#chessboardSize = (14,21)
 frameSize = (5184,3456)
 
 # termination criteria
@@ -21,10 +29,8 @@ objpoints = [] # 3d point in real world space
 imgpoints = [] # 2d points in image plane.
 
 # bad images are not considered (manually removed)
-#for count in [0,1,2,3,5,6,9,10,11,12,13,14,15,16,17,18,19,21,23,24,25]:
-#for count in [1,2,3,4,5,6,7,8,9,11,13,16,17,19,20,21,23,24,27,28,30,34,35,36,37,39,40,42,43,46,47,48,49,50,51,52,53,54,56,57,60,61,62]:
-for count in [0, 1, 2, 4, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 25, 26, 28, 29, 30, 31, 32, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 67, 68, 70, 71, 72, 73, 74, 75, 76, 77, 78]:
-    img = cv.imread(f"./results/data3/img_{count}.jpg")
+for count in valid_images:
+    img = cv.imread(f"./results/{data_folder}/img_{count}.jpg")
     gray = cv.cvtColor(img, cv.COLOR_BGR2GRAY)
 
     # Find the chess board corners
@@ -46,13 +52,13 @@ for count in [0, 1, 2, 4, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 2
 ############## CALIBRATION #######################################################
 
 ret, cameraMatrix, dist, rvecs, tvecs = cv.calibrateCamera(objpoints, imgpoints, frameSize, None, None)
-print('Camera calibrated:', ret)
-print("\nCamera Matrix:\n", cameraMatrix)
-print("\nDistortion params:\n", dist)
+print('Camera calibrated:', ret, file=f)
+print("\nCamera Matrix:\n", cameraMatrix, file=f)
+print("\nDistortion params:\n", dist, file=f)
 
-path_to_repo=Params().PATH_REPO
-np.save(os.path.join(path_to_repo,'data','cameraMatrix.npy'), cameraMatrix)
-np.save(os.path.join(path_to_repo,'data','dist.npy'), dist)
+#path_to_repo=Params().PATH_REPO
+#np.save(os.path.join(path_to_repo,'data','cameraMatrix.npy'), cameraMatrix)
+#np.save(os.path.join(path_to_repo,'data','dist.npy'), dist)
 
 # Reprojection Error
 mean_error = 0
@@ -62,4 +68,6 @@ for i in range(len(objpoints)):
     error = cv.norm(imgpoints[i], imgpoints2, cv.NORM_L2)/len(imgpoints2)
     mean_error += error
 
-print( "total error: {}".format(mean_error/len(objpoints)) )
+print( "\nReprojection Error:\n", mean_error/len(objpoints), file=f)
+
+f.close()
