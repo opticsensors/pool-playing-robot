@@ -56,9 +56,9 @@ print('Camera calibrated:', ret, file=f)
 print("\nCamera Matrix:\n", cameraMatrix, file=f)
 print("\nDistortion params:\n", dist, file=f)
 
-#path_to_repo=Params().PATH_REPO
-#np.save(os.path.join(path_to_repo,'data','cameraMatrix.npy'), cameraMatrix)
-#np.save(os.path.join(path_to_repo,'data','dist.npy'), dist)
+path_to_repo=Params().PATH_REPO
+np.save(os.path.join(path_to_repo,'data','cameraMatrix.npy'), cameraMatrix)
+np.save(os.path.join(path_to_repo,'data','dist.npy'), dist)
 
 # Reprojection Error
 mean_error = 0

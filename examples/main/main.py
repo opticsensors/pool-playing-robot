@@ -1,4 +1,5 @@
 import time
+import datetime
 import keyboard
 import cv2
 from pool.controller_actuators import Controller_actuators
@@ -10,6 +11,8 @@ from pool.brain import ShotSelection
 from pool.eye import Eye
 
 print("Done importing!")
+date_name = str(datetime.datetime.now().date()) + '_' + str(datetime.datetime.now().time()).replace(':', '.')
+f = open(f"./results/LOG_{date_name}.txt", 'w')
 
 #stepper motor initialization
 stp=Controller_actuators(baudRate=9600,serialPortName='COM3')
@@ -33,11 +36,8 @@ yolo = Yolo()
 ss = ShotSelection()
 eye = Eye()
 
-
 #init position and stepper mode
 mode = 0
-prev_point_x=0
-prev_point_y=0
 rotated=False
 count_iter=0
 turn='solid'
@@ -52,7 +52,7 @@ while activated:
     if not (arduinoReply == 'XXX'):
         print ("Arduino reply: ", arduinoReply)
 
-        if count_iter==0:
+        if count_iter==0: # we are at home position
             print('Waiting for user input to take photo and compute cue ball centroid and angle')
             while True:
                 time.sleep(0.15)
@@ -65,8 +65,21 @@ while activated:
                     d_centroids, _ = yolo.detect_balls(img_undist_warp,conf=0.25, overlap_threshold=100)
                     uvBallCentroid = d_centroids[0]
                     angle = ss.get_actuator_angle(d_centroids, turn)
+                    print("Angle: ", angle, file=f)
+                    print("d_centroids: ", d_centroids, file=f)
+                    print("uvBallCentroid: ", uvBallCentroid, file=f)
                     time.sleep(0.5)
                     break
+
+            steps1,steps2=ik.img_data_to_steps(uvBallCentroid, angle)
+            steps1=int(steps1)
+            steps2=int(steps2)
+            print("steps: ", steps1, steps2, file=f)
+            print('Send to arduino:', mode, steps1, steps2)
+            stp.sendToArduino(f"{mode},{steps1},{steps2}")
+            rotated=False
+            count_iter+=1
+
         else:
             print('Waiting for user input to rotate flipper and activate solenoid')
             while True:
@@ -75,23 +88,21 @@ while activated:
                     print("s pressed, activating solenoid")
                     time.sleep(0.5)
                     stp.sendToArduino(f"100,0,0")
+                    activated = False
                     break
                 if keyboard.is_pressed("r") and not rotated:
                     print("r pressed, rotating end effector")
                     goal_position = dxl.angle_to_dynamixel_position(angle)
                     dxl.sendToDynamixel(int(goal_position),50, 1)
+                    print("goal_position: ", goal_position, file=f)
                     time.sleep(10) # after 10 seconds we will have reached goal pos
                     present_position = dxl.readDynamixel()
+                    print("present_position: ", present_position, file=f)
                     rotated=True
                 if keyboard.is_pressed("q"):
                     print("q pressed, exiting program")
                     activated = False
+                    f.close()
                     break
 
-        steps1,steps2=ik.img_data_to_steps(uvBallCentroid, angle)
-        steps1=int(steps1)
-        steps2=int(steps2)
-        print('Send to arduino:', mode, steps1, steps2)
-        stp.sendToArduino(f"{mode},{steps1},{steps2}")
-        rotated=False
-        count_iter+=1
+f.close()
