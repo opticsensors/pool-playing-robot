@@ -4,8 +4,8 @@ from pool.ball_detection import Yolo
 
 yolo=Yolo()
 #read image with random ball config and background
-for i in range(0,45):
-    name=f'config_{i}'
+for i in range(1,15):
+    name=f'warp_{i}'
     img = cv2.imread(f'./results/{name}.jpg')
 
     # Yolov8 results

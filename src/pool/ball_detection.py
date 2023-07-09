@@ -224,7 +224,6 @@ class ClassicCV:
                 except KeyError:
                     ball_number=-1
                 old_to_new[i]=ball_number
-                print(f'ball {i}= %white: {proportion_white_pixels}, color: {ball_color}, ball_type: {ball_type}, ball num: {ball_number}')
 
         return {old_to_new[k]: v for k, v in d_centroids.items()}
 

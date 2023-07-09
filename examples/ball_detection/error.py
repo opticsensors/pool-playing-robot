@@ -8,9 +8,12 @@ eye=Eye()
 yolo=Yolo()
 cv=ClassicCV()
 
+dict_to_save = {}
+list_of_dict = []
+
 img_corners = cv2.imread('./results/corners_0.jpg')
 img_corners_undist=eye.undistort_image(img_corners, remapping=False)
-img_corners_undist_warp=eye.undistort_and_warp_image(img_corners, remapping=False)
+img_corners_undist_warp=eye.undistort_and_warp_image(img_corners,img_corners)
 undist_corners=eye.get_pool_corners(img_corners_undist)
 undist_matrix=eye.calculate_perspective_matrix(undist_corners)
 
@@ -40,9 +43,6 @@ for img_num in [1,2,3,4,5,6,7,8,10,11,12,13,14]:
         centroid= [(M["m10"] / M["m00"]),(M["m01"] / M["m00"])]
         d_real_centroids[ball_id]=centroid
 
-    dict_to_save = {}
-    list_of_dict = []
-
     dicts = [d_real_centroids,d_centroids_yolo_img,d_centroids_yolo_points,d_centroids_classic_cv]
     common_keys = set(d_real_centroids.keys())
     for d in dicts[1:]:
@@ -52,19 +52,25 @@ for img_num in [1,2,3,4,5,6,7,8,10,11,12,13,14]:
 
     for ball_num in common_detected_balls:
 
-        centroid_yolo_img=d_centroids_yolo_img[ball_num]
-        centroid_yolo_points=d_centroids_yolo_points[ball_num]
-        centroid_classic=d_centroids_classic_cv[ball_num]
-        centroid_real=d_real_centroids[ball_num]
+        centroid_yolo_img = np.array(d_centroids_yolo_img[ball_num])
+        centroid_yolo_points = np.array(d_centroids_yolo_points[ball_num])
+        centroid_classic = np.array(d_centroids_classic_cv[ball_num])
+        centroid_real = np.array(d_real_centroids[ball_num])
 
         dict_to_save['img_num']=img_num
         dict_to_save['ball_num']=ball_num
+        dict_to_save['yolo_img_x'] = centroid_yolo_img[0]
+        dict_to_save['yolo_img_y'] = centroid_yolo_img[1]
+        dict_to_save['yolo_points_x'] = centroid_yolo_points[0]
+        dict_to_save['yolo_points_y'] = centroid_yolo_points[1]
+        dict_to_save['classics_x'] = centroid_classic[0]
+        dict_to_save['classic_y'] = centroid_classic[1]
+        dict_to_save['real_x'] = centroid_real[0]
+        dict_to_save['real_y'] = centroid_real[1]
         dict_to_save['error_yolo_img'] = np.linalg.norm(centroid_yolo_img - centroid_real)
         dict_to_save['error_yolo_points'] = np.linalg.norm(centroid_yolo_points - centroid_real)
         dict_to_save['error_classic'] = np.linalg.norm(centroid_classic - centroid_real)
-        dict_to_save['rmse_yolo_img'] = np.sqrt(((centroid_yolo_img - centroid_real) ** 2).mean())
-        dict_to_save['rmse_yolo_points'] = np.sqrt(((centroid_yolo_points - centroid_real) ** 2).mean())
-        dict_to_save['rmse_classic'] = np.sqrt(((centroid_classic - centroid_real) ** 2).mean())
+
         list_of_dict.append(dict_to_save.copy())
 
 # for convenience we convert the list of dict to a dataframe
