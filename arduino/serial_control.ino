@@ -13,6 +13,7 @@
 #define bottomSwitch 12
 #define leftSwitch 11
 #define rightSwitch 13
+#define solenoidPin 4
 
 // Define the stepper motor and the pins that is connected to
 AccelStepper stepper1(1, mot1StepPin, mot1DirPin); // (Typeof driver: with 2 pins, STEP, DIR)
@@ -69,6 +70,8 @@ void setup() {
     pinMode(leftSwitch, INPUT_PULLUP);
     pinMode(rightSwitch, INPUT_PULLUP);
 
+    pinMode(solenoidPin, OUTPUT);
+
     digitalWrite(motMS1Pin, LOW);
     digitalWrite(motMS2Pin, LOW);
     digitalWrite(motMS3Pin, LOW);
@@ -76,7 +79,6 @@ void setup() {
     delay(200);
     setSpeedAccel(workingVelocity, workingAcceleration);
     Serial.println("<Arduino is ready>");
-   
 
 }
 
@@ -118,6 +120,13 @@ void loop() {
             setSpeedAccel(calibrationVelocity, calibrationAcceleration);
             findMaxPositions();
             setSpeedAccel(workingVelocity, workingAcceleration);
+        }
+
+        else if (mode == 100) {
+            digitalWrite(solenoidPin, HIGH);      //Switch Solenoid ON
+            delay(230);                          //Wait 
+            digitalWrite(solenoidPin, LOW);       //Switch Solenoid OFF
+            delay(1000); 
         }
 
     replyToPython();
