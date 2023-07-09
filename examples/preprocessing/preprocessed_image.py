@@ -5,7 +5,7 @@ from pool.eye import Eye
 eye=Eye()
 
 # We undistort the image
-img            = cv2.imread(f'./results/img_0.jpg')
+img            = cv2.imread(f'./results/img_1.jpg')
 undist_img     = eye.undistort_image(img,remapping=False)
 corners = eye.get_pool_corners(img)
 undist_corners = eye.get_pool_corners(undist_img)

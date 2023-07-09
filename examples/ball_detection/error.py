@@ -37,7 +37,7 @@ for img_num in [1,2,3,4,5,6,7,8,10,11,12,13,14]:
 
     d_real_centroids={}
     for ball_id in [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15]:
-        img_ball=cv2.imread(f'./results/ground_truth_img_{img_num}/{ball_id}.tif')
+        img_ball=cv2.imread(f'./results/ground_truth_img_{img_num}/{ball_id}.png')
         M = cv2.moments(img_ball[...,0])
         # calculate x,y coordinate of center
         centroid= [(M["m10"] / M["m00"]),(M["m01"] / M["m00"])]
