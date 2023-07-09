@@ -10,22 +10,15 @@ from ultralytics.yolo.utils.plotting import Annotator
 from pool.utils import Params
 
 class ClassicCV:
-    def __init__(self, **kwargs):
+    def __init__(self):
         self.params = Params()
-        param = {  # with defaults
-            'lower_lab': self.params.WHITE_LOWER_LAB,
-            'upper_lab': self.params.WHITE_UPPER_LAB,
-            'lower_hsv': self.params.WHITE_LOWER_HSV,
-            'upper_hsv': self.params.WHITE_UPPER_HSV,
-            'colors':    self.params.COLOR_TO_LAB,
-            }
-        param.update(kwargs)
-        
-        self._lower_hsv=param['lower_hsv']
-        self._lower_lab=param['lower_lab']
-        self._upper_hsv=param['upper_hsv']
-        self._upper_lab=param['upper_lab']
-        self._color_to_lab=param['colors']
+        self.lower_hsv = np.array(self.params.WHITE_LOWER_HSV)
+        self.upper_hsv = np.array(self.params.WHITE_UPPER_HSV)
+        self.lower_lab = np.array(self.params.WHITE_LOWER_LAB)
+        self.upper_lab = np.array(self.params.WHITE_UPPER_LAB)
+        self.cloth_lower_hsv = np.array(self.params.CLOTH_LOWER_HSV)
+        self.cloth_upper_hsv = np.array(self.params.CLOTH_UPPER_HSV)
+        self.color_to_lab = self._dict_to_arr(self.params.COLOR_TO_LAB)
 
     def _dict_to_arr(self,color_to_lab):
         color_to_num = {v: k for k, v in self.params.NUM_TO_COLOR.items()}
@@ -36,52 +29,6 @@ class ClassicCV:
             lab_arr[num,:]=np.array(lab)
         
         return lab_arr
-
-    @property
-    def lower_hsv(self):
-        return np.array(self._lower_hsv)
-    
-    @lower_hsv.setter
-    def lower_hsv(self,color):
-        if isinstance(color, list):
-            self._lower_hsv=color
-
-    @property
-    def lower_lab(self):
-        return np.array(self._lower_lab)
-    
-    @lower_lab.setter
-    def lower_lab(self,color):
-        if isinstance(color, list):
-            self._lower_lab=color
-
-    @property
-    def upper_hsv(self):
-        return np.array(self._upper_hsv)
-    
-    @upper_hsv.setter
-    def upper_hsv(self,color):
-        if isinstance(color, list):
-            self._upper_hsv=color
-
-    @property
-    def upper_lab(self):
-        return np.array(self._upper_lab)
-    
-    @upper_lab.setter
-    def upper_lab(self,color):
-        if isinstance(color, list):
-            self._upper_lab=color
-
-    @property
-    def color_to_lab(self):
-        lab_arr=self._dict_to_arr(self._color_to_lab)
-        return lab_arr
-    
-    @color_to_lab.setter
-    def color_to_lab(self,color_to_lab):
-        if isinstance(color_to_lab, dict):
-            self._color_to_lab=color_to_lab
 
     def get_cloth_color(self,hsv,search_width=45):
         """
@@ -255,9 +202,9 @@ class ClassicCV:
                 num_white_pixels_ball=np.count_nonzero(thresholded_ball)
                 proportion_white_pixels=num_white_pixels_ball/num_pixels_ball
 
-                if 0.13<=proportion_white_pixels<0.85:
+                if self.params.LOWER_PROPORTION_WHITE_PIXELS<=proportion_white_pixels<self.params.UPPER_PROPORTION_WHITE_PIXELS:
                     ball_type='striped'
-                elif proportion_white_pixels<0.13:
+                elif proportion_white_pixels<self.params.LOWER_PROPORTION_WHITE_PIXELS:
                     ball_type='solid'
                 else:
                     ball_type='cue ball'
@@ -272,7 +219,10 @@ class ClassicCV:
                 error=np.sqrt(np.sum(np.power(measured_lab[:,1:] - self.color_to_lab[:,1:], 2), axis=1)) #we use chroma instead of euclidean distance
                 row_with_min_error=np.unravel_index(np.nanargmin(error, axis=None), error.shape)[0]
                 ball_color=self.params.NUM_TO_COLOR[row_with_min_error]
-                ball_number=self.params.COLOR_AND_TYPE_TO_NUM[ball_color][ball_type]
+                try:
+                    ball_number=self.params.COLOR_AND_TYPE_TO_NUM[ball_color][ball_type]
+                except KeyError:
+                    ball_number=-1
                 old_to_new[i]=ball_number
                 print(f'ball {i}= %white: {proportion_white_pixels}, color: {ball_color}, ball_type: {ball_type}, ball num: {ball_number}')
 
@@ -375,9 +325,9 @@ class ClassicCV:
                 num_white_pixels_ball=np.count_nonzero(thresholded_ball)
                 proportion_white_pixels=num_white_pixels_ball/num_pixels_ball
 
-                if 0.15<=proportion_white_pixels<0.85:
+                if self.params.LOWER_PROPORTION_WHITE_PIXELS<=proportion_white_pixels<self.params.UPPER_PROPORTION_WHITE_PIXELS:
                     ball_type='striped'
-                elif proportion_white_pixels<0.15:
+                elif proportion_white_pixels<self.params.LOWER_PROPORTION_WHITE_PIXELS:
                     ball_type='solid'
                 else:
                     ball_type='cue ball'
@@ -399,8 +349,10 @@ class ClassicCV:
                 error=np.sqrt(np.sum(np.power(measured_lab[:,1:] - self.color_to_lab[:,1:], 2), axis=1)) #we use chroma instead of euclidean distance
                 row_with_min_error=np.unravel_index(np.nanargmin(error, axis=None), error.shape)[0]
                 ball_color=self.params.NUM_TO_COLOR[row_with_min_error]
-                ball_number=self.params.COLOR_AND_TYPE_TO_NUM[ball_color][ball_type]
-
+                try:
+                    ball_number=self.params.COLOR_AND_TYPE_TO_NUM[ball_color][ball_type]
+                except KeyError:
+                    ball_number=-1
                 thresholded_ball_3ch=cv2.merge((thresholded_ball,thresholded_ball,thresholded_ball))
                 masked_ball_color_3ch=cv2.merge((masked_ball_color,masked_ball_color,masked_ball_color))
                 l_sub_images=[masked,thresholded_ball_3ch,masked_ball_color_3ch,palette]
@@ -409,7 +361,59 @@ class ClassicCV:
                 titles.append(f'ball_id: {i} | ball_prediction: {ball_number}')
 
         return self.display_images_of_same_size_in_a_grid(l_images, (4,4), titles)
+    
+    def detect_balls(self, warp, warp_bg, cloth_color, color_space, debug_path='./results/', debug=False):
 
+        #get a more accurate hsv color of the pool table cloth using only the pool table pixels (wrap img)
+        hsv=cv2.cvtColor(warp, cv2.COLOR_BGR2HSV)
+        bg_hsv=cv2.cvtColor(warp_bg, cv2.COLOR_BGR2HSV)
+        
+        if cloth_color == 'auto':
+            lower_color, upper_color = self.get_cloth_color(hsv,search_width=30)
+        elif cloth_color == 'tuned':
+            lower_color=self.cloth_lower_hsv
+            upper_color=self.cloth_upper_hsv
+
+        mask,mask_processed =self.color_segmentation(hsv, lower_color, upper_color)
+        bg_mask,bg_mask_processed =self.color_segmentation(bg_hsv, lower_color, upper_color)
+        mask_without_bg=self.substract_background(mask_processed,bg_mask_processed)
+        kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (21,21))
+        mask_without_bg_processed = cv2.morphologyEx(mask_without_bg, cv2.MORPH_OPEN, kernel,iterations = 2)
+        blobs = self.remove_small_dots(mask_without_bg_processed,connectivity=8) 
+        numbered_blobs,d_centroids = self.find_ball_blobs(blobs)
+
+        if cv2.countNonZero(blobs)!=0:
+            sorted_centroids=self.classify_balls(warp,numbered_blobs,d_centroids,color_space=color_space)
+
+        if debug:
+            #tune white color
+            results_tune_white=self.tune_white_color(warp, numbered_blobs)
+            # tune ball color
+            results_tune_color=self.tune_ball_color(warp,numbered_blobs,color_space=color_space)
+            blobs_with_contours_drawn = self.debug_find_ball_blobs(blobs, numbered_blobs)
+
+            cv2.imwrite(f'{debug_path}mask.png', mask)
+            cv2.imwrite(f'{debug_path}mask_processed.png', mask_processed)
+            cv2.imwrite(f'{debug_path}bg_mask.png', bg_mask)
+            cv2.imwrite(f'{debug_path}bg_mask_processed.png', bg_mask_processed)
+            cv2.imwrite(f'{debug_path}mask_without_bg.png', mask_without_bg)
+            cv2.imwrite(f'{debug_path}mask_without_bg_processed.png', mask_without_bg_processed)
+            cv2.imwrite(f'{debug_path}blobs.png', blobs)
+            cv2.imwrite(f'{debug_path}blobs_with_contours_drawn.png', blobs_with_contours_drawn)
+            cv2.imwrite(f'{debug_path}results_tune_white.png', results_tune_white)
+            cv2.imwrite(f'{debug_path}results_tune_color.png', results_tune_color)
+
+            labeled_balls=warp.copy()
+            for ball_num in sorted_centroids:
+                x,y=sorted_centroids[ball_num]
+                labeled_balls=cv2.putText(labeled_balls.copy(), "#{}".format(ball_num), (int(x) - 10, int(y)),
+                cv2.FONT_HERSHEY_SIMPLEX, 3, (0, 255, 0), 2)
+                labeled_balls=cv2.circle(labeled_balls, (int(x), int(y)), 8, (255, 0, 255), -1)
+            
+            cv2.imwrite('./results/CLASSICCV_Detection.png', labeled_balls)
+
+        return sorted_centroids
+    
 class Yolo:
     def __init__(self, data_path=None, model_path=None):
         params=Params()

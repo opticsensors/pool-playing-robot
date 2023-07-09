@@ -3,17 +3,20 @@ import cv2
 import numpy as np
 from pool.ball_detection import ClassicCV
 from pool.eye import Eye
-from pool.utils import Params
 
 classic_cv=ClassicCV()
 eye = Eye()
 
+img_num=3
+
 #read image with random ball config and background
-img = cv2.imread('./results/img_0.jpg')
-img_corners = cv2.imread(os.path.join(Params().PATH_REPO, 'data', 'corners_0.jpg'))
+img = cv2.imread(f'./results/img_{img_num}.jpg')
+img_corners = cv2.imread('./results/corners_0.jpg')
 
 warp = eye.undistort_and_warp_image(img, img_corners)
 warp_bg = eye.undistort_and_warp_image(img_corners, img_corners)
+cv2.imwrite(f'./results/warp_{img_num}.png', warp)
+cv2.imwrite('./results/warp_bg.png', warp_bg)
 
 #get a more accurate hsv color of the pool table cloth using only the pool table pixels (wrap img)
 hsv=cv2.cvtColor(warp.copy(), cv2.COLOR_BGR2HSV)
@@ -31,7 +34,7 @@ bg_mask,bg_mask_processed =classic_cv.color_segmentation(bg_hsv, lower_color, up
 
 cv2.imwrite('./results/mask.png', mask)
 cv2.imwrite('./results/mask_processed.png', mask_processed)
-cv2.imwrite('./results/bg_mask.png', bg_mask_processed)
+cv2.imwrite('./results/bg_mask.png', bg_mask)
 cv2.imwrite('./results/bg_mask_processed.png', bg_mask_processed)
 
 mask_without_bg=classic_cv.substract_background(mask_processed,bg_mask_processed)
@@ -64,6 +67,7 @@ if cv2.countNonZero(blobs)!=0:
         x,y=sorted_centroids[ball_num]
         labeled_balls=cv2.putText(labeled_balls.copy(), "#{}".format(ball_num), (int(x) - 10, int(y)),
 		cv2.FONT_HERSHEY_SIMPLEX, 3, (0, 255, 0), 2)
+        labeled_balls=cv2.circle(labeled_balls, (int(x), int(y)), 8, (255, 0, 255), -1)
     
     cv2.imwrite('./results/CLASSICCV_Detection.png', labeled_balls)
 

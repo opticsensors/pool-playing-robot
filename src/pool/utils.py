@@ -97,18 +97,22 @@ class Params(object):
         'white'   : [196, 127, 147],
         'yellow'  : [186, 124, 184],
         'blue'    : [46, 146, 93],
-        'red'     : [98, 176, 169],
-        'purple'  : [37, 143, 108],
+        'red'     : [98, 180, 169],
+        'purple'  : [37, 143, 115],
         'orange'  : [154, 163 , 186],
         'green'   : [96, 101, 133],
         'burgundy': [60, 155, 146],
         'black'   : [23, 127, 129]
     }
     
+    self.CLOTH_LOWER_HSV=[42,45,2]
+    self.CLOTH_UPPER_HSV=[100,175,87]
     self.WHITE_LOWER_LAB=[154, 0, 0]
     self.WHITE_UPPER_LAB=[255, 149, 163]
     self.WHITE_LOWER_HSV=[0, 0, 101]
     self.WHITE_UPPER_HSV=[42, 114, 255]
+    self.LOWER_PROPORTION_WHITE_PIXELS=0.15
+    self.UPPER_PROPORTION_WHITE_PIXELS=0.85
     
     self.RECTANGLE_AREA=self.DISPLAY_SIZE[0]*self.DISPLAY_SIZE[1] # W*H
     self.BALL_AREA=np.pi*self.BALL_RADIUS**2 #PI*RADI^2
