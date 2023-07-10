@@ -122,7 +122,7 @@ void loop() {
             setSpeedAccel(workingVelocity, workingAcceleration);
         }
 
-        else if (mode == 100) {
+        else if (mode == -3) {
             digitalWrite(solenoidPin, HIGH);      //Switch Solenoid ON
             delay(230);                          //Wait 
             digitalWrite(solenoidPin, LOW);       //Switch Solenoid OFF

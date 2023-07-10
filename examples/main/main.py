@@ -40,7 +40,7 @@ eye = Eye()
 mode = 0
 rotated=False
 count_iter=0
-turn='solid'
+turn='strip'
 activated = True
 
 #go home
@@ -60,9 +60,9 @@ while activated:
                     print("c pressed, taking photo and calculating ...")
                     camera.capture_single_image() 
                     time.sleep(0.5)
-                    img = cv2.imread('./results/img_0.jpg')
+                    img = cv2.imread(f'./results/{date_name}_0.jpg')
                     img_undist_warp = eye.undistort_and_warp_image(img)
-                    d_centroids, _ = yolo.detect_balls(img_undist_warp,conf=0.25, overlap_threshold=100)
+                    d_centroids, _ = yolo.detect_balls(img_undist_warp,conf=0.75, overlap_threshold=100)
                     uvBallCentroid = d_centroids[0]
                     angle = ss.get_actuator_angle(d_centroids, turn) #  returns angles in the range [-180,180]
                     angle_dxl = angle + 90 
@@ -73,7 +73,7 @@ while activated:
                     time.sleep(0.5)
                     break
 
-            steps1,steps2=ik.img_data_to_steps(uvBallCentroid, angle)
+            steps1,steps2=ik.img_data_to_steps(uvBallCentroid, angle_dxl)
             steps1=int(steps1)
             steps2=int(steps2)
             print("steps: ", steps1, steps2, file=f)
@@ -89,15 +89,14 @@ while activated:
                 if keyboard.is_pressed("s") and rotated:
                     print("s pressed, activating solenoid")
                     time.sleep(0.5)
-                    stp.sendToArduino(f"100,0,0")
-                    activated = False
+                    mode, steps1, steps2 = (-3,0,0)
                     break
                 if keyboard.is_pressed("r") and not rotated:
                     print("r pressed, rotating end effector")
                     goal_position = dxl.angle_to_dynamixel_position(angle_dxl)
                     dxl.sendToDynamixel(int(goal_position),50, 1)
                     print("goal_position: ", goal_position, file=f)
-                    for i in range(10,0,-1):
+                    for i in range(15,0,-1):
                         print("Rotating... time remaining: {:2d}s".format(i), end="\r", flush=True)
                         time.sleep(1)
                     present_position = dxl.readDynamixel()
@@ -106,7 +105,15 @@ while activated:
                 if keyboard.is_pressed("q"):
                     print("q pressed, exiting program")
                     activated = False
-                    f.close()
                     break
 
+            print('Send to arduino:', mode, steps1, steps2)
+            stp.sendToArduino(f"{mode},{steps1},{steps2}")
+            rotated=False
+            count_iter+=1
+
+dxl.sendToDynamixel(int(0),50, 1)
+for i in range(10,0,-1):
+    print("Homing dynamixel... time remaining: {:2d}s".format(i), end="\r", flush=True)
+    time.sleep(1)
 f.close()
