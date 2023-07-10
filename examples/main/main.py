@@ -28,7 +28,7 @@ camera_control_cmd_path = 'C:\\Program Files (x86)\\digiCamControl\\CameraContro
 camera = Camera_DLSR(control_cmd_location=camera_control_cmd_path, image_type='jpg')
 camera_setting = Camera_DLSR_settings(aperture='4', shutter_speed='1/10', iso='400')
 camera.save_folder='./results/'
-camera.collection_name = 'img'
+camera.collection_name = f'{date_name}'
 
 #necessary objects
 ik = InverseKinematics()

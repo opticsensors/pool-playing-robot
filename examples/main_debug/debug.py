@@ -27,6 +27,7 @@ angle = ss.get_actuator_angle(d_centroids, turn)
 img_brain_debug,df = ss.debug(img_undist_warp, d_centroids, turn, shot_type='CTP')
 cv2.imwrite('./results/img_brain_debug.png', img_brain_debug)
 
-steps1,steps2=ik.img_data_to_steps(uvBallCentroid, angle)
+angle_dxl = angle + 90 
+steps1,steps2=ik.img_data_to_steps(uvBallCentroid, angle_dxl)
 steps1=int(steps1)
 steps2=int(steps2)
