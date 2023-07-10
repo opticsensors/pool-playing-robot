@@ -60,12 +60,14 @@ while activated:
                     print("c pressed, taking photo and calculating ...")
                     camera.capture_single_image() 
                     time.sleep(0.5)
-                    img = cv2.imread('img_0.jpg')
+                    img = cv2.imread('./results/img_0.jpg')
                     img_undist_warp = eye.undistort_and_warp_image(img)
                     d_centroids, _ = yolo.detect_balls(img_undist_warp,conf=0.25, overlap_threshold=100)
                     uvBallCentroid = d_centroids[0]
-                    angle = ss.get_actuator_angle(d_centroids, turn)
-                    print("Angle: ", angle, file=f)
+                    angle = ss.get_actuator_angle(d_centroids, turn) #  returns angles in the range [-180,180]
+                    angle_dxl = angle + 90 
+                    print("angle: ", angle, file=f)
+                    print("angle_dxl: ", angle_dxl, file=f)
                     print("d_centroids: ", d_centroids, file=f)
                     print("uvBallCentroid: ", uvBallCentroid, file=f)
                     time.sleep(0.5)
@@ -92,10 +94,12 @@ while activated:
                     break
                 if keyboard.is_pressed("r") and not rotated:
                     print("r pressed, rotating end effector")
-                    goal_position = dxl.angle_to_dynamixel_position(angle)
+                    goal_position = dxl.angle_to_dynamixel_position(angle_dxl)
                     dxl.sendToDynamixel(int(goal_position),50, 1)
                     print("goal_position: ", goal_position, file=f)
-                    time.sleep(10) # after 10 seconds we will have reached goal pos
+                    for i in range(10,0,-1):
+                        print("Rotating... time remaining: {:2d}s".format(i), end="\r", flush=True)
+                        time.sleep(1)
                     present_position = dxl.readDynamixel()
                     print("present_position: ", present_position, file=f)
                     rotated=True

@@ -254,8 +254,7 @@ class Brain:
     def actuator_angle(self,df):
         #angle to send to the actuator
         CX = df[['Xx','Xy']].values-df[['Cx','Cy']].values
-        x_axis = np.array([[1,0]])
-        angle = utils.angle_between_two_vectors(x_axis, CX)
+        angle = np.arctan2(CX[:,1], CX[:,0])
         df['angle'] = np.degrees(angle)
         return df
     

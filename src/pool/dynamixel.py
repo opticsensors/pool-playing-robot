@@ -137,5 +137,5 @@ class Dynamixel(object):
 
         return dxl_present_position
     
-    def angle_to_dynamixel_position(self, angle): # angle in degrees!
-        return (angle/360)*(self.max_position-self.min_position)+self.min_position
+    def angle_to_dynamixel_position(self, angle): # angle in degrees between [-180, 180]
+        return (angle % 360)*(self.max_position+1)/360
