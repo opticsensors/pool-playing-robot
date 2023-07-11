@@ -12,7 +12,7 @@ yolo = Yolo()
 ss = ShotSelection()
 eye = Eye()
 
-turn='solid'
+turn='strip'
 
 img = cv2.imread('./results/img_0.jpg')
 img_undist_warp = eye.undistort_and_warp_image(img)

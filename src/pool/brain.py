@@ -251,10 +251,17 @@ class Brain:
 
         return final_cond
     
-    def actuator_angle(self,df):
+    def actuator_angle_CT_configs(self,df):
         #angle to send to the actuator
         CX = df[['Xx','Xy']].values-df[['Cx','Cy']].values
         angle = np.arctan2(CX[:,1], CX[:,0])
+        df['angle'] = np.degrees(angle)
+        return df
+    
+    def actuator_angle_CB_configs(self,df):
+        #angle to send to the actuator
+        BX = df[['Bx','By']].values-df[['Cx','Cy']].values
+        angle = np.arctan2(BX[:,1], BX[:,0])
         df['angle'] = np.degrees(angle)
         return df
     
@@ -348,7 +355,7 @@ class CTP(Brain):
         collision_configs=self.collision_trajectories(df)
         df=df[~(collision_configs)]
         df = self.sort_df_by_difficulty(df)
-        df = self.actuator_angle(df)
+        df = self.actuator_angle_CT_configs(df)
         # TODO groupby to avoid repeating trajectories! (this groupby depends on shot type!)
         return df
 
@@ -430,7 +437,7 @@ class CBTP(Brain):
         valid_bounces=self.find_valid_cushion_impacts(df[['C_reflect_id','Bx','By']].values)
         df=df[valid_bounces]
         df = self.sort_df_by_difficulty(df)
-        df = self.actuator_angle(df)
+        df = self.actuator_angle_CB_configs(df)
         return df
     
 class CTTP(Brain):
@@ -512,7 +519,7 @@ class CTTP(Brain):
         collision_configs=self.collision_trajectories(df)
         df=df[~(collision_configs)]
         df = self.sort_df_by_difficulty(df)
-        df = self.actuator_angle(df)
+        df = self.actuator_angle_CT_configs(df)
         return df
     
 class CTBP(Brain):
@@ -612,7 +619,7 @@ class CTBP(Brain):
         valid_bounces=self.find_valid_cushion_impacts(df[['T_reflect_sub_id','Bx','By']].values)
         df=df[valid_bounces]
         df = self.sort_df_by_difficulty(df)
-        df = self.actuator_angle(df)
+        df = self.actuator_angle_CT_configs(df)
         return df
 
 class ShotSelection:
@@ -657,13 +664,13 @@ class ShotSelection:
             img=self.ctp.draw_all_trajectories(df, img)
         elif shot_type == 'CBTP':
             df=self.cbtp.selected_shots(d_centroids, turn)
-            img=self.ctp.draw_all_trajectories(df, img)
+            img=self.cbtp.draw_all_trajectories(df, img)
         elif shot_type == 'CTTP':
             df=self.cttp.selected_shots(d_centroids, turn)
-            img=self.ctp.draw_all_trajectories(df, img)
+            img=self.cttp.draw_all_trajectories(df, img)
         elif shot_type == 'CTBP':
             df=self.ctbp.selected_shots(d_centroids, turn)
-            img=self.ctp.draw_all_trajectories(df, img)
+            img=self.ctbp.draw_all_trajectories(df, img)
 
         img=self.ctp.draw_pool_balls(d_centroids,img) # TODO valid for self.ctp, self.cbtp ... make this cleaner
 

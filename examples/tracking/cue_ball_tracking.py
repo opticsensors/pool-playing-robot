@@ -9,18 +9,18 @@ bg_subtractor=cv2.createBackgroundSubtractorMOG2(detectShadows=True)
 frames_to_skip=0
 learning_rate=0.01
 kernel_size=(25,25)
-starting_frame=60 # frame to start tracking (it should be when carriage and flipper already moved)
+starting_frame=220 # frame to start tracking (it should be when carriage and flipper already moved)
 
 #frames to compute angle
-start=80
-end=115
+start=263
+end=273
 
 bg_counter=0
 frame_counter=0
 dict_to_save = {}
 list_of_dict = []
 
-cap=cv2.VideoCapture('results/20230710_192549.mp4')
+cap=cv2.VideoCapture('results/20230711_135914_1.mp4')
 for _ in range(frames_to_skip+1):
     ret, frame0 = cap.read()
 
