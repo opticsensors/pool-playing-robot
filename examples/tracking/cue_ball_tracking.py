@@ -1,7 +1,5 @@
-import time
 import cv2
 import numpy as np
-import pandas as pd
 from pool.eye import Eye
 
 eye=Eye()
@@ -9,27 +7,24 @@ bg_subtractor=cv2.createBackgroundSubtractorMOG2(detectShadows=True)
 frames_to_skip=0
 learning_rate=0.01
 kernel_size=(25,25)
-starting_frame=220 # frame to start tracking (it should be when carriage and flipper already moved)
-
-#frames to compute angle
-start=263
-end=273
-
 bg_counter=0
-frame_counter=0
-dict_to_save = {}
-list_of_dict = []
+name='20230711_141720_1'
 
-cap=cv2.VideoCapture('results/20230711_135914_1.mp4')
+cap=cv2.VideoCapture(f'results/{name}.mp4')
 for _ in range(frames_to_skip+1):
     ret, frame0 = cap.read()
 
 corners0 = eye.get_pool_corners(frame0)
+#corners0=[(200,1403), (194,163), (886,163), (875,1404)] # only for video 20230711_174744_1
+#corners0=[(202,1407), (178,175), (868,165), (874,1403)] # only for video 20230711_141105_1
+#corners0=[(198,1408), (196,173), (887,175), (871,1414)] # only for video 20230711_141720_1
+
 matrix0 = eye.calculate_perspective_matrix(corners0)
+transformed_frame0 = eye.transform_image_given_a_matrix(frame0, corners0, matrix0)
 
 while(ret):
     ret, frame = cap.read()
-    if ret==True and frame_counter>starting_frame:
+    if ret==True:
         transformed = eye.transform_image_given_a_matrix(frame, corners0, matrix0)
         transformed_gray = cv2.cvtColor(transformed, cv2.COLOR_BGR2GRAY)
         transformed_blur = cv2.GaussianBlur(transformed_gray, kernel_size, 0)
@@ -48,34 +43,19 @@ while(ret):
                     M = cv2.moments(bigger_contour)
                     cx = int(M["m10"] / M["m00"])
                     cy = int(M["m01"] / M["m00"])
+                    cv2.circle(transformed_frame0,(cx,cy),5,(255,0,255),-1)     
                     cv2.circle(transformed,(cx,cy),8,(255,0,255),-1)     
-                    dict_to_save['frame_number']=frame_counter
-                    dict_to_save['centroid_x']=cx
-                    dict_to_save['centroid_y']=cy
-                    list_of_dict.append(dict_to_save.copy())
 
             fg_mask_3ch=cv2.merge((fg_mask,fg_mask,fg_mask))
             to_show = np.hstack([transformed,fg_mask_3ch])
-            cv2.putText(to_show, str(frame_counter),(to_show.shape[1]-200, 80), cv2.FONT_HERSHEY_SIMPLEX, 2.5, (0, 0, 255), 2)
             to_show = cv2.resize(to_show, (0,0), fx=0.6, fy=0.6)
-            #time.sleep(0.5)
             cv2.imshow('transformed', to_show)
             c = cv2.waitKey(1)
             if c & 0xFF == ord('q'):
                 break
-    frame_counter+=1
 
+cv2.imwrite(f'./results/{name}.png', transformed_frame0)
 cap.release()
 cv2.destroyAllWindows()
 
-df = pd.DataFrame(list_of_dict, columns=list(list_of_dict[0].keys()))
-line_points=df[['centroid_x', 'centroid_y']][(df['frame_number']>start) & (df['frame_number']<end)].values
-[vx,vy,x,y] = cv2.fitLine(line_points,cv2.DIST_L2,0,0.01,0.01)
-
-angle1=np.degrees(np.arctan2(vy,vx))
-if angle1<0:
-    angle2=180+angle1
-else:
-    angle2=angle1-180
-print(angle1, angle2)
 
