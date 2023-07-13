@@ -1,4 +1,3 @@
-import pygame
 import pymunk
 import pymunk.pygame_util
 import math
@@ -161,51 +160,3 @@ class PhysicsSim(object):
     else:
        self.space.step(dt)
     self.collision_occurs = 0
-
-
-if __name__ == "__main__":
-  
-    balls_pose={0:(200,103),8:(400,400),9:(500,500),1:(250,103)}
-    params=Params()
-    phys = PhysicsSim()
-    phys.create_balls(balls_pose)
-    phys.create_cushions(params.CUSHIONS)
-    phys.create_pockets(params.POCKETS)
-    phys.handle_collisions()
-
-    screen = pygame.display.set_mode((phys.params.DISPLAY_SIZE[0]//4, phys.params.DISPLAY_SIZE[1]//4))
-    pygame.display.set_caption('Billiard')
-    clock = pygame.time.Clock()
-    screen.fill((50,50,50)) 
-    draw_options = pymunk.pygame_util.DrawOptions(screen)
-    draw_options.flags = pymunk.SpaceDebugDrawOptions.DRAW_SHAPES
-    run=True
-    while run:
-        for event in pygame.event.get():
-            if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
-                phys.move_cue_ball(225)
-            if event.type == pygame.MOUSEBUTTONDOWN and event.button == 3:
-                phys.move_cue_ball(315)
-            if event.type == pygame.MOUSEBUTTONDOWN and event.button == 5:
-                phys.move_cue_ball(135)
-            if event.type == pygame.MOUSEBUTTONDOWN and event.button == 4:
-                phys.move_cue_ball(45)
-            if event.type == pygame.MOUSEBUTTONDOWN and event.button == 2:
-                phys.reset(balls_pose)
-                a=1
-            if event.type == pygame.QUIT:
-                run = False
-
-        screen.fill((50,50,50))
-        phys.space.debug_draw(draw_options)
-
-        #pygame.display.flip()
-        pygame.display.update()
-
-        phys.step(1/120.0)
-        clock.tick(120)
-
-        #debug
-        print(phys.total_collisions,phys.ball_collision_happened,phys.first_ball_collision)
-
-

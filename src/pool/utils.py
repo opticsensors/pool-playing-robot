@@ -18,20 +18,20 @@ class Params(object):
     )
 
     ## POOL FRAME PARAMS
-    self.DISPLAY_SIZE = (4822, 2719) # W x H 
+    self.DISPLAY_SIZE = (4857, 2685) # W x H 
     self.POCKET_CORNER_RADIUS = 210
     self.POCKET_MIDDLE_RADIUS = 112
     self.MOUTH_CORNER_WIDTH = 80
     self.MOUTH_MIDDLE_WIDTH = 70
     self.DISPLAY_RECTANGLE = Rectangle(top_left=(0,0), bottom_right=self.DISPLAY_SIZE)
-    self.COMPUTATIONAL_RECTANGLE = self.DISPLAY_RECTANGLE.get_rectangle_with_offsets((260, 250, 240, 250))
+    self.COMPUTATIONAL_RECTANGLE = self.DISPLAY_RECTANGLE.get_rectangle_with_offsets((240, 250, 250, 250))
 
     self.POCKETS = [(96, 120),                                            # top left          
                     (self.DISPLAY_SIZE[0]-96, 120),                       # top right       
                     (self.DISPLAY_SIZE[0]-96, self.DISPLAY_SIZE[1]-120),  # bottom right     
                     (96, self.DISPLAY_SIZE[1]-120),                       # bottom left
-                    (2430, 164),                                          # top middle    
-                    (2430, 2574)]                                         # bottom middle    
+                    (2447, 144),                                          # top middle    
+                    (2447, 2538)]                                         # bottom middle    
 
     self.CUSHIONS = [[(308, 0), (2304, 0), (2200, 138), (419, 138)],        #order doesn't matter here     
                     [(2552, 0), (4516, 0), (4382, 138), (2660, 138)],         
@@ -54,7 +54,7 @@ class Params(object):
     self.CUE_FORCE = 50000
 
     # GRAPHIC PARAMS
-    self.TARGET_FPS = 120
+    self.TARGET_FPS = 60
     self.TIME_STEP = 1.0 / self.TARGET_FPS
     self.MAX_ENV_STEPS = 10
 
