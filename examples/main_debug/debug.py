@@ -24,7 +24,7 @@ cv2.imwrite('./results/img_yolo_debug.png', img_yolo_debug)
 
 uvBallCentroid = d_centroids[0]
 angle = ss.get_actuator_angle(d_centroids, turn)
-img_brain_debug,df = ss.debug(img_undist_warp, d_centroids, turn, shot_type='CTP')
+img_brain_debug,df = ss.debug(img_undist_warp, d_centroids, turn, shot_type='CBTP')
 cv2.imwrite('./results/img_brain_debug.png', img_brain_debug)
 
 angle_dxl = angle + 90 

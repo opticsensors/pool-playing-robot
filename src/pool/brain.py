@@ -280,7 +280,7 @@ class Brain:
     def draw_pool_balls(self, d_centroids, img):
         for ball_num in d_centroids:
             x,y=d_centroids[ball_num]
-            img=cv2.putText(img, "#{}".format(ball_num), (int(x) - 10, int(y)), cv2.FONT_HERSHEY_SIMPLEX, 2, (0, 255, 0), 3)
+            img=cv2.putText(img, "#{}".format(int(ball_num)), (int(x) - 10, int(y)), cv2.FONT_HERSHEY_SIMPLEX, 2, (0, 255, 0), 3)
             img=cv2.circle(img, (int(x), int(y)), 8, (255, 0, 255), -1)
             img=cv2.circle(img, (int(x), int(y)), self.ball_radius, (255, 0, 255), 8)
 
@@ -658,20 +658,19 @@ class ShotSelection:
         return angle
 
     def debug(self, img, d_centroids, turn, shot_type):
-        
+        img_to_draw=img.copy()
         if shot_type == 'CTP':
             df =self.ctp.selected_shots(d_centroids, turn)   
-            img=self.ctp.draw_all_trajectories(df, img)
+            img=self.ctp.draw_all_trajectories(df, img_to_draw)
         elif shot_type == 'CBTP':
             df=self.cbtp.selected_shots(d_centroids, turn)
-            img=self.cbtp.draw_all_trajectories(df, img)
+            img=self.cbtp.draw_all_trajectories(df, img_to_draw)
         elif shot_type == 'CTTP':
             df=self.cttp.selected_shots(d_centroids, turn)
-            img=self.cttp.draw_all_trajectories(df, img)
+            img=self.cttp.draw_all_trajectories(df, img_to_draw)
         elif shot_type == 'CTBP':
             df=self.ctbp.selected_shots(d_centroids, turn)
-            img=self.ctbp.draw_all_trajectories(df, img)
-
-        img=self.ctp.draw_pool_balls(d_centroids,img) # TODO valid for self.ctp, self.cbtp ... make this cleaner
-
-        return img, df
+            img=self.ctbp.draw_all_trajectories(df, img_to_draw)
+        img_to_draw=self.ctp.draw_pool_balls(d_centroids,img_to_draw) # TODO valid for self.ctp, self.cbtp ... make this cleaner
+        img_to_draw=self.pool_frame.draw_frame(img_to_draw)
+        return img_to_draw, df

@@ -519,10 +519,9 @@ class Yolo:
         return d_centroids, l_annotations
     
     def debug(self, img, d_centroids):
+        img_to_draw=img.copy()
         for ball_num in d_centroids:
             x,y=d_centroids[ball_num]
-            img=cv2.putText(img, "#{}".format(ball_num), (int(x) - 10, int(y)),
-            cv2.FONT_HERSHEY_SIMPLEX, 2, (0, 255, 0), 3)
-            img=cv2.circle(img, (int(x), int(y)), 8, (255, 0, 255), -1)
-
-        return img
+            cv2.putText(img_to_draw, "#{}".format(int(ball_num)), (int(x) - 10, int(y)),cv2.FONT_HERSHEY_SIMPLEX, 2, (0, 255, 0), 3)
+            cv2.circle(img_to_draw, (int(x), int(y)), 8, (255, 0, 255), -1)
+        return img_to_draw
