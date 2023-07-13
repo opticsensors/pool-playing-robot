@@ -1,18 +1,15 @@
-import time
 import numpy as np
 import pandas as pd
-from pool.utils import Params, Rectangle
-from pool.billiard_env_single_shot import BilliardEnv
+from pool.utils import Params
+from pool.pool_env import PoolEnv
 from pool.random_balls import RandomBalls
 
 params=Params()
-computation_rectangle = Rectangle((0,0), Params().DISPLAY_SIZE)
-computation_rectangle = computation_rectangle.get_rectangle_with_offsets((127, 127, 127, 127))
 
-random_balls=RandomBalls(ball_radius=params.BALL_RADIUS, computation_rectangle=computation_rectangle)
-config=random_balls.generate_random_positions_given_balls([0,8,1,2,3,4,5,6,11,12,13,14])
+random_balls=RandomBalls(ball_radius=params.BALL_RADIUS, computation_rectangle=params.COMPUTATIONAL_RECTANGLE)
+config=random_balls.generate_random_balls()
 #config={0: (832, 420), 8: (617, 502), 1: (247, 308), 9: (472, 501)}
-env=BilliardEnv(computation_rectangle, config, params.CUSHIONS, params.POCKETS)
+env=PoolEnv(params.COMPUTATIONAL_RECTANGLE, config, params.CUSHIONS, params.POCKETS, render_mode = None)
 turn = 0
 
 observation, info = env.reset(config, turn)
@@ -42,11 +39,11 @@ def angle_sweep(env, angles_to_study):
 
             list_of_dict.append(dict_to_save.copy())
             env.close()
-            env=BilliardEnv(computation_rectangle, config, params.CUSHIONS, params.POCKETS)
+            env=PoolEnv(params.COMPUTATIONAL_RECTANGLE, config, params.CUSHIONS, params.POCKETS, render_mode = None)
             observation, info = env.reset(config, turn)
 
     df = pd.DataFrame(list_of_dict, columns=list(list_of_dict[0].keys()))
-    df.to_csv(path_or_buf=f'./brute_force_data.csv', sep=',',index=False)
+    df.to_csv(path_or_buf=f'./results/brute_force_data.csv', sep=',',index=False)
     env.close()
     return df
 

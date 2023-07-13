@@ -6,15 +6,15 @@ import numpy as np
 from pool.pool_sim import PhysicsSim
 import pygame
 from pool.random_balls import RandomBalls
-from pool.utils import Params, Rectangle
+from pool.utils import Params
 
-class BilliardEnv(gym.Env):
+class PoolEnv(gym.Env):
   """
   State is composed of:
   s = {turn: 0 or 1, ball_i: [xi, yi], ball_j: [xj, yj], ...}
   """
 
-  def __init__(self, computation_rectangle, d_centroids,cushions,pockets, max_steps=5000, render_mode ='human'):
+  def __init__(self, computation_rectangle, d_centroids, cushions,pockets, max_steps=5000, render_mode ='human'):
     """ Constructor
     :param seed: the random seed for the environment
     :param max_steps: the maximum number of steps the episode lasts
@@ -69,7 +69,7 @@ class BilliardEnv(gym.Env):
     if desired_ball_pose is None:
       random_balls=RandomBalls(ball_radius=self.params.BALL_RADIUS,
                               computation_rectangle=self.computation_rectangle)
-      init_ball_pose = random_balls.generate_random_positions_given_balls([0,8,1,9]) # TODO add more balls
+      init_ball_pose = random_balls.generate_random_balls() 
     else:
       init_ball_pose = desired_ball_pose.copy()
 
@@ -150,7 +150,8 @@ class BilliardEnv(gym.Env):
       info = {}
       # Get reward
       reward, done, info = self.reward_function(info)
-      self.render() # TODO remove
+      if self.render_mode is not None:
+        self.render() # TODO remove
 
     if self.steps >= self.params.MAX_ENV_STEPS:  ## Check if max number of steps has been exceeded
       done = True
@@ -253,23 +254,3 @@ class BilliardEnv(gym.Env):
     if self.screen is not None:
         pygame.display.quit()
         pygame.quit()
-
-
-if __name__ == "__main__":
-  params=Params()
-  d_centroids={0: (414, 248), 8: (543, 265), 1: (305, 328), 9: (480, 346)}
-  env=BilliardEnv(params.COMPUTATIONAL_RECTANGLE,d_centroids, params.CUSHIONS, params.POCKETS)
-  
-  observation, info = env.reset()
-  import time
-  for i in range(10):
-    #action = env.action_space.sample()
-    action=149
-    observation, reward, terminated, truncated, info = env.step(action)
-    print(info['potted_ball'])
-    #env.render()
-    time.sleep(1)
-    if terminated or truncated:
-        print('reseting', terminated, truncated)
-        observation, info = env.reset()
-  env.close()

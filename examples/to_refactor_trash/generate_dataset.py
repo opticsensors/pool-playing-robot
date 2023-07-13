@@ -1,7 +1,7 @@
 import time
 import pandas as pd
 from pool.utils import Params, Rectangle
-from pool.billiard_env_single_shot import BilliardEnv
+from pool.pool_env import PoolEnv
 from pool.random_balls import RandomBalls
 
 params=Params()
@@ -13,7 +13,7 @@ random_balls=RandomBalls(ball_radius=params.BALL_RADIUS, computation_rectangle=c
 for _ in range(3):
     l_configs.append(random_balls.generate_random_positions_given_balls([0,8,1,9]))
 
-env=BilliardEnv(computation_rectangle, l_configs[0], params.CUSHIONS, params.POCKETS)
+env=PoolEnv(computation_rectangle, l_configs[0], params.CUSHIONS, params.POCKETS)
 observation, info = env.reset(l_configs[0])
 
 incr=0.1
@@ -43,7 +43,7 @@ for i,config in enumerate(l_configs):
 
             list_of_dict.append(dict_to_save.copy())
             env.close()
-            env=BilliardEnv(computation_rectangle, config, params.CUSHIONS, params.POCKETS)
+            env=PoolEnv(computation_rectangle, config, params.CUSHIONS, params.POCKETS)
             observation, info = env.reset(config)
 
         action += incr
