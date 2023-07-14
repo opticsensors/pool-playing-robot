@@ -8,8 +8,8 @@ env=PoolEnv(params.COMPUTATIONAL_RECTANGLE,d_centroids, params.CUSHIONS, params.
 observation, info = env.reset()
 import time
 for i in range(10):
-    #action = env.action_space.sample()
-    action=149
+    action = env.action_space.sample()
+    #action=149
     observation, reward, terminated, truncated, info = env.step(action)
     time.sleep(1)
     if terminated or truncated:
