@@ -171,10 +171,13 @@ class Brain:
         x_x=P[:,0]+(T[:,0]-P[:,0])*t
         y_x=P[:,1]+(T[:,1]-P[:,1])*t
         X=np.column_stack([x_x,y_x])
-
         return X
     
-    def find_bouncing_points(self,C_reflect, X):
+    def find_valid_X_points(self, points):
+        cond = ((points[:,0]>self.pool_frame.left_x) & (points[:,0]<self.pool_frame.right_x)) & ((points[:,1]>self.pool_frame.top_y) & (points[:,1]<self.pool_frame.bottom_y))
+        return cond
+    
+    def find_bouncing_points(self, C_reflect, X):
         
         points=np.hstack((C_reflect,X))
         results=np.zeros((points.shape[0], 2))
@@ -345,6 +348,8 @@ class CTP(Brain):
         X_comb = self.find_X(df[['Tx', 'Ty']].values,df[['Px', 'Py']].values)
         df['Xx']=X_comb[:,0]
         df['Xy']=X_comb[:,1]
+        valid_X_points=self.find_valid_X_points(X_comb)
+        df=df[(valid_X_points)]
         collision_configs=self.collision_trajectories(df)
         df=df[~(collision_configs)]
         df = self.sort_df_by_difficulty(df)
@@ -427,7 +432,8 @@ class CBTP(Brain):
                              df[['Px', 'Py']].values)
         df['Xx']=X_comb[:,0]
         df['Xy']=X_comb[:,1]
-
+        valid_X_points=self.find_valid_X_points(X_comb)
+        df=df[(valid_X_points)]
         B_comb = self.find_bouncing_points(df[['C_reflect_id','C_reflect_x', 'C_reflect_y']].values,
                                            df[['Xx', 'Xy']].values,)
         df['Bx']=B_comb[:,0]
@@ -518,11 +524,14 @@ class CTTP(Brain):
                             P=df[['Px', 'Py']].values)
         df['Xx']=X_comb[:,0]
         df['Xy']=X_comb[:,1]
+        valid_X_points=self.find_valid_X_points(X_comb)
+        df=df[(valid_X_points)]
         X_new_comb = self.find_X(T=df[['TTx', 'TTy']].values,
                                 P=df[['Xx', 'Xy']].values)
         df['X_new_x']=X_new_comb[:,0]
         df['X_new_y']=X_new_comb[:,1]
-
+        valid_X_points=self.find_valid_X_points(X_new_comb)
+        df=df[(valid_X_points)]
         collision_configs=self.collision_trajectories(df)
         df=df[~(collision_configs)]
         df = self.sort_df_by_difficulty(df)
@@ -626,7 +635,8 @@ class CTBP(Brain):
                                 df[['Bx', 'By']].values)
         df['Xx']=X_comb[:,0]
         df['Xy']=X_comb[:,1]
-
+        valid_X_points=self.find_valid_X_points(X_comb)
+        df=df[(valid_X_points)]
         collision_configs=self.collision_trajectories(df)
         df=df[~(collision_configs)]
 
