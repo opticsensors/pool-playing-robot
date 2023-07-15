@@ -251,20 +251,6 @@ class Brain:
 
         return final_cond
     
-    def actuator_angle_CT_configs(self,df):
-        #angle to send to the actuator
-        CX = df[['Xx','Xy']].values-df[['Cx','Cy']].values
-        angle = np.arctan2(CX[:,1], CX[:,0])
-        df['angle'] = np.degrees(angle)
-        return df
-    
-    def actuator_angle_CB_configs(self,df):
-        #angle to send to the actuator
-        BX = df[['Bx','By']].values-df[['Cx','Cy']].values
-        angle = np.arctan2(BX[:,1], BX[:,0])
-        df['angle'] = np.degrees(angle)
-        return df
-    
     def ball_config_param(self,d_centroids, ball_type):
         no_cue = self.get_all_detected_balls_except_cue(d_centroids)
         to_pocket = self.get_balls_to_be_pocket(d_centroids,ball_type)
@@ -346,6 +332,13 @@ class CTP(Brain):
         df = df.sort_values(by=['dificulty'], ascending=True)
         return df
 
+    def actuator_angle_CTP(self,df):
+        #angle to send to the actuator
+        CX = df[['Xx','Xy']].values-df[['Cx','Cy']].values
+        angle = np.arctan2(CX[:,1], CX[:,0])
+        df['angle'] = np.degrees(angle)
+        return df
+
     def selected_shots(self,d_centroids,ball_type):
         param=self.ball_config_param(d_centroids,ball_type)
         df=self.generate_combinations(param)
@@ -355,7 +348,7 @@ class CTP(Brain):
         collision_configs=self.collision_trajectories(df)
         df=df[~(collision_configs)]
         df = self.sort_df_by_difficulty(df)
-        df = self.actuator_angle_CT_configs(df)
+        df = self.actuator_angle_CTP(df)
         # TODO groupby to avoid repeating trajectories! (this groupby depends on shot type!)
         return df
 
@@ -419,6 +412,13 @@ class CBTP(Brain):
         df['dificulty'] = (dist_CB+dist_BX)*dist_TP / np.cos(XB_TX_abs_angle)
         df = df.sort_values(by=['dificulty'], ascending=True)
         return df
+    
+    def actuator_angle_CBTP(self,df):
+        #angle to send to the actuator
+        BX = df[['Bx','By']].values-df[['Cx','Cy']].values
+        angle = np.arctan2(BX[:,1], BX[:,0])
+        df['angle'] = np.degrees(angle)
+        return df
 
     def selected_shots(self,d_centroids,ball_type):
         param=self.ball_config_param(d_centroids,ball_type)
@@ -437,7 +437,7 @@ class CBTP(Brain):
         valid_bounces=self.find_valid_cushion_impacts(df[['C_reflect_id','Bx','By']].values)
         df=df[valid_bounces]
         df = self.sort_df_by_difficulty(df)
-        df = self.actuator_angle_CB_configs(df)
+        df = self.actuator_angle_CBTP(df)
         return df
     
 class CTTP(Brain):
@@ -503,6 +503,13 @@ class CTTP(Brain):
         df['dificulty'] = (difficulty1 + difficulty2)/2
         df = df.sort_values(by=['dificulty'], ascending=True)
         return df
+    
+    def actuator_angle_CTTP(self,df):
+        #angle to send to the actuator
+        CX = df[['X_new_x','X_new_y']].values-df[['Cx','Cy']].values
+        angle = np.arctan2(CX[:,1], CX[:,0])
+        df['angle'] = np.degrees(angle)
+        return df
 
     def selected_shots(self,d_centroids,ball_type):
         param=self.ball_config_param(d_centroids,ball_type)
@@ -519,7 +526,7 @@ class CTTP(Brain):
         collision_configs=self.collision_trajectories(df)
         df=df[~(collision_configs)]
         df = self.sort_df_by_difficulty(df)
-        df = self.actuator_angle_CT_configs(df)
+        df = self.actuator_angle_CTTP(df)
         return df
     
 class CTBP(Brain):
@@ -584,6 +591,13 @@ class CTBP(Brain):
         df['dificulty'] = (dist_TB+dist_BP)*dist_CX / np.cos(XC_TX_abs_angle)
         df = df.sort_values(by=['dificulty'], ascending=True)
         return df
+    
+    def actuator_angle_CTBP(self,df):
+        #angle to send to the actuator
+        CX = df[['Xx','Xy']].values-df[['Cx','Cy']].values
+        angle = np.arctan2(CX[:,1], CX[:,0])
+        df['angle'] = np.degrees(angle)
+        return df
 
     def selected_shots(self,d_centroids,ball_type): 
         param=self.ball_config_param(d_centroids,ball_type)
@@ -619,7 +633,7 @@ class CTBP(Brain):
         valid_bounces=self.find_valid_cushion_impacts(df[['T_reflect_sub_id','Bx','By']].values)
         df=df[valid_bounces]
         df = self.sort_df_by_difficulty(df)
-        df = self.actuator_angle_CT_configs(df)
+        df = self.actuator_angle_CTBP(df)
         return df
 
 class ShotSelection:

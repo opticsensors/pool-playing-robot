@@ -12,7 +12,7 @@ yolo = Yolo()
 ss = ShotSelection()
 eye = Eye()
 
-turn='strip'
+turn='solid'
 
 img = cv2.imread('./results/img_0.jpg')
 img_undist_warp = eye.undistort_and_warp_image(img)
@@ -31,3 +31,6 @@ angle_dxl = angle + 90
 steps1,steps2=ik.img_data_to_steps(uvBallCentroid, angle_dxl)
 steps1=int(steps1)
 steps2=int(steps2)
+
+print(d_centroids)
+print(angle, angle_dxl,steps1,steps2)
