@@ -68,16 +68,6 @@ class Brain:
         Cx=C[0,0]
         Cy=C[0,1]
 
-        # check if C inside rect frame
-        if Cx>self.pool_frame.right_x:
-            Cx=self.pool_frame.right_x
-        elif Cx<self.pool_frame.left_x:
-            Cx=self.pool_frame.left_x
-        if Cy>self.pool_frame.bottom_y:
-            Cy=self.pool_frame.bottom_y
-        elif Cy<self.pool_frame.top_y:
-            Cy=self.pool_frame.top_y
-
         dist_C_top = Cy-self.pool_frame.top_y
         dist_C_bottom = -Cy+self.pool_frame.bottom_y
         dist_C_left = Cx-self.pool_frame.left_x
@@ -97,11 +87,6 @@ class Brain:
         Ty=T[:,2].reshape(-1,1)
         T_reflect_sub_id=np.array([1,2,3,4]).reshape(-1,1)
         T_reflect_id = T[:,0].reshape(-1,1)
-
-        Tx[Tx>self.pool_frame.right_x]=self.pool_frame.right_x
-        Tx[Tx<self.pool_frame.left_x]=self.pool_frame.left_x
-        Ty[Ty>self.pool_frame.bottom_y]=self.pool_frame.bottom_y
-        Ty[Ty<self.pool_frame.top_y]=self.pool_frame.top_y
 
         dist_T_top = Ty-self.pool_frame.top_y
         dist_T_bottom = -Ty+self.pool_frame.bottom_y
@@ -616,21 +601,6 @@ class CTBP(Brain):
                                            df[['Px', 'Py']].values,)
         df['Bx']=B_comb[:,0]
         df['By']=B_comb[:,1]
-        df=df[((df['P_id']==6) & (df['T_reflect_sub_id']==1)) | # TODO remove these wall of conditions if they are not necessary
-        ((df['P_id']==6) & (df['T_reflect_sub_id']==2)) |
-        ((df['P_id']==5) & (df['T_reflect_sub_id']==1)) |
-        ((df['P_id']==5) & (df['T_reflect_sub_id']==2)) |
-        ((df['P_id']==5) & (df['T_reflect_sub_id']==4)) |
-        ((df['P_id']==4) & (df['T_reflect_sub_id']==1)) |
-        ((df['P_id']==4) & (df['T_reflect_sub_id']==4)) |
-        ((df['P_id']==3) & (df['T_reflect_sub_id']==3)) |
-        ((df['P_id']==3) & (df['T_reflect_sub_id']==4)) |
-        ((df['P_id']==2) & (df['T_reflect_sub_id']==2)) |
-        ((df['P_id']==2) & (df['T_reflect_sub_id']==3)) |
-        ((df['P_id']==2) & (df['T_reflect_sub_id']==4)) |
-        ((df['P_id']==1) & (df['T_reflect_sub_id']==3)) |
-        ((df['P_id']==1) & (df['T_reflect_sub_id']==2)) ]
-
         X_comb = self.find_X(  df[['Tx', 'Ty']].values,
                                 df[['Bx', 'By']].values)
         df['Xx']=X_comb[:,0]
@@ -664,24 +634,52 @@ class ShotSelection:
         self.cttp=CTTP(self.pool_frame, self.ball_radius)
         self.ctbp=CTBP(self.pool_frame, self.ball_radius)
     
-    def get_actuator_angle(self, d_centroids, turn):
+    def correct_centroids(self, d_centroids, epsilon=0.1):
+        new_d_centroids={}
+        for ball_num, centroid in d_centroids.items():
+            cx, cy = centroid
+            if cx>self.pool_frame.right_x:
+                cx=self.pool_frame.right_x+epsilon
+            elif cx<self.pool_frame.left_x:
+                cx=self.pool_frame.left_x+epsilon
+            if cy>self.pool_frame.bottom_y:
+                cy=self.pool_frame.bottom_y+epsilon
+            elif cy<self.pool_frame.top_y:
+                cy=self.pool_frame.top_y+epsilon
+            new_d_centroids[ball_num]=[cx, cy]
+        return new_d_centroids
+
+    def get_actuator_angle(self, d_centroids, turn, shot_type=None):
+        d_centroids=self.correct_centroids(d_centroids)
         df_ctp =self.ctp.selected_shots(d_centroids, turn)
         df_cbtp=self.cbtp.selected_shots(d_centroids, turn)
         df_cttp=self.cttp.selected_shots(d_centroids, turn)
         df_ctbp=self.ctbp.selected_shots(d_centroids, turn)
+        angle=None
 
-        if len(df_ctp)!=0:
-            angle = df_ctp.iloc[0]['angle']
-        elif len(df_cbtp)!=0:
-            angle = df_cbtp.iloc[0]['angle']
-        elif len(df_cttp)!=0:
-            angle = df_cttp.iloc[0]['angle']
-        elif len(df_ctbp)!=0:
-            angle = df_ctbp.iloc[0]['angle']
-            
+        if shot_type is None:
+            if len(df_ctp)!=0:
+                angle = df_ctp.iloc[0]['angle']
+            elif len(df_cbtp)!=0:
+                angle = df_cbtp.iloc[0]['angle']
+            elif len(df_cttp)!=0:
+                angle = df_cttp.iloc[0]['angle']
+            elif len(df_ctbp)!=0:
+                angle = df_ctbp.iloc[0]['angle']
+        else:
+            if shot_type=='CTP':
+                angle = df_ctp.iloc[0]['angle']
+            elif shot_type=='CTBP':
+                angle = df_cbtp.iloc[0]['angle']
+            elif shot_type=='CTTP':
+                angle = df_cttp.iloc[0]['angle']
+            elif shot_type=='CBTP':
+                angle = df_ctbp.iloc[0]['angle']
+
         return angle
 
     def debug(self, img, d_centroids, turn, shot_type):
+        d_centroids=self.correct_centroids(d_centroids)
         img_to_draw=img.copy()
         if shot_type == 'CTP':
             df =self.ctp.selected_shots(d_centroids, turn)   
