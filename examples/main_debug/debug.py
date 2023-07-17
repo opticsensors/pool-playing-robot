@@ -1,7 +1,7 @@
 import cv2
 from pool.calibration import InverseKinematics
 from pool.ball_detection import Yolo
-from pool.brain import ShotSelection
+from pool.shot_selection import GeomericSolution
 from pool.eye import Eye
 
 print("Done importing!")
@@ -9,7 +9,7 @@ print("Done importing!")
 #necessary objects
 ik = InverseKinematics()
 yolo = Yolo()
-ss = ShotSelection()
+gs = GeomericSolution()
 eye = Eye()
 
 turn='solid'
@@ -23,8 +23,8 @@ img_yolo_debug = yolo.debug(img_undist_warp, d_centroids)
 cv2.imwrite('./results/img_yolo_debug.png', img_yolo_debug)
 
 uvBallCentroid = d_centroids[0]
-angle = ss.get_actuator_angle(d_centroids, turn)
-img_brain_debug,df = ss.debug(img_undist_warp, d_centroids, turn, shot_type='CBTP')
+angle = gs.get_actuator_angle(d_centroids, turn)
+img_brain_debug,df = gs.debug(img_undist_warp, d_centroids, turn, shot_type='CBTP')
 cv2.imwrite('./results/img_brain_debug.png', img_brain_debug)
 
 angle_dxl = angle + 90 

@@ -14,7 +14,7 @@ class PoolEnv(gym.Env):
   s = {turn: 0 or 1, ball_i: [xi, yi], ball_j: [xj, yj], ...}
   """
 
-  def __init__(self, computation_rectangle, d_centroids, cushions,pockets, max_steps=5000, render_mode ='human'):
+  def __init__(self, d_centroids, computation_rectangle, cushions,pockets, max_steps=5000, render_mode ='human'):
     """ Constructor
     :param seed: the random seed for the environment
     :param max_steps: the maximum number of steps the episode lasts

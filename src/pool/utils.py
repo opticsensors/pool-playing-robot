@@ -54,7 +54,7 @@ class Params(object):
     self.CUE_FORCE = 50000
 
     # GRAPHIC PARAMS
-    self.TARGET_FPS = 60
+    self.TARGET_FPS = 120
     self.TIME_STEP = 1.0 / self.TARGET_FPS
     self.MAX_ENV_STEPS = 10
 

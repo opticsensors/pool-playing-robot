@@ -7,7 +7,7 @@ from pool.cam import Camera_DLSR, Camera_DLSR_settings
 from pool.calibration import InverseKinematics
 from pool.dynamixel import Dynamixel
 from pool.ball_detection import Yolo
-from pool.brain import ShotSelection
+from pool.shot_selection import GeomericSolution
 from pool.eye import Eye
 
 print("Done importing!")
@@ -33,7 +33,7 @@ camera.collection_name = f'{date_name}'
 #necessary objects
 ik = InverseKinematics()
 yolo = Yolo()
-ss = ShotSelection()
+gs = GeomericSolution()
 eye = Eye()
 
 #init position and stepper mode
@@ -64,7 +64,7 @@ while activated:
                     img_undist_warp = eye.undistort_and_warp_image(img)
                     d_centroids, _ = yolo.detect_balls(img_undist_warp,conf=0.75, overlap_threshold=100)
                     uvBallCentroid = d_centroids[0]
-                    angle = ss.get_actuator_angle(d_centroids, turn) #  returns angles in the range [-180,180]
+                    angle = gs.get_actuator_angle(d_centroids, turn) #  returns angles in the range [-180,180]
                     angle_dxl = angle + 90 
                     print("angle: ", angle, file=f)
                     print("angle_dxl: ", angle_dxl, file=f)
