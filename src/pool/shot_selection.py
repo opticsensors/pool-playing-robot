@@ -182,6 +182,6 @@ class GeomericSolution:
         elif shot_type == 'CTBP':
             df=self.ctbp.selected_shots(d_centroids, turn)
             img=self.ctbp.draw_all_trajectories(df, img_to_draw)
-        img_to_draw=self.ctp.draw_pool_balls(d_centroids,img_to_draw) # TODO valid for self.ctp, self.cbtp ... make this cleaner
+        img_to_draw=self.pool_frame.draw_pool_balls(img_to_draw, d_centroids)
         img_to_draw=self.pool_frame.draw_frame(img_to_draw)
         return img_to_draw, df

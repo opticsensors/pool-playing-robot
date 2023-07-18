@@ -142,8 +142,8 @@ class Brain:
         arr_configs=df[rows_to_match].values
         collision_configs=(arr_configs[None,:]==arr_collisions[:,None]).all(-1).any(0)
         return collision_configs
-
-    def find_X(self,T,P): # TODO X should be inside computational rectangle
+    
+    def find_X(self,T,P): 
 
         r=self.ball_radius
         b=np.linalg.norm(T-P, axis=1)
@@ -159,7 +159,7 @@ class Brain:
     def find_valid_X_points(self, points):
         cond = ((points[:,0]>self.pool_frame.left_x) & (points[:,0]<self.pool_frame.right_x)) & ((points[:,1]>self.pool_frame.top_y) & (points[:,1]<self.pool_frame.bottom_y))
         return cond
-    
+
     def find_bouncing_points(self, C_reflect, X):
         
         points=np.hstack((C_reflect,X))
@@ -248,15 +248,6 @@ class Brain:
         P=self.pool_frame.pockets.pockets
         param={'C':C, 'C_reflect':C_reflect, 'T':T, 'TT':TT, 'T_reflect':T_reflect, 'P':P}
         return param
-
-    def draw_pool_balls(self, d_centroids, img):
-        for ball_num in d_centroids:
-            x,y=d_centroids[ball_num]
-            img=cv2.putText(img, "#{}".format(int(ball_num)), (int(x) - 10, int(y)), cv2.FONT_HERSHEY_SIMPLEX, 2, (0, 255, 0), 3)
-            img=cv2.circle(img, (int(x), int(y)), 8, (255, 0, 255), -1)
-            img=cv2.circle(img, (int(x), int(y)), self.ball_radius, (255, 0, 255), 8)
-
-        return img
     
     def draw_trajectories(self, img, points1, points2):
         
@@ -289,7 +280,7 @@ class CTP(Brain):
                         'Py':comb[:,11]})
         return df
     
-    def collision_trajectories(self,df):
+    def remove_collision_trajectories_from_df(self,df):
         collision_balls=df[['other_ball_x', 'other_ball_y']].values
         origin1=df[['Cx', 'Cy']].values
         destiny1=df[['Xx', 'Xy']].values
@@ -298,7 +289,16 @@ class CTP(Brain):
         traj=((origin1,destiny1), (origin2, destiny2))
         rows_to_match=['T_id', 'P_id', 'P_sub_id']
         collision_configs=self.find_all_collision_trajectories_in_df(df,traj,rows_to_match, collision_balls)
-        return collision_configs
+        df=df[~(collision_configs)]
+        return df
+    
+    def find_all_valid_X_points_in_df(self, df):
+        X_comb = self.find_X(df[['Tx', 'Ty']].values,df[['Px', 'Py']].values)
+        df['Xx']=X_comb[:,0]
+        df['Xy']=X_comb[:,1]
+        valid_X_points=self.find_valid_X_points(X_comb)
+        df=df[(valid_X_points)]
+        return df
     
     def draw_all_trajectories(self,df,img):
         img=self.draw_trajectories(img,df[['Cx', 'Cy']].values,df[['Xx', 'Xy']].values)
@@ -328,13 +328,8 @@ class CTP(Brain):
     def selected_shots(self,d_centroids,ball_type):
         param=self.ball_config_param(d_centroids,ball_type)
         df=self.generate_combinations(param)
-        X_comb = self.find_X(df[['Tx', 'Ty']].values,df[['Px', 'Py']].values)
-        df['Xx']=X_comb[:,0]
-        df['Xy']=X_comb[:,1]
-        valid_X_points=self.find_valid_X_points(X_comb)
-        df=df[(valid_X_points)]
-        collision_configs=self.collision_trajectories(df)
-        df=df[~(collision_configs)]
+        df = self.find_all_valid_X_points_in_df(df)
+        df = self.remove_collision_trajectories_from_df(df)
         df = self.sort_df_by_difficulty(df)
         df = self.actuator_angle_CTP(df)
         # TODO groupby to avoid repeating trajectories! (this groupby depends on shot type!)
@@ -368,7 +363,7 @@ class CBTP(Brain):
                         'Py':comb[:,14]})
         return df
     
-    def collision_trajectories(self,df):
+    def remove_collision_trajectories_from_df(self,df):
         collision_balls=df[['other_ball_x', 'other_ball_y']].values
         origin1=df[['Cx', 'Cy']].values
         destiny1=df[['Bx', 'By']].values
@@ -379,8 +374,26 @@ class CBTP(Brain):
         traj=((origin1,destiny1), (origin2, destiny2), (origin3, destiny3))
         rows_to_match=['T_id', 'C_reflect_id', 'P_id', 'P_sub_id']
         collision_configs=self.find_all_collision_trajectories_in_df(df,traj,rows_to_match, collision_balls)
-        return collision_configs
+        df=df[~(collision_configs)]
+        return df
     
+    def find_all_valid_X_points_in_df(self, df):
+        X_comb = self.find_X(df[['Tx', 'Ty']].values,df[['Px', 'Py']].values)
+        df['Xx']=X_comb[:,0]
+        df['Xy']=X_comb[:,1]
+        valid_X_points=self.find_valid_X_points(X_comb)
+        df=df[(valid_X_points)]
+        return df
+    
+    def find_all_valid_bouncing_points_in_df(self, df):
+        B_comb = self.find_bouncing_points(df[['C_reflect_id','C_reflect_x', 'C_reflect_y']].values,
+                                           df[['Xx', 'Xy']].values,)
+        df['Bx']=B_comb[:,0]
+        df['By']=B_comb[:,1]
+        valid_bounces=self.find_valid_cushion_impacts(df[['C_reflect_id','Bx','By']].values)
+        df = df[valid_bounces]
+        return df
+
     def draw_all_trajectories(self,df,img):
         img=self.draw_trajectories(img,df[['Bx', 'By']].values, df[['Cx', 'Cy']].values)
         img=self.draw_trajectories(img,df[['Bx', 'By']].values, df[['Xx', 'Xy']].values)
@@ -411,20 +424,9 @@ class CBTP(Brain):
     def selected_shots(self,d_centroids,ball_type):
         param=self.ball_config_param(d_centroids,ball_type)
         df=self.generate_combinations(param)
-        X_comb = self.find_X(df[['Tx', 'Ty']].values,
-                             df[['Px', 'Py']].values)
-        df['Xx']=X_comb[:,0]
-        df['Xy']=X_comb[:,1]
-        valid_X_points=self.find_valid_X_points(X_comb)
-        df=df[(valid_X_points)]
-        B_comb = self.find_bouncing_points(df[['C_reflect_id','C_reflect_x', 'C_reflect_y']].values,
-                                           df[['Xx', 'Xy']].values,)
-        df['Bx']=B_comb[:,0]
-        df['By']=B_comb[:,1]
-        collision_configs=self.collision_trajectories(df)
-        df=df[~(collision_configs)]
-        valid_bounces=self.find_valid_cushion_impacts(df[['C_reflect_id','Bx','By']].values)
-        df=df[valid_bounces]
+        df = self.find_all_valid_X_points_in_df(df)
+        df = self.find_all_valid_bouncing_points_in_df(df)
+        df = self.remove_collision_trajectories_from_df(df)
         df = self.sort_df_by_difficulty(df)
         df = self.actuator_angle_CBTP(df)
         return df
@@ -456,7 +458,7 @@ class CTTP(Brain):
                         'Py':comb[:,14]})
         return df
     
-    def collision_trajectories(self,df):
+    def remove_collision_trajectories_from_df(self,df):
         collision_balls=df[['other_ball_x', 'other_ball_y']].values
         origin1=df[['Cx', 'Cy']].values
         destiny1=df[['X_new_x', 'X_new_y']].values
@@ -467,8 +469,24 @@ class CTTP(Brain):
         traj=((origin1,destiny1), (origin2, destiny2), (origin3, destiny3))
         rows_to_match=['T_id', 'TT_id', 'P_id','P_sub_id'] 
         collision_configs=self.find_all_collision_trajectories_in_df(df,traj,rows_to_match, collision_balls)
-        return collision_configs
+        df=df[~(collision_configs)]
+        return df
     
+    def find_all_valid_X_points_in_df(self, df):
+        X_comb = self.find_X(T=df[['Tx', 'Ty']].values,
+                            P=df[['Px', 'Py']].values)
+        df['Xx']=X_comb[:,0]
+        df['Xy']=X_comb[:,1]
+        valid_X_points=self.find_valid_X_points(X_comb)
+        df=df[(valid_X_points)].copy()
+        X_new_comb = self.find_X(T=df[['TTx', 'TTy']].values,
+                                P=df[['Xx', 'Xy']].values)
+        df['X_new_x']=X_new_comb[:,0]
+        df['X_new_y']=X_new_comb[:,1]
+        valid_X_points=self.find_valid_X_points(X_new_comb)
+        df=df[(valid_X_points)].copy()        
+        return df   
+
     def draw_all_trajectories(self,df,img):
         img=self.draw_trajectories(img,df[['Cx', 'Cy']].values, df[['X_new_x', 'X_new_y']].values)
         img=self.draw_trajectories(img,df[['TTx', 'TTy']].values, df[['Xx', 'Xy']].values)
@@ -503,20 +521,8 @@ class CTTP(Brain):
     def selected_shots(self,d_centroids,ball_type):
         param=self.ball_config_param(d_centroids,ball_type)
         df=self.generate_combinations(param)
-        X_comb = self.find_X(T=df[['Tx', 'Ty']].values,
-                            P=df[['Px', 'Py']].values)
-        df['Xx']=X_comb[:,0]
-        df['Xy']=X_comb[:,1]
-        valid_X_points=self.find_valid_X_points(X_comb)
-        df=df[(valid_X_points)]
-        X_new_comb = self.find_X(T=df[['TTx', 'TTy']].values,
-                                P=df[['Xx', 'Xy']].values)
-        df['X_new_x']=X_new_comb[:,0]
-        df['X_new_y']=X_new_comb[:,1]
-        valid_X_points=self.find_valid_X_points(X_new_comb)
-        df=df[(valid_X_points)]
-        collision_configs=self.collision_trajectories(df)
-        df=df[~(collision_configs)]
+        df = self.find_all_valid_X_points_in_df(df)
+        df = self.remove_collision_trajectories_from_df(df)
         df = self.sort_df_by_difficulty(df)
         df = self.actuator_angle_CTTP(df)
         return df
@@ -551,7 +557,7 @@ class CTBP(Brain):
         df=df[df['T_reflect_id']==df['T_id']]
         return df
     
-    def collision_trajectories(self,df):
+    def remove_collision_trajectories_from_df(self,df):
         collision_balls=df[['other_ball_x', 'other_ball_y']].values
         origin1=df[['Cx', 'Cy']].values
         destiny1=df[['Xx', 'Xy']].values
@@ -562,7 +568,26 @@ class CTBP(Brain):
         traj=((origin1,destiny1), (origin2, destiny2), (origin3, destiny3))
         rows_to_match=['T_id', 'T_reflect_sub_id', 'P_id', 'P_sub_id']
         collision_configs=self.find_all_collision_trajectories_in_df(df,traj,rows_to_match, collision_balls)
-        return collision_configs
+        df=df[~(collision_configs)]
+        return df
+    
+    def find_all_valid_X_points_in_df(self, df):
+        X_comb = self.find_X(  df[['Tx', 'Ty']].values,
+                                df[['Bx', 'By']].values)
+        df['Xx']=X_comb[:,0]
+        df['Xy']=X_comb[:,1]
+        valid_X_points=self.find_valid_X_points(X_comb)
+        df=df[(valid_X_points)]
+        return df
+    
+    def find_all_valid_bouncing_points_in_df(self, df):
+        B_comb = self.find_bouncing_points(df[['T_reflect_sub_id','T_reflect_x', 'T_reflect_y']].values,
+                                           df[['Px', 'Py']].values,)
+        df['Bx']=B_comb[:,0]
+        df['By']=B_comb[:,1]
+        valid_bounces=self.find_valid_cushion_impacts(df[['T_reflect_sub_id','Bx','By']].values)
+        df=df[valid_bounces]
+        return df
     
     def draw_all_trajectories(self,df,img):
         img=self.draw_trajectories(img,df[['Cx', 'Cy']].values, df[['Xx', 'Xy']].values)
@@ -594,22 +619,9 @@ class CTBP(Brain):
     def selected_shots(self,d_centroids,ball_type): 
         param=self.ball_config_param(d_centroids,ball_type)
         df=self.generate_combinations(param)
-
-        B_comb = self.find_bouncing_points(df[['T_reflect_sub_id','T_reflect_x', 'T_reflect_y']].values,
-                                           df[['Px', 'Py']].values,)
-        df['Bx']=B_comb[:,0]
-        df['By']=B_comb[:,1]
-        X_comb = self.find_X(  df[['Tx', 'Ty']].values,
-                                df[['Bx', 'By']].values)
-        df['Xx']=X_comb[:,0]
-        df['Xy']=X_comb[:,1]
-        valid_X_points=self.find_valid_X_points(X_comb)
-        df=df[(valid_X_points)]
-        collision_configs=self.collision_trajectories(df)
-        df=df[~(collision_configs)]
-
-        valid_bounces=self.find_valid_cushion_impacts(df[['T_reflect_sub_id','Bx','By']].values)
-        df=df[valid_bounces]
+        df = self.find_all_valid_bouncing_points_in_df(df)
+        df = self.find_all_valid_X_points_in_df(df)
+        df = self.remove_collision_trajectories_from_df(df)
         df = self.sort_df_by_difficulty(df)
         df = self.actuator_angle_CTBP(df)
         return df

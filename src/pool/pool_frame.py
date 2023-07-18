@@ -90,37 +90,52 @@ class Cushions:
 
 class PoolFrame:
     def __init__(self,
-                 pockets = None,
-                 cushions = None):
+                 ball_radius = None,
+                 computation_rectangle = None,
+                 cushion_ranges = None,
+                 pockets_positions = None,
+                 precision = 0):
         
         params=utils.Params()
+        if ball_radius is None:
+            self.ball_radius=params.BALL_RADIUS
+        else:
+            self.ball_radius=ball_radius
+
+        if computation_rectangle is None:
+            self.computation_rectangle=params.COMPUTATIONAL_RECTANGLE
+        else:
+            self.computation_rectangle=computation_rectangle
+        
+        if cushion_ranges is None:
+            self.cushion_ranges=params.CUSHION_RANGES
+        else:
+            self.cushion_ranges=cushion_ranges
+
+        if pockets_positions is None:
+            self.pockets_positions=params.POCKETS
+        else:
+            self.pockets_positions=pockets_positions
+
         self.rectangle = params.COMPUTATIONAL_RECTANGLE
-        if pockets is None:
-            self.pockets = pockets=Pockets(pockets = params.POCKETS,
-                                           computation_rectangle = self.rectangle,
-                                           precision=0)
-        else:
-            self.pockets=pockets
-
-        if cushions is None:
-            self.cushions = cushions=Cushions(computation_rectangle = self.rectangle,
-                                              cushion_ranges=params.CUSHION_RANGES)
-        else:
-            self.cushions=cushions
-
-        self.top_y = self.rectangle.top_y
-        self.right_x = self.rectangle.right_x
-        self.bottom_y = self.rectangle.bottom_y
-        self.left_x = self.rectangle.left_x
-        self.top_left = self.rectangle.top_left
-        self.top_right = self.rectangle.top_right
-        self.bottom_right = self.rectangle.bottom_right
-        self.bottom_left = self.rectangle.bottom_left
+        self.pockets = Pockets(pockets = self.pockets_positions,
+                               computation_rectangle = self.computation_rectangle,
+                               precision = precision)
+        self.cushions = Cushions(computation_rectangle = self.rectangle,
+                                 cushion_ranges = self.cushion_ranges)
+   
+        self.top_y = self.computation_rectangle.top_y
+        self.right_x = self.computation_rectangle.right_x
+        self.bottom_y = self.computation_rectangle.bottom_y
+        self.left_x = self.computation_rectangle.left_x
+        self.top_left = self.computation_rectangle.top_left
+        self.top_right = self.computation_rectangle.top_right
+        self.bottom_right = self.computation_rectangle.bottom_right
+        self.bottom_left = self.computation_rectangle.bottom_left
         x_range1, x_range2, y_range = self.cushions.cushion_ranges
         self.xrange_horizontal_left_cushion = x_range1
         self.xrange_horizontal_right_cushion = x_range2
         self.xrange_vertical_cushion = y_range
-
 
     @staticmethod
     def draw_pocket(img,point,radius):
@@ -157,4 +172,13 @@ class PoolFrame:
         for row in self.cushions.cushions:
             img=self.draw_segment(img,row)
         
+        return img
+
+    def draw_pool_balls(self, img, d_centroids):
+        for ball_num in d_centroids:
+            x,y=d_centroids[ball_num]
+            img=cv2.putText(img, "#{}".format(int(ball_num)), (int(x) - 10, int(y)), cv2.FONT_HERSHEY_SIMPLEX, 2, (0, 255, 0), 3)
+            img=cv2.circle(img, (int(x), int(y)), 8, (255, 0, 255), -1)
+            img=cv2.circle(img, (int(x), int(y)), self.ball_radius, (255, 0, 255), 8)
+
         return img
