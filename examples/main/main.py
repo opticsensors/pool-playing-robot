@@ -64,7 +64,7 @@ while activated:
                     img_undist_warp = eye.undistort_and_warp_image(img)
                     d_centroids, _ = yolo.detect_balls(img_undist_warp,conf=0.75, overlap_threshold=100)
                     uvBallCentroid = d_centroids[0]
-                    angle = gs.get_actuator_angle(d_centroids, turn) #  returns angles in the range [-180,180]
+                    angle = gs.get_actuator_angle(d_centroids, turn, shot_type='CTP') #  returns angles in the range [-180,180]
                     angle_dxl = angle + 90 
                     print("angle: ", angle, file=f)
                     print("angle_dxl: ", angle_dxl, file=f)

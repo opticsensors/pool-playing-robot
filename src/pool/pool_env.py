@@ -14,22 +14,34 @@ class PoolEnv(gym.Env):
   s = {turn: 0 or 1, ball_i: [xi, yi], ball_j: [xj, yj], ...}
   """
 
-  def __init__(self, d_centroids, computation_rectangle, cushions,pockets, max_steps=5000, render_mode ='human'):
+  def __init__(self, 
+               computation_rectangle=None,
+               cushions=None,
+               pockets=None, 
+               max_steps=5000, 
+               render_mode ='human'):
     """ Constructor
     :param seed: the random seed for the environment
     :param max_steps: the maximum number of steps the episode lasts
     :return:
     """
-    self.computation_rectangle = computation_rectangle
-    self.min_xy = computation_rectangle.top_left 
-    self.max_xy = computation_rectangle.bottom_right
+    self.params = Params()
+    if computation_rectangle is None:
+      self.computation_rectangle = self.params.COMPUTATIONAL_RECTANGLE
+    else:
+      self.computation_rectangle = computation_rectangle
+    if cushions is None:
+      cushions = self.params.CUSHIONS
+    if pockets is None:
+      pockets = self.params.POCKETS
+      
+    self.min_xy = self.computation_rectangle.top_left 
+    self.max_xy = self.computation_rectangle.bottom_right
 
     self.screen = None
     self.clock = None
-    self.params = Params()
     self.params.MAX_ENV_STEPS = max_steps
     self.physics_eng = PhysicsSim()
-    self.physics_eng.create_balls(d_centroids)
     self.physics_eng.create_cushions(cushions)
     self.physics_eng.create_pockets(pockets)
     self.physics_eng.handle_collisions()
@@ -38,7 +50,7 @@ class PoolEnv(gym.Env):
     dict_spaces={ str(ball_num): spaces.Box(low=np.float32(self.min_xy), 
                                      high=np.float32(self.max_xy), 
                                      shape=(2,), 
-                                     dtype=np.float32) for ball_num in d_centroids}
+                                     dtype=np.float32) for ball_num in range(0,16)}
     dict_spaces = {**{'turn': spaces.Discrete(2) }, **dict_spaces}
     self.observation_space = spaces.Dict(dict_spaces)
 

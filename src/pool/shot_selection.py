@@ -26,7 +26,7 @@ class BruteForce:
 
                 list_of_dict.append(dict_to_save.copy())
                 env.close()
-                env=PoolEnv(config, self.params.COMPUTATIONAL_RECTANGLE, self.params.CUSHIONS, self.params.POCKETS, render_mode = None)
+                env=PoolEnv(render_mode = None)
                 observation, info = env.reset(config, turn)
 
         df = pd.DataFrame(list_of_dict, columns=list(list_of_dict[0].keys()))
@@ -52,22 +52,28 @@ class BruteForce:
                 prev_val=value
         arr_cetroids=np.array(centroids)
         arr_weights=np.array(weights)
-        maximum=arr_cetroids[np.unravel_index(np.nanargmax(arr_weights, axis=None), arr_weights.shape)]
-        angle=df['action'].iloc[maximum]
+        try:
+            maximum=arr_cetroids[np.unravel_index(np.nanargmax(arr_weights, axis=None), arr_weights.shape)]
+            angle=df['action'].iloc[maximum]
+        except ValueError:
+            angle=None
         return angle
 
     def map_angle(self, angle): 
         """
         maps angle from 0,360 to -180,180
         """
-        return (angle+180)%360-180
+        if angle is not None:
+            return (angle+180)%360-180
+        else:
+            return angle
 
     def get_actuator_angle(self, config, turn, first_sweep_precision=2, second_sweep_precision=0.4):
         if turn == 'solid':
             turn=0
         elif turn == 'strip':
             turn=1
-        env=PoolEnv(config, self.params.COMPUTATIONAL_RECTANGLE, self.params.CUSHIONS, self.params.POCKETS, render_mode = None)
+        env=PoolEnv(render_mode = None)
         observation, info = env.reset(config, turn)
         first_sweep = list(np.arange(0, 360, first_sweep_precision))
         df1 = self.angle_sweep(env, config, turn, first_sweep)
@@ -100,7 +106,7 @@ class BruteForce:
             turn=0
         elif turn == 'strip':
             turn=1
-        env=PoolEnv(config, self.params.COMPUTATIONAL_RECTANGLE, self.params.CUSHIONS, self.params.POCKETS, render_mode = 'human')
+        env=PoolEnv(render_mode = 'human')
         observation, info = env.reset(config, turn)
         observation, reward, terminated, truncated, info = env.step(angle)
         env.close()
@@ -158,11 +164,11 @@ class GeomericSolution:
         else:
             if shot_type=='CTP':
                 angle = df_ctp.iloc[0]['angle']
-            elif shot_type=='CTBP':
+            elif shot_type=='CBTP':
                 angle = df_cbtp.iloc[0]['angle']
             elif shot_type=='CTTP':
                 angle = df_cttp.iloc[0]['angle']
-            elif shot_type=='CBTP':
+            elif shot_type=='CTBP':
                 angle = df_ctbp.iloc[0]['angle']
 
         return angle

@@ -70,7 +70,7 @@ df['config_id'] = df.groupby(['Ay', 'l1', 'l2', 'a', 'b',]).ngroup()
 
 print('total configs',np.unique(df['config_id']).max())
 
-angle=utils.angle_between_3_points(A,B,C)
+angle=np.degrees(utils.angle_between_3_points(A,B,C))
 df['angle']=angle
 
 list_of_dict=[]
