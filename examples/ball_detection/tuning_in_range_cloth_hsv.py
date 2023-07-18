@@ -17,7 +17,7 @@ cv2.createTrackbar("U - V", "Trackbars", 255, 255, nothing)
 while True:
     time.sleep(0.33)
 
-    img = cv2.imread(f'./results/warp.jpg')
+    img = cv2.imread(f'./results/warp_1.png')
     hsv=cv2.cvtColor(img.copy(), cv2.COLOR_BGR2HSV)
     
     l_h = cv2.getTrackbarPos("L - H", "Trackbars")

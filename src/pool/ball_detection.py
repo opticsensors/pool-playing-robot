@@ -401,17 +401,16 @@ class ClassicCV:
             cv2.imwrite(f'{debug_path}blobs_with_contours_drawn.png', blobs_with_contours_drawn)
             cv2.imwrite(f'{debug_path}results_tune_white.png', results_tune_white)
             cv2.imwrite(f'{debug_path}results_tune_color.png', results_tune_color)
-
-            labeled_balls=warp.copy()
-            for ball_num in sorted_centroids:
-                x,y=sorted_centroids[ball_num]
-                labeled_balls=cv2.putText(labeled_balls.copy(), "#{}".format(ball_num), (int(x) - 10, int(y)),
-                cv2.FONT_HERSHEY_SIMPLEX, 3, (0, 255, 0), 2)
-                labeled_balls=cv2.circle(labeled_balls, (int(x), int(y)), 8, (255, 0, 255), -1)
-            
-            cv2.imwrite('./results/CLASSICCV_Detection.png', labeled_balls)
-
+        
         return sorted_centroids
+
+    def debug(self,img, d_centroids):
+        img_to_draw=img.copy()
+        for ball_num in d_centroids:
+            x,y=d_centroids[ball_num]
+            cv2.putText(img_to_draw, "#{}".format(ball_num), (int(x) - 10, int(y)),cv2.FONT_HERSHEY_SIMPLEX, 3, (0, 255, 0), 2)
+            cv2.circle(img_to_draw, (int(x), int(y)), 8, (255, 0, 255), -1)
+        return img_to_draw
     
 class Yolo:
     def __init__(self, data_path=None, model_path=None):

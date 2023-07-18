@@ -120,7 +120,7 @@ class Eye(object):
 
         return pool_corners
     
-    def find_all_aruco_coordinates(self, img):
+    def find_all_aruco_coordinates(self, img, debug_path='./results/', debug=False):
         arucoDict=cv2.aruco.DICT_4X4_100
         arucoDict = cv2.aruco.getPredefinedDictionary(arucoDict)
         arucoParams = cv2.aruco.DetectorParameters()
@@ -129,6 +129,8 @@ class Eye(object):
 
         corners, ids, rejected = arucoDetector.detectMarkers(img)
         id_to_centroids={}
+        if debug:
+            img_to_draw=img.copy()
 
         if len(corners) > 0:
             # flatten the ArUco IDs list
@@ -145,6 +147,26 @@ class Eye(object):
                 cX = (topLeft[0] + bottomRight[0]) / 2.0
                 cY = (topLeft[1] + bottomRight[1]) / 2.0
                 id_to_centroids[markerID]=(cX,cY)
+
+                if debug:
+                    # convert each of the (x, y)-coordinate pairs to integers
+                    topRight = (int(topRight[0]), int(topRight[1]))
+                    bottomRight = (int(bottomRight[0]), int(bottomRight[1]))
+                    bottomLeft = (int(bottomLeft[0]), int(bottomLeft[1]))
+                    topLeft = (int(topLeft[0]), int(topLeft[1]))
+
+                    # draw the bounding box of the ArUCo detection
+                    cv2.line(img_to_draw, topLeft, topRight, (0, 255, 0), 2)
+                    cv2.line(img_to_draw, topRight, bottomRight, (0, 255, 0), 2)
+                    cv2.line(img_to_draw, bottomRight, bottomLeft, (0, 255, 0), 2)
+                    cv2.line(img_to_draw, bottomLeft, topLeft, (0, 255, 0), 2)
+                    cv2.circle(img_to_draw, (int(cX), int(cY)), 4, (0, 0, 255), -1)
+                    # draw the ArUco marker ID on the img
+                    cv2.putText(img_to_draw, str(markerID),
+                        (topLeft[0], topLeft[1] - 15), cv2.FONT_HERSHEY_SIMPLEX,
+                        2.5, (0, 255, 0), 2)
+        if debug:
+            cv2.imwrite(f'{debug_path}all_arucos_detected.png', img_to_draw)
         return id_to_centroids
     
     def get_aruco_coordinates_given_aruco_id(self, img, aruco_to_track):
