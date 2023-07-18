@@ -106,11 +106,11 @@ while activated:
                     print("q pressed, exiting program")
                     activated = False
                     break
-
-            print('Send to arduino:', mode, steps1, steps2)
-            stp.sendToArduino(f"{mode},{steps1},{steps2}")
-            rotated=False
-            count_iter+=1
+            if activated:
+                print('Send to arduino:', mode, steps1, steps2)
+                stp.sendToArduino(f"{mode},{steps1},{steps2}")
+                rotated=False
+                count_iter+=1
 
 dxl.sendToDynamixel(int(0),50, 1)
 for i in range(10,0,-1):

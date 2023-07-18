@@ -5,16 +5,16 @@ from pool import utils
 # mechanism constants
 l1_min=20
 l1_max=26
-l2_min=23.6
+l2_min=23.6 # l2 is fixed by the metal piece
 l2_max=24.6
-x_min=0
-x_max=30
-a_min=35
+x_min=10
+x_max=40
+a_min=40
 a_max=60
-b_min=20
-b_max=21
-d_min=16
-d_max=28
+b_min=0
+b_max=1 # b is fixed by d and a
+d_min=20
+d_max=30
 
 a_arr=np.arange(a_min,a_max,1)
 b_arr=np.arange(b_min,b_max,1)
@@ -23,7 +23,6 @@ x_arr=np.arange(x_min,x_max,0.5)
 l1_arr=np.arange(l1_min,l1_max,1)
 l2_arr=np.arange(l2_min,l2_max,1)
 
-prev_P=None
 list_of_dict=[]
 dict_to_save={}
 
@@ -41,8 +40,7 @@ flipper_dist=63.7
 def new_b(a,flipper_dist):
     return np.sqrt(flipper_dist**2-a**2)
 
-new_b=new_b(a_comb, flipper_dist)
-b_comb=new_b.copy()
+b_comb=new_b(a_comb, flipper_dist)
 
 _,B=utils.intersection_two_circles(A,C,l1_comb,l2_comb)
 
@@ -66,7 +64,6 @@ df=pd.DataFrame({'Ax': combinations[:, 0], # == -x
                  })
 
 df['config_id'] = df.groupby(['Ay', 'l1', 'l2', 'a', 'b',]).ngroup()
-#df.to_csv(path_or_buf='./all_mechanisms.csv', sep=' ',index=False)
 
 print('total configs',np.unique(df['config_id']).max())
 
