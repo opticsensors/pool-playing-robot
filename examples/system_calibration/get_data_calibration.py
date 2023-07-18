@@ -2,8 +2,8 @@ import cv2
 import pandas as pd
 from pool.calibration import DataExtractor
 
-img_corners=cv2.imread('./results/auto_data1/img_1.jpg')
-img_arucos=cv2.imread('./results/auto_data1/img_arucos.jpg')
+img_corners=cv2.imread('./results/img_1.jpg')
+img_arucos=cv2.imread('./results/img_arucos.jpg')
 
 de = DataExtractor(img_corners)
 
@@ -30,7 +30,7 @@ for target_aruco, img_number in target_arucos_to_img_number.items():
     full_img_name=f'img_{img_number}.jpg'
     print(full_img_name)
 
-    img = cv2.imread(f'./results/auto_data1/{full_img_name}')
+    img = cv2.imread(f'./results/{full_img_name}')
     d_carriage_aruco=de.get_single_aruco_data(img, carriage_aruco)
 
     dict_to_save['img_num']=img_number
@@ -60,8 +60,8 @@ for target_aruco, img_number in target_arucos_to_img_number.items():
 # for convenience we convert the list of dict to a dataframe
 df = pd.DataFrame(list_of_dict, columns=list(list_of_dict[0].keys()))
 df=df.sort_values('img_num')
-df.to_csv(path_or_buf='./results/auto_data1/calibration_image_data.csv', sep=',',index=False)
+df.to_csv(path_or_buf='./results/calibration_image_data.csv', sep=',',index=False)
 
-points=pd.read_csv(f'./results/auto_data1/calibration_points.csv', sep=',',decimal='.')
+points=pd.read_csv(f'./results/calibration_points.csv', sep=',',decimal='.')
 df_merged=pd.merge(df, points, on='img_num')
-df_merged.to_csv(path_or_buf=f'./results/auto_data1/calibration_dof_to_step.csv', sep=',',index=False)
+df_merged.to_csv(path_or_buf=f'./results/calibration_dof_to_step.csv', sep=',',index=False)

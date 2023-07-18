@@ -7,7 +7,7 @@ from sklearn.metrics import r2_score, mean_squared_error
 eye=Eye()
 calib=CameraCalibration()
 rvec,tvec=calib.load_world_frame()
-df = pd.read_csv('./results/auto_data1/calibration_dof_to_step.csv', sep=',',decimal='.')
+df = pd.read_csv('./results/calibration_dof_to_step.csv', sep=',',decimal='.')
 l_carriage_pred=[]
 
 a= 8.906e-01 

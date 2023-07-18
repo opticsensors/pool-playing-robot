@@ -3,7 +3,7 @@ import pandas as pd
 from scipy.optimize import minimize
 from pool.calibration import CameraCalibration
 
-df = pd.read_csv('./results/auto_data1/calibration_dof_to_step.csv', sep=',',decimal='.')
+df = pd.read_csv('./results/calibration_dof_to_step.csv', sep=',',decimal='.')
 
 calib=CameraCalibration()
 
