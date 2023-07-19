@@ -10,6 +10,9 @@ from ultralytics.yolo.utils.plotting import Annotator
 from pool.utils import Params
 
 class ClassicCV:
+    """
+    A class that detects the centroids and numbers of pool balls given an image using classic computer vision algorithms
+    """
     def __init__(self):
         self.params = Params()
         self.lower_hsv = np.array(self.params.WHITE_LOWER_HSV)
@@ -36,7 +39,7 @@ class ClassicCV:
         In a well lit image, this will be the cloth
         """
 
-        hist = cv2.calcHist([hsv], [0], None, [180], [0, 180]) # original: hist = cv2.calcHist([hsv], [1], None, [180], [0, 180])
+        hist = cv2.calcHist([hsv], [0], None, [180], [0, 180]) 
         h_max = np.unravel_index(np.nanargmax(hist, axis=None), hist.shape)[0]
         
         hist = cv2.calcHist([hsv], [1], None, [256], [0, 256])
@@ -45,7 +48,7 @@ class ClassicCV:
         hist = cv2.calcHist([hsv], [2], None, [256], [0, 256])
         v_max = np.unravel_index(np.nanargmax(hist, axis=None), hist.shape)[0]
 
-        # define range of blue color in HSV
+        # define range of cloth color in HSV 
         lower_color = np.array([h_max-search_width,s_max-search_width,v_max-search_width])
         upper_color = np.array([h_max+search_width,s_max+search_width,v_max+search_width])
 
@@ -90,43 +93,35 @@ class ClassicCV:
     def remove_small_dots(self,thresh,connectivity):
         """
         Finds all image blobs that are below or between an area threshold and gets rid of them.
-        Those dots aren't considered part of the pattern and they are classified as noise.
-        
-        Parameters
-        ----------
+        Those dots aren't considered part of the pool balls and they are classified as noise.
         
         """
-        #define max and min size
+        #define min size
         factor_of_safety=0.15
         H=thresh.shape[1]
         V=thresh.shape[0]
         min_size=factor_of_safety*H*V*self.params.RATIO_BALL_RECTANGLE 
-        #max_size=16*H*V*Eye.RATIO_BALL_RECTANGLE #all balls connected
 
         #find all your connected components (white blobs in your image)
-        nb_components, output, stats, centroids = cv2.connectedComponentsWithStats(thresh, 
-                                                                                    connectivity=connectivity)
-        #connectedComponentswithStats yields every seperated component with information on each of them, such as size
-        
+        nb_components, output, stats, centroids = cv2.connectedComponentsWithStats(thresh, connectivity=connectivity)        
         #size of all found blobs (the first one is the background)
         sizes = stats[:, -1] 
-        # we have to treat single and connected blobs differently:
-        # we will save the binary image for interesting blobs
+        # we will save blobs bigger than min size here
         blobs=np.zeros((output.shape), dtype=np.uint8)
 
         #we satrt at 1 because first element is bg
         for i in range(1, nb_components): 
-            
-            # check if blob is between desired sizes
+            # check if blob is bigger than min size
             if sizes[i]>min_size:
                 blobs[output==i] = 255
-
         return blobs
 
     def find_ball_blobs(self,thresh):
-
+        """
+        Given a thresholded image with ball blobs, this method splits 
+        connected blobs using watershed algorithm
+        """
         d_centroids={}
-
         # Compute Euclidean distance from every binary pixel
         # to the nearest zero pixel then find peaks
         distance_map = ndimage.distance_transform_edt(thresh)
@@ -137,7 +132,6 @@ class ClassicCV:
         # Perform connected component analysis then apply Watershed
         markers = ndimage.label(peaks_mask, structure=np.ones((3, 3)))[0]
         labels = watershed(-distance_map, markers, mask=thresh)
-        #l_unique=[ball_num for ball_num in labels if ball_num!=0]
 
         for i in np.unique(labels):
             if i!=0:
@@ -151,6 +145,9 @@ class ClassicCV:
         return labels,d_centroids
     
     def debug_find_ball_blobs(self, blobs, numbered_blobs):
+        """
+        Draws contour of the splitted ball blobs
+        """
         blobs_3ch=cv2.merge((blobs,blobs,blobs))
         for label in np.unique(numbered_blobs):
             if label == 0:
@@ -169,7 +166,7 @@ class ClassicCV:
 
     def classify_balls(self,img,numbered_balls,d_centroids,color_space='hsv'):
         """
-        For each labeled blob, we need to decide its color (white, yellow, ...) and its type (solid, striped)
+        For each labeled blob, this method decides its color (white, yellow, ...) and its type (solid, striped)
         """
 
         #converts the default labeled number to the new classified number for each ball
@@ -197,7 +194,6 @@ class ClassicCV:
                     upper = self.upper_lab
                     thresholded_ball = cv2.inRange(masked_lab, lower, upper)
                     
-                
                 num_pixels_ball=np.count_nonzero((numbered_balls==i))
                 num_white_pixels_ball=np.count_nonzero(thresholded_ball)
                 proportion_white_pixels=num_white_pixels_ball/num_pixels_ball
@@ -255,6 +251,8 @@ class ClassicCV:
 
     def tune_white_color(self,img,numbered_balls):
         """
+        Generates a grid of images of the balls, that later can be used to
+        manually tune the hsv or lab color ranges to mask white pixels 
         """
         max_h=0
         max_w=0
@@ -294,6 +292,8 @@ class ClassicCV:
     
     def tune_ball_color(self,img,numbered_balls,color_space='hsv'):
         """
+        Generates a grid of images of the balls, their color and white pixel masks, 
+        and the avg color of the balls for debugging purposes and color tuning
         """
         l_images=[]
         titles=[]
@@ -362,8 +362,10 @@ class ClassicCV:
         return self.display_images_of_same_size_in_a_grid(l_images, (4,4), titles)
     
     def detect_balls(self, warp, warp_bg, cloth_color, color_space, debug_path='./results/', debug=False):
-
-        #get a more accurate hsv color of the pool table cloth using only the pool table pixels (wrap img)
+        """
+        Wrapper method tha uses the above methods to compute the the centroids and classify the balls
+        A debug option is available to see what is going on step by step 
+        """
         hsv=cv2.cvtColor(warp, cv2.COLOR_BGR2HSV)
         bg_hsv=cv2.cvtColor(warp_bg, cv2.COLOR_BGR2HSV)
         
@@ -405,6 +407,9 @@ class ClassicCV:
         return sorted_centroids
 
     def debug(self,img, d_centroids):
+        """
+        draws the centroids and number of the detected balls 
+        """
         img_to_draw=img.copy()
         for ball_num in d_centroids:
             x,y=d_centroids[ball_num]
@@ -413,6 +418,10 @@ class ClassicCV:
         return img_to_draw
     
 class Yolo:
+    """
+    A class that detects the centroids and numbers of pool balls given an image using yolo_v8 medium algorithm
+    A custom annotated dataset is used to train the weights
+    """
     def __init__(self, data_path=None, model_path=None):
         params=Params()
         if data_path is None:
@@ -425,6 +434,10 @@ class Yolo:
             self.model_path = model_path
 
     def detect_balls(self, img, conf, overlap_threshold):
+        """
+        Uses Yolo algorithm to compute the the centroids and classify the balls
+        The impossibility of two balls from the same class exsisting in the image is added
+        """
         model = YOLO(self.model_path)
         _img = img.copy() # to make annotations
         # source image understands bgr cv2 format
@@ -436,13 +449,10 @@ class Yolo:
                                 model=self.model_path)
 
         for r in results:
-            
             num_predictions=r.boxes.shape[0]
-
             #conf, ball id and ball centroid will be stored in predictions
             predictions=np.zeros((num_predictions,8))
-            annotator = Annotator(_img)
-            
+            annotator = Annotator(_img)   
             boxes = r.boxes
             for id,box in enumerate(boxes):
                 
@@ -465,10 +475,7 @@ class Yolo:
                 predictions[id,2]=cx
                 predictions[id,3]=cy
                 predictions[id,4]=x_bottom_right-x_top_left
-                predictions[id,5]=y_bottom_right-y_top_left
-
-        #img = annotator.result()  
-        #cv2.imwrite('YOLO_Detection.jpg', img)     
+                predictions[id,5]=y_bottom_right-y_top_left   
 
         list_of_balls=[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15]
         valid_centroids=np.zeros((1,2))
@@ -499,11 +506,9 @@ class Yolo:
 
             else:
                 if ball_number in list_of_balls: #ball num not assigned yet
-                    
                     distances=np.linalg.norm(centroid - valid_centroids, axis=1)
                     
                     if (distances>overlap_threshold).any():
-
                         list_of_balls.remove(ball_number)
                         valid_centroids = np.vstack([valid_centroids, centroid])
                         d_centroids[ball_number]=[centroid[0],centroid[1]]
@@ -518,6 +523,9 @@ class Yolo:
         return d_centroids, l_annotations
     
     def debug(self, img, d_centroids):
+        """
+        draws the centroids and number of the detected balls 
+        """
         img_to_draw=img.copy()
         for ball_num in d_centroids:
             x,y=d_centroids[ball_num]

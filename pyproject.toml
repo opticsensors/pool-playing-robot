@@ -25,13 +25,11 @@ dependencies = [
     "opencv-python",
     "pandas",
     "pyserial",
-    "rich",
     "scikit-image",
     "scikit-learn",
     "scipy",
     "ultralytics",
     "gymnasium",
-    "stable-baselines3",
     "pygame",
     "pymunk",
 ]
