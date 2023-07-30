@@ -84,9 +84,15 @@ class ClassicCV:
         return inverted_mask,prostprocessed_mask
 
     def crop_image(self, img, h_offset, v_offset):
+        """
+        Crop image given offsets (distance in pixels between old and new image borders)
+        """
         return img[v_offset:-v_offset, h_offset:-h_offset]
 
     def substract_background(self, thresh, bg_mask):
+        """
+        Removes the white blob of the background in the binary image with the balls
+        """
         thresh[bg_mask==255]=0 # TODO crop bg image or image with balls so they have same dimensions 
         return thresh
 
@@ -408,7 +414,7 @@ class ClassicCV:
 
     def debug(self,img, d_centroids):
         """
-        draws the centroids and number of the detected balls 
+        Draws the centroids and number of the detected balls 
         """
         img_to_draw=img.copy()
         for ball_num in d_centroids:

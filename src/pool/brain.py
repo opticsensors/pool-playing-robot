@@ -4,7 +4,9 @@ import pandas as pd
 import pool.utils as utils
 
 class Brain: 
-
+    """
+    Container class of all low level methods used by different pool shot types
+    """
     def __init__(self,
                 pool_frame,
                 ball_radius,
@@ -14,7 +16,11 @@ class Brain:
         self.pool_frame=pool_frame
     
     def get_all_detected_balls_except_cue(self,d_centroids):
-
+        """
+        Given a dict ball number -> ball centroid, we compute a 2D array 
+        where each row is [ball number, ball centroid x, ball centroid y]
+        for every detected ball except cue ball
+        """
         dict_detected_balls_except_cue=d_centroids.copy()
         dict_detected_balls_except_cue.pop(0, None)
         all_detected_balls_except_cue=np.array([(k, v[0], v[1]) for k, v in dict_detected_balls_except_cue.items()])
@@ -22,6 +28,11 @@ class Brain:
         return all_detected_balls_except_cue
     
     def get_balls_to_be_pocket(self,d_centroids,ball_type):
+        """
+        Given a ball type and a dict ball number -> ball centroid, we compute a 2D array 
+        where each row is [ball number, ball centroid x, ball centroid y]
+        for every detected ball of the same ball type
+        """
         
         l_detected=[key for key in d_centroids]
 
@@ -37,6 +48,10 @@ class Brain:
         return arr_detected_type
 
     def get_cue_and_8ball(self,d_centroids):
+        """
+        Given a dict ball number -> ball centroid, we compute two separate 1D array 
+        that store the centroid coordinates of cue and 8 ball
+        """
         if 0 in d_centroids:
             arr_cue = np.array(d_centroids[0])
         else:   
@@ -49,10 +64,17 @@ class Brain:
         return arr_cue, arr_8ball
     
     def get_other_balls(self,no_cue,to_pocket):
+        """
+        Given one 2D array that stores ball type and centroid of all balls 
+        except cue and another 2D array that stores all balls that can be pocket,
+        we compute the combination of both arrays to get a new array whose rows look like this:
+        [ball i, x ball i, y ball i, ball j, x ball j, y ball j]
+        """
         result=utils.get_row_combinations_of_two_arrays(to_pocket,no_cue)
         return result
     
     def get_other_balls_twice(self, no_cue, to_pocket):
+        
         result=utils.get_row_combinations_of_two_arrays(to_pocket,to_pocket)
         result=result[result[:,0]!=result[:,3]]
         result=utils.get_row_combinations_of_two_arrays(result,no_cue)

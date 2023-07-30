@@ -40,7 +40,7 @@ eye = Eye()
 mode = 0
 rotated=False
 count_iter=0
-turn='strip'
+turn='solid'
 activated = True
 
 #go home
@@ -65,7 +65,13 @@ while activated:
                     d_centroids, _ = yolo.detect_balls(img_undist_warp,conf=0.75, overlap_threshold=100)
                     uvBallCentroid = d_centroids[0]
                     angle = gs.get_actuator_angle(d_centroids, turn, shot_type='CTP') #  returns angles in the range [-180,180]
-                    angle_dxl = angle + 90 
+                    if angle < 0:
+                        angle_dxl = angle-2.6
+                    elif 180 > angle > 90:
+                        angle_dxl = angle-2.6
+                    elif 90 > angle > 0:
+                        angle_dxl = angle-3.3
+                    angle_dxl = angle_dxl + 90 
                     print("angle: ", angle, file=f)
                     print("angle_dxl: ", angle_dxl, file=f)
                     print("d_centroids: ", d_centroids, file=f)

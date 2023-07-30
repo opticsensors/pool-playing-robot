@@ -106,6 +106,6 @@ print('total rows',df1.shape[0])
 
 valid_configs=df1[df1['x_stroke']<=19]
 valid_configs=valid_configs[valid_configs['angle']<140]
-df1.to_csv(path_or_buf='./results/valid_mechanisms.csv', sep=',',index=False)
+valid_configs.to_csv(path_or_buf='./results/valid_mechanisms.csv', sep=',',index=False)
 
 print(valid_configs)
