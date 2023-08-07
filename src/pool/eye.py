@@ -68,31 +68,7 @@ class Eye(object):
 
     def get_pool_corners(self, img):
         top_aruco_ids, right_aruco_ids, bottom_aruco_ids, left_aruco_ids = self.arucos_pool_frame
-        arucoDict=cv2.aruco.DICT_4X4_100
-        arucoDict = cv2.aruco.getPredefinedDictionary(arucoDict)
-        arucoParams = cv2.aruco.DetectorParameters()
-        arucoDetector = cv2.aruco.ArucoDetector(
-            arucoDict, arucoParams)
-
-        corners, ids, rejected = arucoDetector.detectMarkers(img)
-        id_to_centroids={}
-
-        if len(corners) > 0:
-            # flatten the ArUco IDs list
-            ids = ids.flatten()
-            # loop over the detected ArUCo corners
-            for (markerCorner, markerID) in zip(corners, ids):
-                # extract the marker corners (which are always returned in
-                # top-left, top-right, bottom-right, and bottom-left order)
-                corners = markerCorner.reshape((4, 2))
-                (topLeft, topRight, bottomRight, bottomLeft) = corners
-
-                # compute and draw the center (x, y)-coordinates of the ArUco
-                # marker
-                cX = (topLeft[0] + bottomRight[0]) / 2.0
-                cY = (topLeft[1] + bottomRight[1]) / 2.0
-                id_to_centroids[markerID]=(cX,cY)
-                #print(f"[INFO] ArUco marker ID: {markerID}, ({cX},{cY})")
+        id_to_centroids = self.find_all_aruco_coordinates(img)
         bottomLine=np.array([id_to_centroids[aruco_id] for aruco_id in bottom_aruco_ids])
         topLine=   np.array([id_to_centroids[aruco_id] for aruco_id in top_aruco_ids])
         leftLine= np.array([id_to_centroids[aruco_id] for aruco_id in left_aruco_ids])

@@ -167,7 +167,7 @@ class ClassicCV:
             cnts = cv2.findContours(mask.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
             cnts = cnts[0] if len(cnts) == 2 else cnts[1]
             c = max(cnts, key=cv2.contourArea)
-            cv2.drawContours(blobs_3ch, [c], -1, (36,255,12), 4)
+            cv2.drawContours(blobs_3ch, [c], -1, (0,0,255), 12)
         return blobs_3ch
 
     def classify_balls(self,img,numbered_balls,d_centroids,color_space='hsv'):
@@ -364,7 +364,7 @@ class ClassicCV:
                 sub_titles=[f'total ball pixels: {num_pixels_ball}', f'white pixels: {num_white_pixels_ball}', f'colored pixels', f'avg_lab: {int(avg_lab[0])}, {int(avg_lab[1])}, {int(avg_lab[2])}']
                 l_images.append(self.display_images_of_same_size_in_a_grid(l_sub_images, (1,4), sub_titles))
                 titles.append(f'ball_id: {i} | ball_prediction: {ball_number}')
-
+                print(ball_number,avg.astype(np.uint8))
         return self.display_images_of_same_size_in_a_grid(l_images, (4,4), titles)
     
     def detect_balls(self, warp, warp_bg, cloth_color, color_space, debug_path='./results/', debug=False):
@@ -419,7 +419,7 @@ class ClassicCV:
         img_to_draw=img.copy()
         for ball_num in d_centroids:
             x,y=d_centroids[ball_num]
-            cv2.putText(img_to_draw, "#{}".format(ball_num), (int(x) - 10, int(y)),cv2.FONT_HERSHEY_SIMPLEX, 3, (0, 255, 0), 2)
+            cv2.putText(img_to_draw, "#{}".format(ball_num), (int(x) - 10, int(y)),cv2.FONT_HERSHEY_SIMPLEX, 2, (0, 255, 0), 4)
             cv2.circle(img_to_draw, (int(x), int(y)), 8, (255, 0, 255), -1)
         return img_to_draw
     
@@ -535,6 +535,6 @@ class Yolo:
         img_to_draw=img.copy()
         for ball_num in d_centroids:
             x,y=d_centroids[ball_num]
-            cv2.putText(img_to_draw, "#{}".format(int(ball_num)), (int(x) - 10, int(y)),cv2.FONT_HERSHEY_SIMPLEX, 2, (0, 255, 0), 3)
+            cv2.putText(img_to_draw, "#{}".format(int(ball_num)), (int(x) - 10, int(y)),cv2.FONT_HERSHEY_SIMPLEX, 2, (0, 255, 0), 4)
             cv2.circle(img_to_draw, (int(x), int(y)), 8, (255, 0, 255), -1)
         return img_to_draw
