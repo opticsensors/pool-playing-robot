@@ -149,14 +149,14 @@ class PoolFrame:
     def draw_segment(img, cushion):
         point1=cushion[:2].astype(np.int32)
         point2=cushion[2:].astype(np.int32)
-        cv2.line(img, point1, point2, (255, 255, 0), thickness=20)
+        cv2.line(img, point1, point2, (173, 203, 248), thickness=20)
         return img
     
     def draw_frame(self, img):
         params=utils.Params()
         cv2.rectangle(img, self.top_left, 
                       self.bottom_right, 
-                      (0,255,0), 
+                      (255,255,255), 
                       3)
         for row in self.pockets.pockets_to_draw:
             pocket_id=row[0]
@@ -178,7 +178,7 @@ class PoolFrame:
         for ball_num in d_centroids:
             x,y=d_centroids[ball_num]
             img=cv2.putText(img, "#{}".format(int(ball_num)), (int(x) - 10, int(y)), cv2.FONT_HERSHEY_SIMPLEX, 2, (0, 255, 0), 3)
-            img=cv2.circle(img, (int(x), int(y)), 8, (255, 0, 255), -1)
-            img=cv2.circle(img, (int(x), int(y)), self.ball_radius, (255, 0, 255), 8)
+            img=cv2.circle(img, (int(x), int(y)), 8, (49, 125, 237), -1)
+            img=cv2.circle(img, (int(x), int(y)), self.ball_radius, (49, 125, 237), 8)
 
         return img

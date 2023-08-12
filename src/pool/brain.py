@@ -274,7 +274,7 @@ class Brain:
     def draw_trajectories(self, img, points1, points2):
         
         for point1, point2 in zip(points1, points2): 
-            cv2.line(img, point1.astype(int), point2.astype(int), [251, 163, 26], 1) 
+            cv2.line(img, point1.astype(int), point2.astype(int), [213,155,91], 3) 
         return img
 
 
@@ -336,7 +336,9 @@ class CTP(Brain):
         XC_TX_abs_angle = self.deviation_from_ideal_angle(T,X,C)
         dist_CX = np.linalg.norm(X-C, axis=1)
         dist_TP = np.linalg.norm(P-T, axis=1)
-        df['dificulty'] = dist_CX*dist_TP / np.cos(XC_TX_abs_angle)
+        df['dificulty'] = dist_CX*dist_TP / np.cos(XC_TX_abs_angle)**2
+        df['cut_angle']=np.degrees(XC_TX_abs_angle)
+        df = df[df['cut_angle']<60]
         df = df.sort_values(by=['dificulty'], ascending=True)
         return df
 
@@ -432,7 +434,9 @@ class CBTP(Brain):
         dist_CB = np.linalg.norm(B-C, axis=1)
         dist_BX = np.linalg.norm(X-B, axis=1)
         dist_TP = np.linalg.norm(P-T, axis=1)
-        df['dificulty'] = (dist_CB+dist_BX)*dist_TP / np.cos(XB_TX_abs_angle)
+        df['dificulty'] = (dist_CB+dist_BX)*dist_TP / np.cos(XB_TX_abs_angle)**2
+        df['cut_angle']=np.degrees(XB_TX_abs_angle)
+        df = df[df['cut_angle']<60]
         df = df.sort_values(by=['dificulty'], ascending=True)
         return df
     
@@ -522,14 +526,17 @@ class CTTP(Brain):
         Xnew=df[['X_new_x', 'X_new_y']].values
         C=df[['Cx', 'Cy']].values
         P=df[['Px', 'Py']].values
-        XC_TX_abs_angle = self.deviation_from_ideal_angle(T,X,C)
-        XnewT_TTXnew_abs_angle = self.deviation_from_ideal_angle(TT,Xnew,T)
+        XC_TX_abs_angle = self.deviation_from_ideal_angle(T,X,TT)
+        XnewT_TTXnew_abs_angle = self.deviation_from_ideal_angle(TT,Xnew,C)
         dist_CX = np.linalg.norm(X-C, axis=1)
         dist_TXnew = np.linalg.norm(Xnew-T, axis=1)
         dist_TTP = np.linalg.norm(P-TT, axis=1)
-        difficulty1 = dist_CX*dist_TXnew / np.cos(XC_TX_abs_angle)
-        difficulty2 = dist_TXnew*dist_TTP / np.cos(XnewT_TTXnew_abs_angle)
+        difficulty1 = dist_CX*dist_TXnew / np.cos(XC_TX_abs_angle)**2
+        difficulty2 = dist_TXnew*dist_TTP / np.cos(XnewT_TTXnew_abs_angle)**2
         df['dificulty'] = (difficulty1 + difficulty2)/2
+        df['cut_angle1']=np.degrees(XC_TX_abs_angle)
+        df['cut_angle2']=np.degrees(XnewT_TTXnew_abs_angle)
+        df = df[(df['cut_angle1']<60) & (df['cut_angle2']<60)]
         df = df.sort_values(by=['dificulty'], ascending=True)
         return df
     
@@ -627,7 +634,9 @@ class CTBP(Brain):
         dist_CX = np.linalg.norm(X-C, axis=1)
         dist_TB = np.linalg.norm(B-T, axis=1)
         dist_BP = np.linalg.norm(P-B, axis=1)
-        df['dificulty'] = (dist_TB+dist_BP)*dist_CX / np.cos(XC_TX_abs_angle)
+        df['dificulty'] = (dist_TB+dist_BP)*dist_CX / np.cos(XC_TX_abs_angle)**2
+        df['cut_angle']=np.degrees(XC_TX_abs_angle)
+        df = df[df['cut_angle']<60]
         df = df.sort_values(by=['dificulty'], ascending=True)
         return df
     
