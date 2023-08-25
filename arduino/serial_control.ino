@@ -21,9 +21,9 @@ AccelStepper stepper2(1, mot2StepPin, mot2DirPin);
 
 // Define velocities and accelerations
 int calibrationVelocity = 500;
-int calibrationAcceleration = 1700;
+int calibrationAcceleration = 1000;
 int workingVelocity = 500;
-int workingAcceleration = 1700;
+int workingAcceleration = 1000;
 
 // variables to store calibration positions
 int reach_position1;

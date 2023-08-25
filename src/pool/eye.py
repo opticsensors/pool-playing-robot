@@ -5,8 +5,7 @@ from pool.utils import Params
 
 class Eye(object):
     """
-    A class that finds the centroid of the pool balls and classifies them
-
+    A class that finds preprocesses images: undistortion and prespective transformations 
     """
 
     def __init__(self, 

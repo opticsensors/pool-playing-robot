@@ -98,7 +98,7 @@ for config in np.unique(df['config_id']):
             dict_to_save['b']=  df_config['b'].values[0]
 
             list_of_dict.append(dict_to_save.copy())
-            print(config,df_xmax.shape, desired_x_max_row.shape, df_xmin.shape, desired_x_min_row.shape )
+            #print(config,df_xmax.shape, desired_x_max_row.shape, df_xmin.shape, desired_x_min_row.shape )
 
 df1 = pd.DataFrame(list_of_dict, columns=list(list_of_dict[0].keys()))
 

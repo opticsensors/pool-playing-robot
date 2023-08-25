@@ -1,10 +1,10 @@
 import time
 import keyboard
-from pool.controller_actuators import Controller_actuators
+from pool.stepper import Stepper
 from pool.dynamixel import Dynamixel
 
 #stepper motor initialization
-stp=Controller_actuators(baudRate=9600,serialPortName='COM3')
+stp=Stepper(baudRate=9600,serialPortName='COM3')
 stp.setupSerial()
 
 #dynamixel initialization

@@ -2,7 +2,7 @@ import time
 import datetime
 import keyboard
 import cv2
-from pool.controller_actuators import Controller_actuators
+from pool.stepper import Stepper
 from pool.cam import Camera_DLSR, Camera_DLSR_settings
 from pool.calibration import InverseKinematics
 from pool.dynamixel import Dynamixel
@@ -15,7 +15,7 @@ date_name = str(datetime.datetime.now().date()) + '_' + str(datetime.datetime.no
 f = open(f"./results/LOG_{date_name}.txt", 'w')
 
 #stepper motor initialization
-stp=Controller_actuators(baudRate=9600,serialPortName='COM3')
+stp=Stepper(baudRate=9600,serialPortName='COM3')
 stp.setupSerial()
 
 #dynamixel initialization
@@ -65,12 +65,6 @@ while activated:
                     d_centroids, _ = yolo.detect_balls(img_undist_warp,conf=0.75, overlap_threshold=100)
                     uvBallCentroid = d_centroids[0]
                     angle = gs.get_actuator_angle(d_centroids, turn, shot_type='CTP') #  returns angles in the range [-180,180]
-                    if angle < 0:
-                        angle_dxl = angle-2.6
-                    elif 180 > angle > 90:
-                        angle_dxl = angle-2.6
-                    elif 90 > angle > 0:
-                        angle_dxl = angle-3.3
                     angle_dxl = angle_dxl + 90 
                     print("angle: ", angle, file=f)
                     print("angle_dxl: ", angle_dxl, file=f)

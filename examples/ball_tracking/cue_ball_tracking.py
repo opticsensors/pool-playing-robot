@@ -4,21 +4,23 @@ from pool.eye import Eye
 
 eye=Eye()
 bg_subtractor=cv2.createBackgroundSubtractorMOG2(detectShadows=True)
-frames_to_skip=0
+frames_to_skip=5
 learning_rate=0.01
 kernel_size=(25,25)
 bg_counter=0
-name='20230727_182919'
+name='20230727_190530'
 
 cap=cv2.VideoCapture(f'results/{name}.mp4')
 for _ in range(frames_to_skip+1):
     ret, frame0 = cap.read()
+    #cv2.imwrite('frame0.png', frame0)
 
 corners0 = eye.get_pool_corners(frame0)
 #corners0=[(200,1403), (194,163), (886,163), (875,1404)] # only for video 20230711_174744_1
 #corners0=[(202,1407), (178,175), (868,165), (874,1403)] # only for video 20230711_141105_1
 #corners0=[(198,1408), (196,173), (887,175), (871,1414)] # only for video 20230711_141720_1
-#corners0=[(210,1410), (164,175), (854,153), (880,1391)] # only for video 20230714_131401
+#corners0=[(187,1398), (193,164), (882,171), (861,1412)] # only for video 20230719_214222
+#corners0=[(179,1405), (190,165), (881,175), (855,1418)] # only for video 20230714_131401
 
 matrix0 = eye.calculate_perspective_matrix(corners0)
 transformed_frame0 = eye.transform_image_given_a_matrix(frame0, corners0, matrix0)

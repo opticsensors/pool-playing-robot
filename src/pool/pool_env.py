@@ -1,4 +1,5 @@
 import random
+import cv2
 import gymnasium as gym
 from gymnasium import error, spaces, utils
 from gymnasium.utils import seeding
@@ -21,9 +22,6 @@ class PoolEnv(gym.Env):
                max_steps=5000, 
                render_mode ='human'):
     """ Constructor
-    :param seed: the random seed for the environment
-    :param max_steps: the maximum number of steps the episode lasts
-    :return:
     """
     self.params = Params()
     if computation_rectangle is None:
@@ -103,7 +101,6 @@ class PoolEnv(gym.Env):
   def _get_obs(self):
     """
     This function returns the state after reading the simulator parameters.
-    :return: state: 
     """
     balls_pose={}
     for ball_num, ball_shape in self.physics_eng.balls.items():
@@ -123,7 +120,6 @@ class PoolEnv(gym.Env):
   def reward_function(self, info):
     """
     This function calculates the reward
-    :return:
     """
     done = False
     #check if any balls have been potted
@@ -149,9 +145,10 @@ class PoolEnv(gym.Env):
   def step(self, action):
     """
     Performs an environment step.
-    :return: state, reward, final, info
+    return: state, reward, final, info
     """
     self.steps += 1
+    counter=0
     self.physics_eng.move_cue_ball(action)
     done = False
     while not done:
@@ -163,7 +160,10 @@ class PoolEnv(gym.Env):
       # Get reward
       reward, done, info = self.reward_function(info)
       if self.render_mode is not None:
-        self.render() # TODO remove
+        img=self.render()
+        if self.render_mode == 'array':
+          cv2.imwrite(f'./results/img{counter}.jpg',img)
+      counter+=1
 
     if self.steps >= self.params.MAX_ENV_STEPS:  ## Check if max number of steps has been exceeded
       done = True
@@ -192,12 +192,8 @@ class PoolEnv(gym.Env):
     if self.clock is None and self.render_mode == "human":
         self.clock = pygame.time.Clock()
 
-    for event in pygame.event.get():
-      if event.type == pygame.QUIT:
-          self.close()
-
     canvas = pygame.Surface((self.params.DISPLAY_SIZE[0], self.params.DISPLAY_SIZE[1]))
-    canvas.fill((75, 75, 75))
+    canvas.fill((189, 217, 171))
 
     # First we draw the cushions
     for c in self.physics_eng.cushions:
@@ -217,7 +213,7 @@ class PoolEnv(gym.Env):
     # draw 8ball
     pygame.draw.circle(
         canvas,
-        (25, 25, 25),
+        (0, 0, 0),
         (self.state['8']),
         self.params.BALL_RADIUS,
     )
@@ -225,7 +221,7 @@ class PoolEnv(gym.Env):
     for goal, radius in zip(self.goals, self.goalRadius):
       pygame.draw.circle(
         canvas,
-        (0, 0, 0),
+        (26, 57, 42),
         (goal),
         radius,
     )
@@ -235,14 +231,14 @@ class PoolEnv(gym.Env):
       if ball_num in ['1','2','3','4','5','6','7']:
         pygame.draw.circle(
           canvas,
-          (100, 149, 237),
+          (91, 155, 213),
           (self.state[ball_num]),
           self.params.BALL_RADIUS,
         )
       elif ball_num in ['9','10','11','12','13','14','15']:
         pygame.draw.circle(
           canvas,
-          (255, 129, 0),
+          (237, 125, 49),
           (self.state[ball_num]),
           self.params.BALL_RADIUS,
         )
@@ -257,6 +253,11 @@ class PoolEnv(gym.Env):
         # We need to ensure that human-rendering occurs at the predefined framerate.
         # The following line will automatically add a delay to keep the framerate stable.
         self.clock.tick(self.params.TARGET_FPS)
+
+        for event in pygame.event.get():
+          if event.type == pygame.QUIT:
+              self.close()
+
     else:  # rgb_array
         return np.transpose(
             np.array(pygame.surfarray.pixels3d(canvas)), axes=(1, 0, 2)

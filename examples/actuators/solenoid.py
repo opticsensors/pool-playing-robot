@@ -1,7 +1,7 @@
-from pool.controller_actuators import Controller_actuators
+from pool.stepper import Stepper
 import time
 
-stp=Controller_actuators(baudRate=9600,
+stp=Stepper(baudRate=9600,
             serialPortName='COM3' )
 
 stp.setupSerial()

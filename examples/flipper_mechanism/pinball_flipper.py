@@ -57,12 +57,12 @@ def intersection_two_circles(P0,P1,r0,r1):
 
 # mechanism constants
 l1=23
-l2=23.6
-x_arr=np.arange(16.5,35.5,0.5)
+l2=23
+x_arr=np.arange(12,27.5,0.5)
 C=(0,0)
-d=24
-a=51
-b=38.16
+d=25
+a=60
+b=35
 prev_P=None
 list_of_dict=[]
 dict_to_save={}
@@ -92,6 +92,10 @@ for i,x in enumerate(x_arr):
     list_of_dict.append(dict_to_save.copy())
     prev_P=P
 
+    ax = plt.gca()
+    ax.set_xlim([-67, 27])
+    ax.set_ylim([-67, 27])
+    ax.set_aspect('equal', adjustable='box')
     plt.plot([A[0], B[0]], [A[1], B[1]], 'r', linewidth=1.5)
     plt.plot([C[0], B[0]], [C[1], B[1]], 'b', linewidth=1.5)
     plt.plot([C[0], P[0]], [C[1], P[1]], 'g', linewidth=1.5)
@@ -100,11 +104,10 @@ for i,x in enumerate(x_arr):
     plt.scatter(C[0], C[1], color='g')
     plt.scatter(P[0], P[1], color='k')
     plt.pause(0.05)
-    #plot_config(A,B,C,P)
-    
+
+plt.savefig('./results/6.png', dpi=300)
 plt.show()
 df = pd.DataFrame(list_of_dict, columns=list(list_of_dict[0].keys()))
-df.to_csv(path_or_buf=f'./data/mechanism.csv', sep=' ',index=False)
 
 max_Py=df['Py'].max()
 min_Py=df['Py'].min()
@@ -114,3 +117,4 @@ max_angle=df['angle'].max()
 print('Py stroke', abs(max_Py-min_Py))
 print('max Px', max_Px)
 print('max angle', max_angle)
+

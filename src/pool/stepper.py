@@ -5,7 +5,7 @@ import serial
 import serial.tools.list_ports
 
 
-class Controller_actuators(object):
+class Stepper(object):
     """Goes in pair with `serial_control.ino`"""
 
     def __init__(

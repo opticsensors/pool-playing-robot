@@ -101,12 +101,12 @@ class BruteForce:
         print('second sweep done!')
         return self.map_angle(self.find_easiest_shot(df2))
     
-    def debug(self, config, turn, angle):
+    def debug(self, config, turn, angle, render_mode='human'):
         if turn == 'solid':
             turn=0
         elif turn == 'strip':
             turn=1
-        env=PoolEnv(render_mode = 'human')
+        env=PoolEnv(render_mode=render_mode)
         observation, info = env.reset(config, turn)
         observation, reward, terminated, truncated, info = env.step(angle)
         env.close()

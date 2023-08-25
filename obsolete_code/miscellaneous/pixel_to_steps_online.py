@@ -3,7 +3,7 @@ import time
 import cv2
 from pool.eye import Eye
 import numpy as np
-from pool.controller_actuators import Controller_actuators
+from pool.stepper import Stepper
 import pandas as pd
 import time
 
@@ -18,7 +18,7 @@ test_camera.collection_name = 'img'
 eye=Eye()
 
 #stepper motor initialization
-stp=Controller_actuators(baudRate=9600,serialPortName='COM3')
+stp=Stepper(baudRate=9600,serialPortName='COM3')
 stp.setupSerial()
 
 #helper functions to make code more readable

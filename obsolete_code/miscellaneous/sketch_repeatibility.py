@@ -1,12 +1,12 @@
 import time
 import numpy as np
-from pool.controller_actuators import Controller_actuators
+from pool.stepper import Stepper
 from pool.cam import Camera_DLSR, Camera_DLSR_settings
 import time
 
 
 #stepper motor initialization
-stp=Controller_actuators(baudRate=9600,serialPortName='COM3' )
+stp=Stepper(baudRate=9600,serialPortName='COM3' )
 stp.setupSerial()
 
 #camera initialization

@@ -2,13 +2,13 @@ import time
 import keyboard
 import random
 import pandas as pd
-from pool.controller_actuators import Controller_actuators
+from pool.stepper import Stepper
 from pool.cam import Camera_DLSR, Camera_DLSR_settings
 from pool.calibration import InverseKinematics
 from pool.dynamixel import Dynamixel
 
 #stepper motor initialization
-stp=Controller_actuators(baudRate=9600,serialPortName='COM3')
+stp=Stepper(baudRate=9600,serialPortName='COM3')
 stp.setupSerial()
 
 #dynamixel initialization

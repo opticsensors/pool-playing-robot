@@ -26,10 +26,10 @@ class Params(object):
     self.DISPLAY_RECTANGLE = Rectangle(top_left=(0,0), bottom_right=self.DISPLAY_SIZE)
     self.COMPUTATIONAL_RECTANGLE = self.DISPLAY_RECTANGLE.get_rectangle_with_offsets((240, 250, 250, 250))
 
-    self.POCKETS = [(96, 120),                                            # top left          
-                    (self.DISPLAY_SIZE[0]-96, 120),                       # top right       
-                    (self.DISPLAY_SIZE[0]-96, self.DISPLAY_SIZE[1]-120),  # bottom right     
-                    (96, self.DISPLAY_SIZE[1]-120),                       # bottom left
+    self.POCKETS = [(101, 88),                                            # top left          
+                    (self.DISPLAY_SIZE[0]-101, 88),                       # top right       
+                    (self.DISPLAY_SIZE[0]-101, self.DISPLAY_SIZE[1]-88),  # bottom right     
+                    (101, self.DISPLAY_SIZE[1]-88),                       # bottom left
                     (2447, 144),                                          # top middle    
                     (2447, 2538)]                                         # bottom middle    
 
@@ -184,10 +184,6 @@ class Rectangle:
                                    [-offset_right_x, -offset_bottom_y],
                                    [offset_left_x , -offset_bottom_y],])
         self.rectangle = self.rectangle+offsets_matrix
-
-
-def get_file_from_data():
-    raise NotImplementedError
 
 def get_row_combinations_of_two_arrays(array1,array2):
     if len(array1.shape)==1:
