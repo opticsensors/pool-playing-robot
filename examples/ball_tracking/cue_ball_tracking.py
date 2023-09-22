@@ -8,7 +8,7 @@ frames_to_skip=5
 learning_rate=0.01
 kernel_size=(25,25)
 bg_counter=0
-name='20230727_190530'
+name='20230727_191338_1'
 
 cap=cv2.VideoCapture(f'results/{name}.mp4')
 for _ in range(frames_to_skip+1):

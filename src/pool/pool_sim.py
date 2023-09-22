@@ -139,11 +139,6 @@ class PhysicsSim(object):
         if body.body_type == 0: #dynamic
             self.space.remove(body)
 
-    # Destroy specific bodies
-    #for ball in self.balls:
-    #    self.space.remove(ball, ball.body)
-    #    self.balls.remove(ball)
-
     ## Recreate the balls 
     self.create_balls(new_balls_pose)
     self.total_collisions = 0

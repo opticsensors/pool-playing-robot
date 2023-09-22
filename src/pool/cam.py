@@ -1,11 +1,5 @@
 #!/usr/bin/env python
-"""Camera.py: """
 from __future__ import annotations
-
-
-__author__ = 'Jacob Taylor Cassady'
-__email__ = 'jacobtaylorcassady@outlook.com'
-
 import subprocess
 import os
 from os import getcwd, makedirs, system

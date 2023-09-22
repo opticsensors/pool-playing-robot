@@ -3,11 +3,7 @@ from dynamixel_sdk import * # Uses Dynamixel SDK library
 
 class Dynamixel(object):
     """
-    A class that ...
-
-    Attributes
-    ----------    
-    ...
+    A class that can write to dynamixel addreces
 
     """
     def __init__(self, baudRate=115200,

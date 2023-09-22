@@ -7,7 +7,7 @@ img = cv2.imread(f'./results/warp_corners.jpg')
 
 random_balls=RandomBalls()
 d_centroids=random_balls.generate_random_balls()
-d_centroids={0: (2680, 1412), 8: (4083, 846), 3:(516,2172), 4:(1492,1436), 14:(4329,1900)}
+#d_centroids={0: (2680, 1412), 8: (4083, 846), 3:(516,2172), 4:(1492,1436), 14:(4329,1900)}
 print(d_centroids)
 
 start = time.time()

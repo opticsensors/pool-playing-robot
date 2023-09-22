@@ -83,13 +83,6 @@ class PoolEnv(gym.Env):
     else:
       init_ball_pose = desired_ball_pose.copy()
 
-    # we wont check this cnsition for now because we suppose the random generated data is within pool frame limits
-    #for ball_pose in init_ball_pose.values():
-    #  ball_pose=np.array(ball_pose)
-    #  if (ball_pose < self.min_xy).all() or (ball_pose > self.max_xy).all():
-    #    print('truncated')
-    #    self.truncate = True
-
     self.physics_eng.reset(init_ball_pose)
     self.steps = 0
     self.reward = 0
