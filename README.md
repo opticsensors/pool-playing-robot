@@ -131,7 +131,7 @@ To select the right camera, I conducted a resolution test on four different came
 
 This approach uses the YOLO (version 8 by Ultralytics) detection algorithm, where the image is processed through a CNN, resulting in predictions in the form of rectangles.
 
-<img src="./figures/YOLO_algorithm.png" alt="drawing" width="100%"/>
+<img src="./figures/yolo_algorithm.png" alt="drawing" width="100%"/>
 
 #### Classic approach
 
