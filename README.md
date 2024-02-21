@@ -102,7 +102,39 @@ The hardware includes both the camera and its mounting support. The final setup 
 
 To select the right camera, I conducted a resolution test on four different cameras I had at home: a smartphone camera, a Raspberry Pi camera, a DSLR, and a webcam. Based on the results and ease of connectivity with a PC, the final selection was the DSLR camera:
 
-<img src="./figures/mm_per_pixel_2.png" alt="drawing" width="70%"/>
+
+<table>
+  <tr>
+    <th>Camera</th>
+    <td>Samsing A71</td>
+    <td>PiCamera</td>
+    <td>Canon EOS 1300D</td>
+    <td>Logitech c922</td>
+  </tr>
+
+  <tr>
+    <th>Resolution</th>
+    <td>0.28 mm/px</td>
+    <td>0.50 mm/px</td>
+    <td>0.25 mm/px</td>
+    <td>0.50 mm/px</td>
+  </tr>
+
+  <tr>
+    <th>USAF test</th>
+    <td><img src="./figures/mm_per_pixel_1.png" alt="drawing" width="90%"/>
+</td>
+    <td><img src="./figures/mm_per_pixel_2.png" alt="drawing" width="90%"/>
+</td>
+    <td><img src="./figures/mm_per_pixel_3.png" alt="drawing" width="100%"/>
+</td>
+    <td><img src="./figures/mm_per_pixel_4.png" alt="drawing" width="90%"/>
+</td>
+  </tr>
+
+</table>
+
+
 
 ### Software
 
@@ -125,7 +157,11 @@ To select the right camera, I conducted a resolution test on four different came
 
 - **Camera calibration**: Computes the intrinsic camera parameters using images of a checkerborad pattern.
 
-<img src="./figures/camera_calibration.png" alt="drawing" width="100%"/>
+
+| Image 1 | Image 2 | Image 3 | Image 4 |
+|:-----:|:-----:|:-----------------:|:-----------------:|
+| <img src="./figures/camera_calibration_1.png" alt="2 DOF" width="100%"/> | <img src="./figures/camera_calibration_2.png" alt="2 DOF" width="100%"/> | <img src="./figures/camera_calibration_3.png" alt="2 DOF" width="100%"/> | [...]
+
 
 #### YOLOv8
 
@@ -157,7 +193,7 @@ After comparing the results of both methods against a Ground Truth established b
 | YOLO    | 3.02     | 3.17     |
 | Classic    | 2.43     | 1.81     |
 
-If the 68–95–99.7 rule is applied, from these results it can be deduced that in 95% of the cases an error below 6.3 and 3.6 pixels should be expected for the YOLO and classic algorithms, respectively. 
+If the 68–95–99.7 rule is applied, from these results it can be deduced that in 95% of the cases an error below 6.3 and 3.6 pixels should be expected for the YOLO and classic algorithms, respectively. Considering a resolution of 0.25 mm/px, this is 1.5 and 0.9 mm, respectively.
 
 ## Shot selection 
 
@@ -201,34 +237,61 @@ $$
 
 ## Actuation system: 
 
-Pool robot subsystems
+The pool robot is divided in 2 subsystems:
 
-- Cue ball impact: linear actuator
+- **Cue ball impact**: linear actuator
    - Solenoid
    - Servomotor
-- Cue positioning: cartesian robot
+- **Cue positioning**: cartesian robot
    - Stepper motors
    - V-slot 2020 and wheels
    - Tooth belt and timing pulleys 
+
+Block diagram of the actuation system showing selected components and
+interactions:
 
 <img src="./figures/robot_solution.png" alt="drawing" width="90%"/>
 
 - **Homing position**: it's necessary to have a reference position known as home since the stepper motors do not have a way to know their position. This position has been obtained using two limit switches activated by the robot's own moving parts:
 
-<img src="./figures/homing_position.png" alt="drawing" width="70%"/>
+<table>
+  <tr>
+    <th>SolidWorks</th>
+    <th>Constructed</th>
+  </tr>
+  <tr>
+    <td rowspan="2"><img src="./figures/homing_position_1.png" alt="SolidWorks" width="100%"/>
+</td>
+    <td><img src="./figures/homing_position_2.png" alt="Constructed" width="100%"/></td>
+  </tr>
+  <tr>
+    <td><img src="./figures/homing_position_3.png" alt="Constructed" width="100%"/></td>
+  </tr>
+</table>
+
 
 - **Timing belt and pulleys**: the belt has been designed with an H configuration which has allowed the motors to be stationary
 
-<img src="./figures/timing_belt_and_pulleys.png" alt="drawing" width="60%"/>
+<table>
+  <tr>
+    <th>Concept design H-bot</th>
+    <th>Constructed</th>
+  </tr>
+  <tr>
+    <td rowspan="2"><img src="./figures/timing_belt_and_pulleys_1.png" alt="SolidWorks" width="100%"/>
+</td>
+    <td><img src="./figures/timing_belt_and_pulleys_2.png" alt="Constructed" width="100%"/></td>
+  </tr>
+  <tr>
+    <td><img src="./figures/timing_belt_and_pulleys_3.png" alt="Constructed" width="100%"/></td>
+  </tr>
+</table>
 
-- **Belt tensioning**: a set of pulleys was assembled and the belt was tensioned with zip ties
+- **Belt tensioning and stepper sizing**: a set of pulleys was assembled and the belt was tensioned with zip ties. To achieve this the motors were sized with a calculation of the required torque, considering the accelaration and load terms, and a safety factor
 
-<img src="./figures/belt_tensioning.png" alt="drawing" width="50%"/>
-
-- **Stepper sizing**: the motors were sized with a calculation of the required torque, considering the accelaration and load terms, and a safety factor
-
-<img src="./figures/stepper_sizing.png" alt="drawing" width="20%"/>
-
+| Belt tensioning | Stepper mount |
+|----------|--------------|
+| <img src="./figures/belt_tensioning.png" alt="Before" width="100%"/> | <img src="./figures/stepper_sizing.png" alt="After" width="73%"/> |
 
 ### Fliper design:
 
@@ -254,28 +317,31 @@ Stroke                       |            Spring
 
 ### Flipper parts:
 
-- **Linkage kinematics simulation**: Find key dimensions given constraints 
+- **Linkage kinematics simulation**: to obtain the dimensions of the mechanism, its kinematics have been simulated for many possible configurations, and the one that met a series of requirements was selected. For example, ensuring that the flipper, when retracted, does not collide with any balls that might be on the table.
 
-- **Flipper assembly**: 3D printed support for axis alignment and welding process 
+- **Flipper assembly**: to secure the wooden flipper to the steel shaft, Araldite was used, while the shaft was joined to the metal part through welding. 
 
+Flipper assembly           |            Flipper parts
+:-------------------------:|:-------------------------:
+<img src="./figures/flipper_1.png" alt="drawing" width="92%"/>|  <img src="./figures/flipper_2.png" alt="drawing" width="100%"/>
 
 
 ### Control and communications: 
 
-- Stepper motor
+- **Stepper motor**:
    - Accelstepper library
    - Pulse control: steps and direction
    - Stepper driver: DRV8825
    
-- Servomotor
+- **Servomotor**:
    - Dynamixel library: address writing 
    - Trapezoidal velocity profile
    - PID angular position
 
-- Solenoid
+- **Solenoid**:
    - Logic MOSFET circuit
 
-- PC interface
+- **PC interface**:
    - Arduino: serial communication 
    - USB communication converter 
 
@@ -288,7 +354,21 @@ SolidWorks                      |            Constructed
 :-------------------------:|:-------------------------:
 <img src="./figures/final_assembly_1.png" alt="drawing" width="100%"/>|  <img src="./figures/final_assembly_2.png" alt="drawing" width="100%"/>
 
-### System integration
+## System integration
+
+Find relationship between:
+
+- Outputs from the vision system: cue ball pixel coordinates `uc`, `vc`
+- Outputs from the shot selection algorithm: cue ball trajectory angle &theta;
+- Commands to be sent to the robot's actuators: `q1`, `q2`, `q3`
+
+
+Initially, it was necessary to study the kinematics of the Cartesian robot, observing the relationship between the motors' rotational movement and the linear displacement of the carriage. Then, by using a piece of cardboard and a marker, the relationship between the motor steps and the centimeters moved was determined.
+
+Secondly, the movement required to position the flipper beneath the white ball was analyzed, taking into account the offset with the axis of rotation. It was deduced that the white ball's position in pixels, and the cosine and sine of the flipper's angle, have a linear relationship with the steps of the motors. However, the angle of the flipper matches the position to which we need to move the servo motor.
+
+
+## Results
 
 TODO
 
@@ -301,12 +381,8 @@ TODO
     ```python
    import numpy as np
    import tensorflow as tf
-   from keras.preprocessing.sequence import TimeseriesGenerator
-   from hvac_control.data import load_data
-   from hvac_control.preprocessing import std_scaler_given_parameters
 
-   data_to_load = "gaia_data_1.csv" # larger dataset
-   data = load_data(data_to_load, data_type='processed')
+   test = 0
     ```
 
 </details>
