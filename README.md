@@ -88,6 +88,146 @@ Key measures:
 
 <img src="./figures/geometry_of_the_pool_shot.png" alt="drawing" width="50%"/>
 
+## Error analysis
+
+- **Objective**: determine the necessary resolution of the vision and actuation system
+- **Simulation**: two ball cut shots that include a unique error via uniform sampling
+- **Results**: analyze data with density plots to estimate success probability of sinking a ball
+
+<img src="./figures/error_analysis.png" alt="drawing" width="65%"/>
+
+- **Actuation system**: the resolution is expressed as a range of angles from which the cue ball can be propelled. 
+
+- **Vision system**: the resolution is defined by an uncertainty radius within which the predicted centers of the balls may vary. 
+
+In both scenarios, the deviation of the target ball is quantified by the delta error (see image below):
+
+<img src="./figures/error_analysis_resolution.png" alt="drawing" width="100%"/>
+
+Analyzing the data from the simulation reveals that the cut angle has a significant effect on the delta error, particularly when this angle is bigger tha 60º, the error increases exponentially. This is why the density plots have been studied separately according to the cut angle.
+
+<table>
+  <tr>
+    <th>Scatter plot</th>
+    <th colspan="4">Density plot</th>
+  </tr>
+  <tr>
+    <th>&delta; vs &gamma;</th>
+    <th>0 ≤ γ ≤ 90 </th>
+    <th>0 ≤ γ ≤ 30 </th>
+    <th>30 ≤ γ ≤ 60</th>
+    <th>60 ≤ γ ≤ 90</th>
+  </tr>
+  <tr>
+    <td><img src="./figures/plot_1.png" alt="drawing" width="100%"/></td>
+    <td><img src="./figures/plot_2.png" alt="drawing" width="100%"/></td>
+    <td><img src="./figures/plot_3.png" alt="drawing" width="100%"/></td>
+    <td><img src="./figures/plot_4.png" alt="drawing" width="100%"/></td>
+    <td><img src="./figures/plot_5.png" alt="drawing" width="100%"/></td>
+  </tr>
+</table>
+
+
+To calculate the probability of a ball being potted, one must compute the area under the curve of these diagrams between 0 and 10 mm of delta error, since the pockets approximately have a radius of 10 mm. Doing this for each of the resolutions studied, the results as a function of the cut angle are as shown in the tables. A glance at the probability values has led to the decision that the resolution of the vision system should be 0.5 mm or less, and that of the actuation system should be 0.25º or less.
+
+<table>
+  <tr>
+    <th colspan="5">Probability results for different vision system resolutions </th>
+  </tr>
+  <tr>
+    <th>Resolution</th>
+    <th>0 ≤ γ ≤ 90</th>
+    <th>0 ≤ γ ≤ 30</th>
+    <th>30 ≤ γ ≤ 60</th>
+    <th>60 ≤ γ ≤ 90</th>
+  </tr>
+  <tr>
+    <td>0.25 mm</td>
+    <td>0.86</td>
+    <td>0.98</td>
+    <td>0.93</td>
+    <td>0.67</td>
+  </tr>
+  <tr>
+    <td>0.5 mm</td>
+    <td>0.80</td>
+    <td>0.94</td>
+    <td>0.84</td>
+    <td>0.60</td>
+  </tr>
+  <tr>
+    <td>1 mm</td>
+    <td>0.73</td>
+    <td>0.85</td>
+    <td>0.75</td>
+    <td>0.54</td>
+  </tr>
+  <tr>
+    <td>1.5 mm</td>
+    <td>0.68</td>
+    <td>0.80</td>
+    <td>0.69</td>
+    <td>0.52</td>
+  </tr>
+  <tr>
+    <td>2 mm</td>
+    <td>0.66</td>
+    <td>0.76</td>
+    <td>0.65</td>
+    <td>0.50</td>
+  </tr>
+</table>
+
+<table>
+  <tr>
+    <th colspan="5">Probability results for different actuation system resolutions </th>
+  </tr>
+  <tr>
+    <th>Resolution</th>
+    <th>0 ≤ γ ≤ 90</th>
+    <th>0 ≤ γ ≤ 30</th>
+    <th>30 ≤ γ ≤ 60</th>
+    <th>60 ≤ γ ≤ 90</th>
+  </tr>
+  <tr>
+    <td>0.125°</td>
+    <td>0.87</td>
+    <td>0.99</td>
+    <td>0.93</td>
+    <td>0.66</td>
+  </tr>
+  <tr>
+    <td>0.25°</td>
+    <td>0.74</td>
+    <td>0.87</td>
+    <td>0.75</td>
+    <td>0.58</td>
+  </tr>
+  <tr>
+    <td>0.5°</td>
+    <td>0.62</td>
+    <td>0.72</td>
+    <td>0.63</td>
+    <td>0.45</td>
+  </tr>
+  <tr>
+    <td>0.75°</td>
+    <td>0.56</td>
+    <td>0.62</td>
+    <td>0.55</td>
+    <td>0.45</td>
+  </tr>
+  <tr>
+    <td>1°</td>
+    <td>0.48</td>
+    <td>0.53</td>
+    <td>0.48</td>
+    <td>0.38</td>
+  </tr>
+</table>
+
+
+
 ## Vision system
 
 ### Hardware
@@ -195,6 +335,16 @@ After comparing the results of both methods against a Ground Truth established b
 
 If the 68–95–99.7 rule is applied, from these results it can be deduced that in 95% of the cases an error below 6.3 and 3.6 pixels should be expected for the YOLO and classic algorithms, respectively. Considering a resolution of 0.25 mm/px, this is 1.5 and 0.9 mm, respectively.
 
+<details><summary><b>Results</b></summary>
+
+Detection of pool balls grouped closely together
+
+| Classic | YOLO |
+|----------|--------------|
+| <img src="./figures/classic_results.png" alt="Classic" width="100%"/> | <img src="./figures/yolo_results.png" alt="YOLO" width="100%"/> |
+
+</details>
+
 ## Shot selection 
 
 ### Analytic method
@@ -225,6 +375,15 @@ If the 68–95–99.7 rule is applied, from these results it can be deduced that
 $$
 \text{difficulty} = \frac{ab}{\cos^2 \gamma}
 $$
+
+<details><summary><b>Results</b></summary>
+
+| CTP | CTTP | CBTP | CTBP |
+|----------|--------------|---------|--------|
+| <img src="./figures/geomeric_solution_ctp.png" alt="CTP" width="100%"/> | <img src="./figures/geomeric_solution_cttp.png" alt="CTTP" width="100%"/> | <img src="./figures/geomeric_solution_cbtp.png" alt="CBTP" width="100%"/> | <img src="./figures/geomeric_solution_ctbp.png" alt="CTBP" width="100%"/> |
+
+</details>
+
 
 ### Simulation method
 
@@ -295,7 +454,7 @@ interactions:
 
 ### Fliper design:
 
-- **Why a flipper mechanism was developed?**: The cue ball impact subsystem was designed to be a flipper mechanism becasue, otherwise, the vertical postion of linear actuator had to be controlled:
+- **Why a flipper mechanism was developed?**: Because it requires one less degree of freedom, hence, on less motor.
 
 | 2 DOF | 1 DOF |
 |:------------:|:---------:|
@@ -360,32 +519,78 @@ Find relationship between:
 
 - Outputs from the vision system: cue ball pixel coordinates `uc`, `vc`
 - Outputs from the shot selection algorithm: cue ball trajectory angle &theta;
-- Commands to be sent to the robot's actuators: `q1`, `q2`, `q3`
+- Commands to be sent to the stepper motors: `q1`, `q2`; and the servomotor: `q3`
+
+### Robot kinematics
+
+- **Cartesian robot kinematics**: relationship between the stepper motors' rotational movement and the linear displacement of the carriage. 
+
+Stepper rotation vs. carriage movement   |            Steps vs. distance
+:-------------------------:|:-------------------------:
+<img src="./figures/h_bot_motion.png" alt="drawing" width="65%"/>|  <img src="./figures/steps_vs_distance_1.png" alt="drawing" width="100%"/>
+
+- **Evaluating flipper positioning**: The flipper has an offset relative to the axis of rotation.
+
+| Initial condition | Flipper rotation | Flipper translation |
+|:-----:|:-----:|:-----------------:|
+| <img src="./figures/flipper_positioning_1.png" alt="Initial condition" width="90%"/> | <img src="./figures/flipper_positioning_2.png" alt="Flipper rotation" width="90%"/> | <img src="./figures/flipper_positioning_3.png" alt="Flipper translation" width="90%"/> |
 
 
-Initially, it was necessary to study the kinematics of the Cartesian robot, observing the relationship between the motors' rotational movement and the linear displacement of the carriage. Then, by using a piece of cardboard and a marker, the relationship between the motor steps and the centimeters moved was determined.
+It was deduced that:
 
-Secondly, the movement required to position the flipper beneath the white ball was analyzed, taking into account the offset with the axis of rotation. It was deduced that the white ball's position in pixels, and the cosine and sine of the flipper's angle, have a linear relationship with the steps of the motors. However, the angle of the flipper matches the position to which we need to move the servo motor.
+- The cue ball's position in pixels (`uc`, `vc`), and the cosine and sine of the flipper's angle (&theta;), have a linear relationship with the steps of the motors (`q1`, `q2`). 
+
+- The flipper's angle (&theta;) directly corresponds to the position we need to set the servo motor to (`q3`).
+
+### Calibration procedure
+
+A calibration process was developed to experimentally determine the robot's inverse. This process involves:
+
+1. Move the carriage to six predetermined known positions. 
+2. For each of these positions, the servo motor must be moved to a random angle.
+3. Place an Aruco marker directly under the flipper, simulating where the cue ball would be located.
+
+| Predefined grid of points | Aruco under the flipper  | Final Aruco positions |
+|:-----:|:-----:|:-----------------:|
+| <img src="./figures/calibration_1.png" alt="Predefined grid of points" width="90%"/> | <img src="./figures/calibration_2.png" alt="Aruco under the flipper" width="90%"/> | <img src="./figures/calibration_3.png" alt="Final Aruco positions" width="90%"/> |
+
+By using the information from the Aruco markers' positions (`uc`, `vc`), as well as the positions of the carriage and the servo motor (`X_C`, `Y_C`, &theta;), a dataset can be created. This dataset allows for the adjustment of a linear regression model between the desired variables.
+
+$$
+X_c = A \cos \theta + B \sin \theta + C u_c + D v_c + E
+$$
+
+$$
+Y_c = F \cos \theta + G \sin \theta + H u_c + I v_c + J
+$$
+
+After computing the linear regression coefficients, the required motor steps can be determined via the inverse kinematics:
+
+$$
+\begin{bmatrix} q_1 \\\ q_2 \end{bmatrix} = 1/\lambda \begin{bmatrix} -1/2 & 1/2\\\ 1/2 & 1/2\end{bmatrix} \begin{bmatrix} X_C \\\ Y_C \end{bmatrix}
+$$
 
 
-## Results
 
-TODO
-
+## Results 
 
 
-<details><summary><b>Example of use</b></summary>
+20 cut shots (for cut angle less than 45º):
+ - 15 out of 20 successful shots (75% success rate)
+ - Cue ball trajectory: 
+   - Average deviation of 0.65º
+   - Standard deviation of 0.4º (max deviation of 1.2º)
 
-1. Import libraries and data:
+| Shot 1 |  Shot 2 |  Shot 3 |  Shot 4 |
+|----------|--------------|---------|--------|
+| <img src="./figures/shot_1.gif" alt="Shot 1" width="100%"/> | <img src="./figures/shot_2.gif" alt="Shot 2" width="100%"/> | <img src="./figures/shot_3.gif" alt="Shot 3" width="100%"/> | <img src="./figures/shot_4.gif" alt=" Shot 4" width="100%"/> |
 
-    ```python
-   import numpy as np
-   import tensorflow as tf
+The results were obtained using video analysis of the cue ball trajectory:
+- Camera: smartphone top down view
+- Ball tracking: MOG
+- Cue path angle: GIMP
 
-   test = 0
-    ```
+Top down view                      |            MOG results
+:-------------------------:|:-------------------------:
+<img src="./figures/video_analysis_1.png" alt="drawing" width="100%"/>|  <img src="./figures/video_analysis_2.png" alt="drawing" width="100%"/>
 
-</details>
-
-
-[a relative link](examples/actuators/dynamixel_and_stepper_control.py)
