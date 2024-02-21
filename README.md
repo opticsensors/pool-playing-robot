@@ -5,7 +5,7 @@ Design and implementation of a robot that plays the game of pool autonomously. T
 - **Shot selection**: algorithms to find the *best* shot given the balls configuration and pool table dimensions
 - **Actuation system**: how to send commands to the actuators and the mechanical parts to make the execution of pool shots possible
 
-## Getting started
+## 1. Getting started
 
 Run the following command for clonning the repository from GitHub:
 
@@ -39,7 +39,7 @@ Then:
    ```
 
 
-## Directory structure
+## 2. Directory structure
 The project follows this tree structure:
 
 ```
@@ -76,7 +76,7 @@ The project follows this tree structure:
 
 ```
 
-## Geometry of a pool shot
+## 3. Geometry of a pool shot
 
 For the target ball `T` to pass through point `P`, the center of the pocket, the cue ball `C` must strike point `X`. 
 
@@ -88,7 +88,7 @@ Key measures:
 
 <img src="./figures/geometry_of_the_pool_shot.png" alt="drawing" width="50%"/>
 
-## Error analysis
+## 4. Error analysis
 
 - **Objective**: determine the necessary resolution of the vision and actuation system
 - **Simulation**: two ball cut shots that include a unique error via uniform sampling
@@ -228,9 +228,9 @@ To calculate the probability of a ball being potted, one must compute the area u
 
 
 
-## Vision system
+## 5. Vision system
 
-### Hardware
+### 5.1 Hardware
 
 The hardware includes both the camera and its mounting support. The final setup is shown here:
 
@@ -276,9 +276,9 @@ To select the right camera, I conducted a resolution test on four different came
 
 
 
-### Software
+### 5.2 Software
 
-#### Preprocessing
+#### 5.2.1 Preprocessing
 
 - **Lens correction**: prevents straight lines from appearing curved.
 
@@ -303,13 +303,13 @@ To select the right camera, I conducted a resolution test on four different came
 | <img src="./figures/camera_calibration_1.png" alt="2 DOF" width="100%"/> | <img src="./figures/camera_calibration_2.png" alt="2 DOF" width="100%"/> | <img src="./figures/camera_calibration_3.png" alt="2 DOF" width="100%"/> | [...]
 
 
-#### YOLOv8
+#### 5.2.2 YOLOv8
 
 This approach uses the YOLO (version 8 by Ultralytics) detection algorithm, where the image is processed through a CNN, resulting in predictions in the form of rectangles.
 
 <img src="./figures/yolo_algorithm.png" alt="drawing" width="100%"/>
 
-#### Classic approach
+#### 5.2.3 Classic approach
 
 This method employs a set of classic computer vision techniques: color segmentation, morphological operations, the watershed algorithm and color transformation. 
 
@@ -317,7 +317,7 @@ This method employs a set of classic computer vision techniques: color segmentat
 
 
 
-#### Comparison of the results
+#### 5.2.4 Comparison of the results
 
 After comparing the results of both methods against a Ground Truth established by me, it was observed that the classic method is more accurate, but less robust in situations where the balls are very close to each other. 
 
@@ -345,9 +345,9 @@ Detection of pool balls grouped closely together
 
 </details>
 
-## Shot selection 
+## 6. Shot selection 
 
-### Analytic method
+### 6.1 Analytic method
 
 - **Pool table geometry simplification**: to simplify the computation of rebounds.
 
@@ -385,7 +385,7 @@ $$
 </details>
 
 
-### Simulation method
+### 6.2 Simulation method
 
 - **2D simulation & render**: Pymunk, Pygame
 - **Brute force**: every angle is simulated (incr. 0.1º)
@@ -394,7 +394,7 @@ $$
 <img src="./figures/simulation.gif" alt="drawing" width="60%"/>
 
 
-## Actuation system: 
+## 7. Actuation system: 
 
 The pool robot is divided in 2 subsystems:
 
@@ -452,7 +452,7 @@ interactions:
 |----------|--------------|
 | <img src="./figures/belt_tensioning.png" alt="Before" width="100%"/> | <img src="./figures/stepper_sizing.png" alt="After" width="73%"/> |
 
-### Fliper design:
+### 7.1 Fliper design:
 
 - **Why a flipper mechanism was developed?**: Because it requires one less degree of freedom, hence, on less motor.
 
@@ -474,7 +474,7 @@ Stroke                       |            Spring
 <img src="./figures/solenoid_stroke.png" alt="drawing" width="100%"/>|  <img src="./figures/spring.png" alt="drawing" width="100%"/>
 
 
-### Flipper parts:
+### 7.2 Flipper parts:
 
 - **Linkage kinematics simulation**: to obtain the dimensions of the mechanism, its kinematics have been simulated for many possible configurations, and the one that met a series of requirements was selected. For example, ensuring that the flipper, when retracted, does not collide with any balls that might be on the table.
 
@@ -485,7 +485,7 @@ Flipper assembly           |            Flipper parts
 <img src="./figures/flipper_1.png" alt="drawing" width="92%"/>|  <img src="./figures/flipper_2.png" alt="drawing" width="100%"/>
 
 
-### Control and communications: 
+### 7.3 Control and communications: 
 
 - **Stepper motor**:
    - Accelstepper library
@@ -505,7 +505,7 @@ Flipper assembly           |            Flipper parts
    - USB communication converter 
 
 
-### Final prototype:
+### 7.4 Final prototype:
 
 The cartesian robot is supported by a wooden frame, and the flipper is held in place thanks to the sliding wheel element of the central bar, which is inverted.
 
@@ -513,7 +513,7 @@ SolidWorks                      |            Constructed
 :-------------------------:|:-------------------------:
 <img src="./figures/final_assembly_1.png" alt="drawing" width="100%"/>|  <img src="./figures/final_assembly_2.png" alt="drawing" width="100%"/>
 
-## System integration
+## 8. System integration
 
 Find relationship between:
 
@@ -521,7 +521,7 @@ Find relationship between:
 - Outputs from the shot selection algorithm: cue ball trajectory angle &theta;
 - Commands to be sent to the stepper motors: `q1`, `q2`; and the servomotor: `q3`
 
-### Robot kinematics
+### 8.1 Robot kinematics
 
 - **Cartesian robot kinematics**: relationship between the stepper motors' rotational movement and the linear displacement of the carriage. 
 
@@ -542,7 +542,7 @@ It was deduced that:
 
 - The flipper's angle (&theta;) directly corresponds to the position we need to set the servo motor to (`q3`).
 
-### Calibration procedure
+### 8.2 Calibration procedure
 
 A calibration process was developed to experimentally determine the robot's inverse. This process involves:
 
@@ -572,7 +572,7 @@ $$
 
 
 
-## Results 
+## 9. Results 
 
 
 20 cut shots (for cut angle less than 45º):
