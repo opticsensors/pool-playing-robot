@@ -94,7 +94,11 @@ Key measures:
 
 The hardware includes both the camera and its mounting support. The final setup is shown here:
 
-<img src="./figures/vision_system.png" alt="drawing" width="70%"/>
+
+| Top view | Side view |
+|:------------:|:---------:|
+| <img src="./figures/vision_system_1.png" alt="Top view" width="80%"/> | <img src="./figures/vision_system_2.png" alt="Side view" width="80%"/> |
+
 
 To select the right camera, I conducted a resolution test on four different cameras I had at home: a smartphone camera, a Raspberry Pi camera, a DSLR, and a webcam. Based on the results and ease of connectivity with a PC, the final selection was the DSLR camera:
 
@@ -106,13 +110,20 @@ To select the right camera, I conducted a resolution test on four different came
 
 - **Lens correction**: prevents straight lines from appearing curved.
 
-<img src="./figures/lens_correction.png" alt="drawing" width="100%"/>
+
+| **Before**   | <img src="./figures/lens_correction_1.png" alt="drawing" width="100%"/>       |
+|----------------|-----------------|
+| **After**   | <img src="./figures/lens_correction_2.png" alt="drawing" width="100%"/>     |
+
 
 - **Homography**: Transforms the image so that its corners align with those of the pool table.
 
-<img src="./figures/homography.png" alt="drawing" width="100%"/>
 
-- **Camera calibration**: Computes the intrinsic camera parameters.
+| Before | After |
+|----------|--------------|
+| <img src="./figures/homography_1.png" alt="Before" width="100%"/> | <img src="./figures/homography_2.png" alt="After" width="100%"/> |
+
+- **Camera calibration**: Computes the intrinsic camera parameters using images of a checkerborad pattern.
 
 <img src="./figures/camera_calibration.png" alt="drawing" width="100%"/>
 
@@ -238,7 +249,7 @@ Pool robot subsystems
 
 Stroke                       |            Spring
 :-------------------------:|:-------------------------:
-<img src="./figures/solenoid_stroke.png" alt="drawing" width="7100%"/>|  <img src="./figures/spring.png" alt="drawing" width="100%"/>
+<img src="./figures/solenoid_stroke.png" alt="drawing" width="100%"/>|  <img src="./figures/spring.png" alt="drawing" width="100%"/>
 
 
 ### Flipper parts:
@@ -273,12 +284,13 @@ Stroke                       |            Spring
 
 The cartesian robot is supported by a wooden frame, and the flipper is held in place thanks to the sliding wheel element of the central bar, which is inverted.
 
-<img src="./figures/final_assembly.png" alt="drawing" width="100%"/>
-
+SolidWorks                      |            Constructed
+:-------------------------:|:-------------------------:
+<img src="./figures/final_assembly_1.png" alt="drawing" width="100%"/>|  <img src="./figures/final_assembly_2.png" alt="drawing" width="100%"/>
 
 ### System integration
 
-
+TODO
 
 
 
